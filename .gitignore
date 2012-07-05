@@ -1,0 +1,12 @@
+*~
+*.o
+*.mod
+*.lst
+*.so
+*_cuda.cu*
+*.log
+hmpp*.cu
+*.hmf
+*.hmd
+*.tgz
+

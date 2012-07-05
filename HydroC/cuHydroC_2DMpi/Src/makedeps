@@ -1,0 +1,16 @@
+#!/bin/sh
+# set -x
+# This script scan all the source files to generate the dependencies
+
+for i in *.c ; do
+    gcc $CFLAGS -M  $i -o cc$$.txt
+    dependre cc$$.txt
+done
+
+for i in *.cu ; do
+    nvcc $NVCFLAGS  -M  $i -o cc$$.txt
+    dependre cc$$.txt
+done
+
+rm cc$$.txt
+#EOF
