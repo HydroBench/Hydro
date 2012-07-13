@@ -1,0 +1,18 @@
+#!/bin/sh
+
+RUNDIR=${HOME}/ptmp/Github/HydroC/oclHydroC_1D
+EXEDIR=${PWD}/../Src/
+INPDIR=${PWD}/../../../Input
+RUNCMD="ccc_mprun -p hybrid -n 1 -N 1 -x "
+
+mkdir -p ${RUNDIR}
+
+# WARNING: this version of the code requires to have the .cl file in
+# the current directory
+cp ${EXEDIR}/hydro_kernels.cl ${RUNDIR}
+cp ${EXEDIR}/oclparam.h ${RUNDIR}
+
+cd ${RUNDIR}
+${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
+
+#EOF
