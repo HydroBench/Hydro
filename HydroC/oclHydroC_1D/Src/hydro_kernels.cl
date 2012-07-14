@@ -42,6 +42,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #endif
 
+#ifdef INTEL
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#endif
+
+
 #include "oclparam.h"
 
 #define ID     (0)

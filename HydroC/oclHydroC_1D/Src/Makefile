@@ -1,7 +1,7 @@
 # Link make.inc with the targeted architecture in Arch directory
-# For example : ln -s make_sp6 make.inc
+# For example : ln -s ../../../Arch/make_sp6 make.inc
 #--------------------------------------
-include ../../../Arch/make.inc
+include make.inc
 
 # OpenMP options
 #---------------
@@ -48,4 +48,4 @@ include alldeps.d
 # only if you have added new files (either .c .cu or .h)
 
 alldeps.d: $(SRC)
-	env CFLAGS='$(CFLAGS)' NVCFLAGS='$(NVCFLAGS)' makedeps > alldeps.d
+	env CFLAGS='$(CFLAGS)' NVCFLAGS='$(NVCFLAGS)' ./makedeps > alldeps.d

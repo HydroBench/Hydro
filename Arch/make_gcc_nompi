@@ -1,0 +1,62 @@
+# C compiler
+#------------------
+CC = gcc
+
+# Cuda compiler
+#------------------
+NVCC = 
+
+# Fortran compilers
+#------------------
+F90 = 
+
+# MPI C compiler
+#------------------
+MPICC = 
+
+# MPI Fortran compilers
+#------------------
+MPIF90 = 
+
+# C compilation options
+#-----------------------------
+CFLAGS = -O3 -march=corei7-avx
+
+# Fortran compilation options
+#-----------------------------
+FFLAGS = -O3
+
+# Linker options
+#---------------
+LDFLAGS = -O3
+
+# OpenMP C compilation options
+#---------------------------
+CFLAGS_OMP = -fopenmp
+
+# Cuda compilation options
+#---------------------------
+NVCFLAGS_OMP = 
+
+# OpenMP Fortran compilation options
+#---------------------------
+FFLAGS_OMP = -fopenmp
+
+# MPI C compilation options
+#---------------------------
+MPIROOT=
+CFLAGS_MPI =
+NVCFLAGS_MPI =
+
+
+# MPI Fortran compilation options
+#---------------------------
+FFLAGS_MPI =
+
+# OpenMP link options
+#--------------------
+LDFLAGS_OMP = -fopenmp -lm
+
+# MPI link options
+#--------------------
+LDFLAGS_MPI =

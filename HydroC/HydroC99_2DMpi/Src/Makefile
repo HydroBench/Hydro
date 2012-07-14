@@ -1,7 +1,7 @@
 # Link make.inc with the targeted architecture in Arch directory
 # For example : ln -s make_sp6 make.inc
 #--------------------------------------
-include ../../../Arch/make.inc
+include make.inc
 
 # OpenMP options
 #---------------
@@ -24,7 +24,7 @@ SRC=SplitSurface.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_o
 
 
 hydro:  $(OBJ)
-	$(CC) $(LDFLAGS) $(OBJ) -o hydro
+	$(CC) $(OBJ) -o hydro $(LDFLAGS) 
 
 clean:
 	rm -f *.o *~
@@ -48,4 +48,4 @@ include alldeps.d
 # only if you have added new files (either .c .cu or .h)
 
 #alldeps.d: $(SRC)
-#	env CFLAGS='$(CFLAGS)' makedeps > alldeps.d
+#	env CFLAGS='$(CFLAGS)' ./makedeps > alldeps.d

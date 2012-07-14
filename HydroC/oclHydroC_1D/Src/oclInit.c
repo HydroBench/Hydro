@@ -163,18 +163,25 @@ oclInitCode()
 
   devselected = -1;
   for (platformselected = 0; platformselected < nbplatf; platformselected++) {
+
+#if defined(INTEL)
+    // The current Linux OpenCL by Intel is available for CPU only.
+#define CPUVERSION 1
+#else
 #define CPUVERSION 0
+#endif
+
 #if CPUVERSION == 0
     nbgpu = oclGetNbOfGpu(platformselected);
     if (nbgpu > 0) {
-      printf("Building a GPU version\n");
+      fprintf(stderr, "Building a GPU version\n");
       devselected = oclGetGpuDev(platformselected, 0);
       break;
     }
 #else
     nbcpu = oclGetNbOfCpu(platformselected);
     if (nbcpu > 0) {
-      printf("Building a CPU version\n");
+      fprintf(stderr, "Building a CPU version\n");
       devselected = oclGetCpuDev(platformselected, 0);
       break;
     }

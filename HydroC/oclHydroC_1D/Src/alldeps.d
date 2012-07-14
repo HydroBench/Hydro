@@ -13,6 +13,7 @@ oclComputeDeltat.o: oclComputeDeltat.c parametres.h oclComputeDeltat.h oclHydroG
 oclConservar.o: oclConservar.c parametres.h utils.h oclConservar.h oclInit.h ocltools.h oclerror.h 
 oclConstoprim.o: oclConstoprim.c parametres.h utils.h oclConstoprim.h oclInit.h ocltools.h oclerror.h 
 oclEquationOfState.o: oclEquationOfState.c oclEquationOfState.h utils.h parametres.h oclInit.h ocltools.h oclerror.h 
+oclerror.o: oclerror.c oclerror.h 
 oclHydroGodunov.o: oclHydroGodunov.c parametres.h hydro_funcs.h utils.h make_boundary.h cmpflx.h conservar.h equation_of_state.h qleftright.h constoprim.h riemann.h trace.h slope.h oclInit.h ocltools.h oclerror.h oclHydroGodunov.h oclConservar.h oclConstoprim.h oclSlope.h oclTrace.h oclEquationOfState.h oclQleftright.h oclRiemann.h oclCmpflx.h oclMakeBoundary.h 
 oclInit.o: oclInit.c oclInit.h ocltools.h oclerror.h 
 oclMakeBoundary.o: oclMakeBoundary.c parametres.h oclMakeBoundary.h utils.h oclInit.h ocltools.h oclerror.h 
@@ -20,9 +21,8 @@ oclQleftright.o: oclQleftright.c parametres.h utils.h oclQleftright.h oclInit.h 
 oclReduce.o: oclReduce.c oclReduce.h oclInit.h ocltools.h oclerror.h 
 oclRiemann.o: oclRiemann.c parametres.h utils.h oclRiemann.h oclInit.h ocltools.h oclerror.h 
 oclSlope.o: oclSlope.c parametres.h utils.h oclSlope.h oclInit.h ocltools.h oclerror.h 
-oclTrace.o: oclTrace.c parametres.h utils.h oclTrace.h oclInit.h ocltools.h oclerror.h 
-oclerror.o: oclerror.c oclerror.h 
 ocltools.o: ocltools.c ocltools.h oclerror.h 
+oclTrace.o: oclTrace.c parametres.h utils.h oclTrace.h oclInit.h ocltools.h oclerror.h 
 parametres.o: parametres.c parametres.h 
 qleftright.o: qleftright.c parametres.h utils.h qleftright.h 
 riemann.o: riemann.c parametres.h utils.h riemann.h 

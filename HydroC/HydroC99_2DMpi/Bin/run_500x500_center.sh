@@ -8,6 +8,6 @@ INPDIR=${PWD}/../../../Input
 
 mkdir -p ${RUNDIR}
 cd ${RUNDIR}
-${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
+${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_center.nml 
 
 #EOF

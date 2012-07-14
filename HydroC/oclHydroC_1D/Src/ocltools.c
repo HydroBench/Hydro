@@ -301,6 +301,11 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   // strcat(options, "-cl-nv-opt-level 3 ");
   // strcat(options, "-O3 ");
 #endif
+#if INTEL==1
+  strcat(options, "-DINTEL ");
+  // strcat(options, "-cl-nv-opt-level 3 ");
+  strcat(options, "-g ");
+#endif
   if (pdesc[theplatform].devdesc[thedev].fpdp) {
     strcat(options, "-DHASFP64 ");
   }

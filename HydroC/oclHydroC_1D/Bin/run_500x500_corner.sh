@@ -1,9 +1,9 @@
 #!/bin/sh
-
+set -x
 RUNDIR=${HOME}/ptmp/Github/HydroC/oclHydroC_1D
 EXEDIR=${PWD}/../Src/
 INPDIR=${PWD}/../../../Input
-RUNCMD="ccc_mprun -p hybrid -n 1 -N 1 -x "
+# RUNCMD="ccc_mprun -p hybrid -n 1 -N 1 -x "
 
 mkdir -p ${RUNDIR}
 
