@@ -1,0 +1,33 @@
+This is the CUDA version of the Hydro benchmark.
+------------------------------------------------
+
+Guillaume Colin de Verdiere
+July 5th, 2012
+
+
+Compilation
+-----------
+
+1) adapt the ../../../Arch/make.inc file to your local system
+2) to generate the code: make clean hydro
+
+if you have modified or added any .h .c .cu file you probably want to
+rebuild the dependecies. See the last line of the Makefile. You may
+have to adapt the two scripts "dependre" and "makedeps" to fit to your
+local system.
+
+Running a test case
+-------------------
+
+Go in the ../Bin directory 
+
+Adapt one of the run*.sh files to your need.  
+
+Please pay attention that the produced output can be rather
+bulky. Your probably want to make sure that RUNDIR points to a file
+system with enough space.
+
+
+Miscellaneous
+-------------
+The CeCILL license can be found in the License.txt file

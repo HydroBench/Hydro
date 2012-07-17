@@ -42,7 +42,6 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "hydro_funcs.h"
 #include "vtkfile.h"
 #include "oclComputeDeltat.h"
-#include "hydro_godunov.h"
 #include "oclHydroGodunov.h"
 #include "utils.h"
 #include "oclInit.h"
@@ -72,7 +71,7 @@ main(int argc, char **argv)
   oclInitCode();
 
   hydro_init(&H, &Hv);
-  PRINTUOLD(H, &Hv);
+  PRINTUOLD(stdout, H, &Hv);
 
   oclAllocOnDevice(H);
   // Allocate work space for 1D sweeps

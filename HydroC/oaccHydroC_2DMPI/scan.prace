@@ -1,0 +1,93 @@
+#!/bin/sh
+
+# nx=500
+# max_nx=10001
+# for i in 1  ; do
+#     n=500
+#     while [ $nx -le $max_nx ] ; do
+# 	cat > input <<EOF
+# This namelist contains various input parameters for HYDRO runs
+
+# &RUN
+# tend=100
+# # noutput=10
+# nstepmax=2
+# dtoutput=1.
+# /
+
+# &MESH
+# nx=$nx
+# ny=$nx
+# nxystep=$n
+# prt=0
+# dx=0.05
+# boundary_left=1
+# boundary_right=1
+# boundary_down=1
+# boundary_up=1
+# /
+
+# &HYDRO
+# courant_factor=0.8
+# niter_riemann=10
+# /
+# EOF
+
+# 	j=1
+# 	echo " ends nx=$nx step=$n proc=$i"
+# 	make run N="$i"
+#         #make run N="-n$i -N$j -x"
+
+# 	nx=`expr $nx \+ 500`
+
+#     done
+# done
+
+
+# #EOF
+
+
+nx=8000
+for i in 1  ; do
+    n=2000
+    while [ $n -ge 1 ] ; do
+	cat > input <<EOF
+This namelist contains various input parameters for HYDRO runs
+
+&RUN
+tend=100
+# noutput=10
+nstepmax=2
+dtoutput=1.
+/
+
+&MESH
+nx=$nx
+ny=$nx
+nxystep=$n
+prt=0
+dx=0.05
+boundary_left=1
+boundary_right=1
+boundary_down=1
+boundary_up=1
+/
+
+&HYDRO
+courant_factor=0.8
+niter_riemann=10
+/
+EOF
+
+	j=1
+	echo " ends nx=$nx step=$n proc=$i"
+	make run N="$i"
+        #make run N="-n$i -N$j -x"
+
+	n=`expr $n \- 200`
+
+    done
+done
+
+
+#EOF

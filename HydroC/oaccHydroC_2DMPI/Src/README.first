@@ -1,0 +1,21 @@
+This version of HydroC is the OpenACC port.
+
+As of 17/07/2012 it is not yet MPI validated so please consider it as
+a single process.
+
+Adapt the Makefile to reflect your local installation.
+
+The input is controlled by the -i flag. The "input" file contains a
+standard test case.  Be aware that if you increase nx and/or ny, the
+outputs can be rather bulky (Dep folder produced in the run
+directory).
+
+The rhythm of output dumps can be controlled either in physical time
+(dtoutput) or in time step number (noutput)
+
+The duration of the simulation is controlled either in physical time
+(tend) or in number of iteration (nstepmax). The programs stops when
+one of those criterion is met.
+
+
+Enjoy.
