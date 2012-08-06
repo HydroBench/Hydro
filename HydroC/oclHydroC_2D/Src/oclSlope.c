@@ -7,31 +7,31 @@
 
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -47,26 +47,19 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "ocltools.h"
 
 void
-oclSlope(cl_mem q, cl_mem dq, const long narray, const long Hnvar, const long Hnxyt, const double slope_type)
+oclSlope(const long narray, const long Hnvar, 
+	 const long Hnxyt, const double slope_type,
+	 const int slices,
+	 cl_mem q, cl_mem dq 
+	 )
 {
   long ijmin, ijmax;
 
   WHERE("slope");
   ijmin = 0;
   ijmax = narray;
-  //   SetBlockDims(((ijmax - 1) - (ijmin + 1)) * Hnvar, THREADSSZ, block, grid);
-  //   LoopKcuSlope <<< grid, block >>> (q, dq, Hnvar, Hnxyt, slope_type, ijmin, ijmax);
-  //   CheckErr("LoopKcuSlope");
-  //   cudaThreadSynchronize();
-  OCLINITARG;
-  OCLSETARG(ker[LoopKcuSlope], q);
-  OCLSETARG(ker[LoopKcuSlope], dq);
-  OCLSETARG(ker[LoopKcuSlope], Hnvar);
-  OCLSETARG(ker[LoopKcuSlope], Hnxyt);
-  OCLSETARG(ker[LoopKcuSlope], slope_type);
-  OCLSETARG(ker[LoopKcuSlope], ijmin);
-  OCLSETARG(ker[LoopKcuSlope], ijmax);
-  oclLaunchKernel(ker[LoopKcuSlope], cqueue, ((ijmax - 1) - (ijmin + 1)) * Hnvar, THREADSSZ);
+  OCLSETARG07(ker[LoopKcuSlope], q, dq, Hnvar, Hnxyt, slope_type, ijmin, ijmax);
+  oclLaunchKernel(ker[LoopKcuSlope], cqueue, Hnxyt * Hnvar, THREADSSZ);
 }                               // slope
 
 #undef IHVW

@@ -41,6 +41,8 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void
   oclQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt,
-                const long Hnvar, cl_mem qxmDEV, cl_mem qxpDEV, cl_mem qleftDEV, cl_mem qrightDEV);
+                const long Hnvar, 
+		const int slices, const int Hstep,
+		cl_mem qxmDEV, cl_mem qxpDEV, cl_mem qleftDEV, cl_mem qrightDEV);
 
 #endif // QLEFTRIGHT_H_INCLUDED

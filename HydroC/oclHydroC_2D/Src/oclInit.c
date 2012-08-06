@@ -144,6 +144,10 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[LoopKredMaxDble], reduceMaxDble);
   CREATEKER(pgm, ker[KernelMemset], KernelMemset);
   CREATEKER(pgm, ker[KernelMemsetV4], KernelMemsetV4);
+  CREATEKER(pgm, ker[kpack_arrayv], kpack_arrayv);
+  CREATEKER(pgm, ker[kunpack_arrayv], kunpack_arrayv);
+  CREATEKER(pgm, ker[kpack_arrayh], kpack_arrayh);
+  CREATEKER(pgm, ker[kunpack_arrayh], kunpack_arrayh);
 }
 
 void

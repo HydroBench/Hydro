@@ -55,53 +55,23 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void
 oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
-                   const double Hsmallr, const long Hnx, const long Hnxt, const long Hnyt, const long Hnxyt)
+                   const double Hsmallr, const long Hnx, const long Hnxt, 
+		   const long Hnyt, const long Hnxyt)
 {
   cl_int err = 0;
   dim3 gws, lws;
   cl_event event;
   double elapsk;
 
-  oclMkNDrange(Hnx, THREADSSZ, NDR_1D, gws, lws);
-  oclSetArg(ker[LoopKQEforRow], 0, sizeof(j), &j);
-  oclSetArg(ker[LoopKQEforRow], 1, sizeof(uold), &uold);
-  oclSetArg(ker[LoopKQEforRow], 2, sizeof(q), &q);
-  oclSetArg(ker[LoopKQEforRow], 3, sizeof(e), &e);
-  oclSetArg(ker[LoopKQEforRow], 4, sizeof(Hsmallr), &Hsmallr);
-  oclSetArg(ker[LoopKQEforRow], 5, sizeof(Hnxt), &Hnxt);
-  oclSetArg(ker[LoopKQEforRow], 6, sizeof(Hnyt), &Hnyt);
-  oclSetArg(ker[LoopKQEforRow], 7, sizeof(Hnxyt), &Hnxyt);
-  oclSetArg(ker[LoopKQEforRow], 8, sizeof(Hnx), &Hnx);
-
-  // LoopKQEforRow <<< grid, block >>> (j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx);
-  err = clEnqueueNDRangeKernel(cqueue, ker[LoopKQEforRow], 1, NULL, gws, lws, 0, NULL, &event);
-  oclCheckErr(err, "clEnqueueNDRangeKernel LoopKQEforRow");
-  err = clWaitForEvents(1, &event);
-  oclCheckErr(err, "clWaitForEvents");
-  elapsk = oclChronoElaps(event);
-  err = clReleaseEvent(event);
-  oclCheckErr(err, "clReleaseEvent");
+  OCLSETARG09(ker[LoopKQEforRow], j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx);
+  elapsk = oclLaunchKernel(ker[LoopKQEforRow], cqueue, Hnx, THREADSSZ);
 }
 
 void
 oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_mem q, double Hsmallc)
 {
-//     dim3 grid, block;
-//     SetBlockDims(Hnx, THREADSSZ, block, grid);
-//     LoopKcourant <<< grid, block >>> (q, courant, Hsmallc, c, Hnxyt, Hnx);
-//     CheckErr("courantOnXY");
-//     cudaThreadSynchronize();
-//     CheckErr("courantOnXY");
   double elapsk;
-  OCLINITARG;
-
-  OCLSETARG(ker[LoopKcourant], q);
-  OCLSETARG(ker[LoopKcourant], courant);
-  OCLSETARG(ker[LoopKcourant], Hsmallc);
-  OCLSETARG(ker[LoopKcourant], c);
-  OCLSETARG(ker[LoopKcourant], Hnxyt);
-  OCLSETARG(ker[LoopKcourant], Hnx);
-
+  OCLSETARG06(ker[LoopKcourant], q, courant, Hsmallc, c, Hnxyt, Hnx);
   elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ);
 }
 
@@ -116,6 +86,7 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   cl_int err = 0;
   long offsetIP = IHVW(0, IP);
   long offsetID = IHVW(0, ID);
+  int slices = 1;
 
   WHERE("compute_deltat");
 
@@ -128,30 +99,20 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   courantDEV = clCreateBuffer(ctx, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, Hnxyt * sizeof(double), lcourant, &err);
   oclCheckErr(err, "clCreateBuffer");
 
-//     status = cudaMalloc((void **) &courantDEV, H.nxyt * sizeof(double));
-//     VERIF(status, "cudaMalloc cuComputeDeltat");
-//     status = cudaMemset(courantDEV, 0, H.nxyt * sizeof(double));
-//     VERIF(status, "cudaMemset cuComputeDeltat");
-
   for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
     oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt);
-    oclEquationOfState(qDEV, eDEV, cDEV, offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma);
+    oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, qDEV, eDEV, cDEV);
     // on calcule courant pour chaque cellule de la ligne pour tous les j
     oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc);
   }
-
-  // err = clEnqueueReadBuffer(cqueue, courantDEV, CL_TRUE, 0, H.nx * sizeof(double), lcourant, 0, NULL, NULL);
-
 
   // on cherche le max global des max locaux
   maxCourant = oclReduceMax(courantDEV, H.nx);
 
   *dt = H.courant_factor * H.dx / maxCourant;
   err = clReleaseMemObject(courantDEV);
-  free(lcourant);
   oclCheckErr(err, "clReleaseMemObject");
-
-  // fprintf(stdout, "%g %g %g %g\n", cournox, cournoy, H.smallc, H.courant_factor);
+  free(lcourant);
 }                               // compute_deltat
 
 

@@ -55,18 +55,32 @@ oclReduceMax(cl_mem array, long nb)
   cl_int err;
   long bs = 64;
   double resultat = 0;
-  cl_mem temp1;
+  cl_mem temp1DEV;
+  size_t gws[3], lws[3];
+  int wrksiz, wrkgrp;
+  size_t lgrlocal;
 
-  temp1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(double), NULL, &err);
+  temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(double), NULL, &err);
   oclCheckErr(err, "");
 
-  OCLSETARG03(ker[LoopKredMaxDble], array, nb, temp1);
-  oclLaunchKernel(ker[LoopKredMaxDble], cqueue, nb, bs);
+  wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble],  oclGetDeviceOfCQueue(cqueue));
+  wrkgrp = (nb < wrkgrp)? nb: wrkgrp;
+  lws[0] = wrkgrp; gws[0] = wrkgrp;
+  lgrlocal =  wrkgrp * sizeof(double);
 
-  err = clEnqueueReadBuffer(cqueue, temp1, CL_TRUE, 0, sizeof(double), &resultat, 0, NULL, NULL);
+  OCLSETARG03(ker[LoopKredMaxDble], array, nb, temp1DEV);
+  oclSetArg(ker[LoopKredMaxDble], 3, lgrlocal, NULL, __FILE__, __LINE__);
+
+  err = clEnqueueNDRangeKernel(cqueue, ker[LoopKredMaxDble], 1, NULL, gws, lws, 0, NULL, &event);
+  oclCheckErr(err, "clEnqueueNDRangeKernel");
+  err = clWaitForEvents(1, &event); oclCheckErr(err, "clWaitForEvents");
+  // elapsk = oclChronoElaps(event);
+  err = clReleaseEvent(event); oclCheckErr(err, "clReleaseEvent");
+
+  err = clEnqueueReadBuffer(cqueue, temp1DEV, CL_TRUE, 0, sizeof(double), &resultat, 0, NULL, NULL);
   oclCheckErr(err, "clEnqueueReadBuffer");
 
-  err = clReleaseMemObject(temp1);
+  err = clReleaseMemObject(temp1DEV);
   return resultat;
 }
 

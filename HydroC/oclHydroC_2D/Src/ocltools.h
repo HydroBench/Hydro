@@ -54,7 +54,7 @@ typedef size_t dim3[3];
 
 #define OCLINITARG cl_uint narg = 0
 #define OCLRESETARG narg = 0
-#define OCLSETARG(k, a) do { oclSetArg((k), narg, sizeof((a)), &(a)); narg++; } while(0);
+#define OCLSETARG(k, a) do { oclSetArg((k), narg, sizeof((a)), &(a), __FILE__, __LINE__); narg++; } while(0);
 
 #define OCLSETARG01(k, a) { OCLINITARG ; OCLSETARG((k), (a)) ; }
 #define OCLSETARG02(k, a, b) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; }
@@ -122,8 +122,8 @@ extern "C" {
   size_t oclGetMaxWorkSize(cl_kernel k, cl_device_id d);
   size_t oclGetMaxMemAllocSize(int theplatform, int thedev);
   int oclFp64Avail(int theplatform, int thedev);
-  void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg);
-  void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l);
+  void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg, const char * file, const int line);
+  void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l, const char * file, const int line);
   double oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread);
   void oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *maxth, long *nbblocks);
 #ifdef __cplusplus
