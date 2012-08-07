@@ -167,14 +167,14 @@ oclRiemann(const long narray,
   K = clCreateBuffer(ctx, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(k), &k, &err);
   oclCheckErr(err, "clCreateBuffer");
 
-  OCLSETARG10(ker[Loop1KcuRiemann], k.qleft, k.qright, k.sgnm, k.qgdnv, k.Hnxyt, k.narray, k.Hsmallc, k.Hgamma, k.Hsmallr,
-              k.Hniter_riemann);
-  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, narray, THREADSSZ);
+  OCLSETARG12(ker[Loop1KcuRiemann], k.qleft, k.qright, k.sgnm, k.qgdnv, k.Hnxyt, k.narray, k.Hsmallc, k.Hgamma, k.Hsmallr,
+              k.Hniter_riemann, slices, Hstep);
+  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ);
   // exit(123);
   if (Hnvar > IP + 1) {
-    OCLSETARG08(ker[Loop10KcuRiemann], K, k.qleft, k.qright, k.sgnm, k.qgdnv, k.narray, k.Hnvar, k.Hnxyt);
+    OCLSETARG10(ker[Loop10KcuRiemann], K, k.qleft, k.qright, k.sgnm, k.qgdnv, k.narray, k.Hnvar, k.Hnxyt, slices, Hstep);
     // fprintf(stderr, "Lancement de Loop10KcuRiemann\n");
-    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, narray, THREADSSZ);
+    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ);
   }
   err = clReleaseMemObject(K);
   oclCheckErr(err, "clReleaseMemObject");

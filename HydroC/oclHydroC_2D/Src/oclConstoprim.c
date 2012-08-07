@@ -47,16 +47,17 @@
 
 void
 oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsmallr,
-	      const int slices,
+	      const int slices, const int Hnxystep, 
 	      cl_mem u, cl_mem q, cl_mem e)
 {
 
   WHERE("constoprim");
-  OCLSETARG06(ker[Loop1KcuConstoprim], n, u, q, e, Hnxyt, Hsmallr);
-  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n, THREADSSZ);
+  // fprintf(stderr, "oclConstoprim %d\n", slices);
+  OCLSETARG08(ker[Loop1KcuConstoprim], n, u, q, e, Hnxyt, Hsmallr, slices, Hnxystep);
+  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n * slices, THREADSSZ);
   if (Hnvar > IP + 1) {
-    OCLSETARG05(ker[Loop2KcuConstoprim], n, u, q, Hnxyt, Hnvar);
-    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n, THREADSSZ);
+    OCLSETARG07(ker[Loop2KcuConstoprim], n, u, q, Hnxyt, Hnvar, slices, Hnxystep);
+    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n * slices, THREADSSZ);
   }
 }                               // constoprim
 

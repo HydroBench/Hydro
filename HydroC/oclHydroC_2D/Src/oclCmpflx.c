@@ -62,10 +62,10 @@ oclCmpflx(const long narray, const long Hnxyt, const long Hnvar,
 
   WHERE("cmpflx");
 
-  oclMkNDrange(narray, THREADSSZ, NDR_1D, gws, lws);
+  oclMkNDrange(narray * slices, THREADSSZ, NDR_1D, gws, lws);
 
   // Compute fluxes
-  OCLSETARG05(ker[Loop1KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hgamma);
+  OCLSETARG07(ker[Loop1KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hgamma, slices, Hstep);
 
   err = clEnqueueNDRangeKernel(cqueue, ker[Loop1KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueNDRangeKernel Loop1KcuCmpflx");
@@ -77,7 +77,7 @@ oclCmpflx(const long narray, const long Hnxyt, const long Hnvar,
 
   // Other advected quantities
   if (Hnvar > IP + 1) {
-    OCLSETARG05(ker[Loop2KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hnvar);
+    OCLSETARG07(ker[Loop2KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hnvar, slices, Hstep);
     err = clEnqueueNDRangeKernel(cqueue, ker[Loop2KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
     oclCheckErr(err, "clEnqueueNDRangeKernel Loop1KcuCmpflx");
     err = clWaitForEvents(1, &event);

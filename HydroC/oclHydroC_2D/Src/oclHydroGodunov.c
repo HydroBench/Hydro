@@ -344,9 +344,6 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
   long Hnxyt = H.nxyt;
   static FILE *fic = NULL;
 
-  long offsetIP = IHVW(0, IP);
-  long offsetID = IHVW(0, ID);
-
   if (fic == NULL && H.prt) {
     char logname[256];
     sprintf(logname, "TRACE.%04d_%04d.txt", H.nproc, H.mype);
@@ -386,25 +383,27 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
     }
     Hnxystep = Hstep;
     for (i = Hmin; i < Hmax; i += Hstep) {
+      long offsetIP = IHVWS(0, 0, IP);
+      long offsetID = IHVWS(0, 0, ID);
       int Hnxyt = H.nxyt;
       iend = i + Hstep;
       if (iend >= Hmax) iend = Hmax;
       slices = iend - i;
 
       oclMemset(uDEV, 0, lVarSz);
-      oclGatherConservativeVars(idim, i, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, uoldDEV, uDEV);
+      oclGatherConservativeVars(idim, i, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, uoldDEV, uDEV);
       if (H.prt) {fprintf(fic, "ConservativeVars %ld %ld %ld %ld %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
       PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
 
       // Convert to primitive variables
-      oclConstoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, uDEV, qDEV, eDEV);
+      oclConstoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hnxystep, uDEV, qDEV, eDEV);
       if (H.prt) { GETARR (eDEV, Hw->e); }
       if (H.prt) { GETARRV(qDEV, Hvw->q); }
       PRINTARRAY(fic, Hw->e, Hdimsize, "e", H);
       PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
-      oclEquationOfState(offsetIP, offsetID, 0, Hdimsize, H.smallc, H.gamma, slices, qDEV, eDEV, cDEV);
+      oclEquationOfState(offsetIP, offsetID, 0, Hdimsize, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
       if (H.prt) { GETARR (cDEV, Hw->c); }
       PRINTARRAY(fic, Hw->c, Hdimsize, "c", H);
       if (H.prt) { GETARRV (qDEV, Hvw->q); }
@@ -413,7 +412,7 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
       // Characteristic tracing
       if (H.iorder != 1) {
-        oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, qDEV, dqDEV);
+        oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hnxystep, qDEV, dqDEV);
 	if (H.prt) { GETARRV(dqDEV, Hvw->dq); }
 	PRINTARRAYV2(fic, Hvw->dq, Hdimsize, "dq", H);
       }

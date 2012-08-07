@@ -42,7 +42,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void oclSlope(const long narray, const long Hnvar, 
 	      const long Hnxyt, const double slope_type,
-	      const int slices,
+	      const int slices, const int Hnxystep, 
 	      cl_mem qDEV, cl_mem dqDEV 
 	      );
 

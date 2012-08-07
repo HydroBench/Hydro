@@ -51,7 +51,7 @@ oclGatherConservativeVars(const long idim,
 			  const long Hnxt, 
 			  const long Hnyt, 
 			  const long Hnxyt,
-			  const int slices,
+			  const int slices, const int Hnxystep,
 			  cl_mem uoldDEV,
 			  cl_mem uDEV
 			  );

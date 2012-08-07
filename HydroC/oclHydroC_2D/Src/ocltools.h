@@ -89,6 +89,17 @@ typedef size_t dim3[3];
     OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
     OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; }
 
+#define OCLSETARG13(k, a, b, c, d, e, f, g, h, i, j, l, m, n) { OCLINITARG ; \
+    OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
+    OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
+    OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
+    OCLSETARG((k), (n)) ; }
+#define OCLSETARG14(k, a, b, c, d, e, f, g, h, i, j, l, m, n, o) { OCLINITARG ; \
+    OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
+    OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
+    OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
+    OCLSETARG((k), (n)) ; OCLSETARG((k), (o)) ; }
+
 #define CREATEKER(pgm, k, a) do {cl_int err = 0; (k) = clCreateKernel((pgm), #a, &err); oclCheckErr(err, #a); } while (0)
 
 #ifdef __cplusplus

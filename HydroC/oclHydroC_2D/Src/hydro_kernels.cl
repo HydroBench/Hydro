@@ -7,31 +7,31 @@
 
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -175,24 +175,26 @@ IHU(int i, int j, int v, int Hnxt, int Hnyt)
   return (i) + (Hnxt * ((j) + Hnyt * (v)));
 }
 
-inline size_t
-IHV(int i, int j, int v, int Hnxt, int Hnyt)
-{
-  return (i) + (Hnxt * ((j) + Hnyt * (v)));
-}
+inline size_t IHV(const int i, const int j, const int v, const int Hnxt, const int Hnyt) { return (i) + (Hnxt * ((j) + Hnyt * (v))); }
 
 __kernel void
-Loop1KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray, const long Hnxyt, const double Hgamma)
+Loop1KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray, 
+	       const long Hnxyt, const double Hgamma, 
+	       const int slices, const int Hnxystep)
 {
   double entho = 0, ekin = 0, etot = 0;
-  long i = get_global_id(0);
+  long s, i = get_global_id(0);
+
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices)
+    return;
   if (i >= narray)
     return;
 
-  size_t idxID = IHVW(i, ID, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
+  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
 
   entho = one / (Hgamma - one);
   // Mass density
@@ -209,14 +211,19 @@ Loop1KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray,
 
 
 __kernel void
-Loop2KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray, const long Hnxyt, const long Hnvar)
+Loop2KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray, const long Hnxyt, const long Hnvar, 
+	       const int slices, const int Hnxystep)
 {
-  long IN, i = get_global_id(0);
+  long IN, s, i = get_global_id(0);
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices)
+    return;
+
   if (i >= narray)
     return;
 
   for (IN = IP + 1; IN < Hnvar; IN++) {
-    size_t idxIN = IHVW(i, IN, Hnxyt);
+    size_t idxIN = IHVWS(i, s, IN, Hnxyt, Hnxystep);
     flux[idxIN] = flux[idxIN] * qgdnv[idxIN];
   }
 }
@@ -278,55 +285,61 @@ LoopKcourant(__global double *q, __global double *courant, const double Hsmallc,
 __kernel void
 Loop1KcuGather(__global double *uold,
                __global double *u,
-               const long rowcol, const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt)
+               const long rowcol, 
+	       const long Hnxt, const long Himin, const long Himax, const long Hnyt, 
+	       const long Hnxyt, const int slices, const int Hnxystep)
 {
   long i = get_global_id(0);
+  long s;
+
   if (i < Himin)
     return;
   if (i >= Himax)
     return;
 
-  size_t idxID = IHVW(i, ID, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
-
-  u[idxID] = uold[IHU(i, rowcol, ID, Hnxt, Hnyt)];
-  u[idxIU] = uold[IHU(i, rowcol, IU, Hnxt, Hnyt)];
-  u[idxIV] = uold[IHU(i, rowcol, IV, Hnxt, Hnyt)];
-  u[idxIP] = uold[IHU(i, rowcol, IP, Hnxt, Hnyt)];
+  for (s = 0; s < slices; s++) {
+    u[IHVWS(i, s, ID, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, ID, Hnxt, Hnyt)];
+    u[IHVWS(i, s, IU, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IU, Hnxt, Hnyt)];
+    u[IHVWS(i, s, IV, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IV, Hnxt, Hnyt)];
+    u[IHVWS(i, s, IP, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IP, Hnxt, Hnyt)];
+  }
 }
 
 __kernel void
 Loop2KcuGather(__global double *uold,
                __global double *u,
-               const long rowcol, const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt)
+               const long rowcol, const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const int slices, const int Hnxystep)
 {
   long i = get_global_id(0);
+  int s;
   if (i < Himin)
     return;
   if (i >= Himax)
     return;
 
-  size_t idxID = IHVW(i, ID, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
+  for (s = 0; s < slices; s++) {
+    size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+    size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+    size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+    size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
 
-  u[idxID] = uold[IHU(rowcol, i, ID, Hnxt, Hnyt)];
-  u[idxIV] = uold[IHU(rowcol, i, IU, Hnxt, Hnyt)];
-  u[idxIU] = uold[IHU(rowcol, i, IV, Hnxt, Hnyt)];
-  u[idxIP] = uold[IHU(rowcol, i, IP, Hnxt, Hnyt)];
+    u[idxID] = uold[IHU(rowcol + s, i, ID, Hnxt, Hnyt)];
+    u[idxIV] = uold[IHU(rowcol + s, i, IU, Hnxt, Hnyt)];
+    u[idxIU] = uold[IHU(rowcol + s, i, IV, Hnxt, Hnyt)];
+    u[idxIP] = uold[IHU(rowcol + s, i, IP, Hnxt, Hnyt)];
+  }
 }
 
 __kernel void
 Loop3KcuGather(__global double *uold,
                __global double *u,
                const long rowcol,
-               const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const long Hnvar)
+               const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const long Hnvar, 
+	       const int slices, const int Hnxystep)
 {
   long i = get_global_id(0);
   long ivar;
+  int s;
 
   if (i < Himin)
     return;
@@ -334,7 +347,9 @@ Loop3KcuGather(__global double *uold,
     return;
 
   for (ivar = IP + 1; ivar < Hnvar; ivar++) {
-    u[IHVW(i, ivar, Hnxyt)] = uold[IHU(i, rowcol, ivar, Hnxt, Hnyt)];
+    for (s = 0; s < slices; s++) {
+      u[IHVWS(i, s, ivar, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, ivar, Hnxt, Hnyt)];
+    }
   }
 }
 
@@ -342,7 +357,8 @@ __kernel void
 Loop4KcuGather(__global double *uold,
                __global double *u,
                const long rowcol,
-               const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const long Hnvar)
+               const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const long Hnvar, 
+	       const int slices, const int Hnxystep)
 {
   long i = get_global_id(0);
   long ivar;
@@ -354,8 +370,11 @@ Loop4KcuGather(__global double *uold,
 
   // reconsiderer le calcul d'indices en supprimant la boucle sur ivar et
   // en la ventilant par thread
+  int s;
   for (ivar = IP + 1; ivar < Hnvar; ivar++) {
-    u[IHVW(i, ivar, Hnxyt)] = uold[IHU(rowcol, i, ivar, Hnxt, Hnyt)];
+    for (s = 0; s < slices; s++) {
+      u[IHVWS(i, s, ivar, Hnxyt, Hnxystep)] = uold[IHU(rowcol + s, i, ivar, Hnxt, Hnyt)];
+    }
   }
 }
 
@@ -363,26 +382,28 @@ __kernel void
 Loop1KcuUpdate(const long rowcol, const double dtdx,
                __global double *uold,
                __global double *u,
-               __global double *flux, const long Himin, const long Himax, const long Hnxt, const long Hnyt, const long Hnxyt)
+               __global double *flux, const long Himin, const long Himax, const long Hnxt, const long Hnyt, const long Hnxyt, 
+	       const int slices, const int Hnxystep)
 {
-  long i = get_global_id(0);
-
+  long i,s;
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices) return;
 
   if (i < (Himin + ExtraLayer))
     return;
   if (i >= (Himax - ExtraLayer))
     return;
 
-  size_t idxID = IHVW(i, ID, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
+  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
 
 
-  uold[IHU(i, rowcol, ID, Hnxt, Hnyt)] = u[idxID] + (flux[IHVW(i - 2, ID, Hnxyt)] - flux[IHVW(i - 1, ID, Hnxyt)]) * dtdx;
-  uold[IHU(i, rowcol, IU, Hnxt, Hnyt)] = u[idxIU] + (flux[IHVW(i - 2, IU, Hnxyt)] - flux[IHVW(i - 1, IU, Hnxyt)]) * dtdx;
-  uold[IHU(i, rowcol, IV, Hnxt, Hnyt)] = u[idxIV] + (flux[IHVW(i - 2, IV, Hnxyt)] - flux[IHVW(i - 1, IV, Hnxyt)]) * dtdx;
-  uold[IHU(i, rowcol, IP, Hnxt, Hnyt)] = u[idxIP] + (flux[IHVW(i - 2, IP, Hnxyt)] - flux[IHVW(i - 1, IP, Hnxyt)]) * dtdx;
+  uold[IHU(i, rowcol + s, ID, Hnxt, Hnyt)] = u[idxID] + (flux[IHVWS(i - 2, s, ID, Hnxyt, Hnxystep)] - flux[IHVWS(i - 1, s, ID, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(i, rowcol + s, IU, Hnxt, Hnyt)] = u[idxIU] + (flux[IHVWS(i - 2, s, IU, Hnxyt, Hnxystep)] - flux[IHVWS(i - 1, s, IU, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(i, rowcol + s, IV, Hnxt, Hnyt)] = u[idxIV] + (flux[IHVWS(i - 2, s, IV, Hnxyt, Hnxystep)] - flux[IHVWS(i - 1, s, IV, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(i, rowcol + s, IP, Hnxt, Hnyt)] = u[idxIP] + (flux[IHVWS(i - 2, s, IP, Hnxyt, Hnxystep)] - flux[IHVWS(i - 1, s, IP, Hnxyt, Hnxystep)]) * dtdx;
 }
 
 __kernel void
@@ -390,10 +411,14 @@ Loop2KcuUpdate(const long rowcol, const double dtdx,
                __global double *uold,
                __global double *u,
                __global double *flux,
-               const long Himin, const long Himax, const long Hnvar, const long Hnxt, const long Hnyt, const long Hnxyt)
+               const long Himin, const long Himax, const long Hnvar, const long Hnxt, const long Hnyt, const long Hnxyt, 
+	       const int slices, const int Hnxystep)
 {
-  long i = get_global_id(0);
   long ivar;
+  long i,s;
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices) return;
+
 
   if (i < (Himin + ExtraLayer))
     return;
@@ -401,8 +426,8 @@ Loop2KcuUpdate(const long rowcol, const double dtdx,
     return;
 
   for (ivar = IP + 1; ivar < Hnvar; ivar++) {
-    uold[IHU(i, rowcol, ivar, Hnxt, Hnyt)] =
-      u[IHVW(i, ivar, Hnxyt)] + (flux[IHVW(i - 2, ivar, Hnxyt)] - flux[IHVW(i - 1, ivar, Hnxyt)]) * dtdx;
+    uold[IHU(i, rowcol + s, ivar, Hnxt, Hnyt)] =
+      u[IHVWS(i, s, ivar, Hnxyt, Hnxystep)] + (flux[IHVWS(i - 2, s, ivar, Hnxyt, Hnxystep)] - flux[IHVWS(i - 1, s, ivar, Hnxyt, Hnxystep)]) * dtdx;
   }
 }
 
@@ -410,23 +435,27 @@ __kernel void
 Loop3KcuUpdate(const long rowcol, const double dtdx,
                __global double *uold,
                __global double *u,
-               __global double *flux, const long Hjmin, const long Hjmax, const long Hnxt, const long Hnyt, const long Hnxyt)
+               __global double *flux, const long Hjmin, const long Hjmax, const long Hnxt, const long Hnyt, const long Hnxyt, 
+	       const int slices, const int Hnxystep)
 {
-  long j = get_global_id(0);
+  long ivar;
+  long s,j;
+  idx2d(&j, &s, Hnxyt);
+  if (s >= slices) return;
 
   if (j < (Hjmin + ExtraLayer))
     return;
   if (j >= (Hjmax - ExtraLayer))
     return;
 
-  uold[IHU(rowcol, j, ID, Hnxt, Hnyt)] =
-    u[IHVW(j, ID, Hnxyt)] + (flux[IHVW(j - 2, ID, Hnxyt)] - flux[IHVW(j - 1, ID, Hnxyt)]) * dtdx;
-  uold[IHU(rowcol, j, IP, Hnxt, Hnyt)] =
-    u[IHVW(j, IP, Hnxyt)] + (flux[IHVW(j - 2, IP, Hnxyt)] - flux[IHVW(j - 1, IP, Hnxyt)]) * dtdx;
-  uold[IHU(rowcol, j, IV, Hnxt, Hnyt)] =
-    u[IHVW(j, IU, Hnxyt)] + (flux[IHVW(j - 2, IU, Hnxyt)] - flux[IHVW(j - 1, IU, Hnxyt)]) * dtdx;
-  uold[IHU(rowcol, j, IU, Hnxt, Hnyt)] =
-    u[IHVW(j, IV, Hnxyt)] + (flux[IHVW(j - 2, IV, Hnxyt)] - flux[IHVW(j - 1, IV, Hnxyt)]) * dtdx;
+  uold[IHU(rowcol + s, j, ID, Hnxt, Hnyt)] =
+    u[IHVWS(j, s, ID, Hnxyt, Hnxystep)] + (flux[IHVWS(j - 2, s, ID, Hnxyt, Hnxystep)] - flux[IHVWS(j - 1, s, ID, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(rowcol + s, j, IP, Hnxt, Hnyt)] =
+    u[IHVWS(j, s, IP, Hnxyt, Hnxystep)] + (flux[IHVWS(j - 2, s, IP, Hnxyt, Hnxystep)] - flux[IHVWS(j - 1, s, IP, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(rowcol + s, j, IV, Hnxt, Hnyt)] =
+    u[IHVWS(j, s, IU, Hnxyt, Hnxystep)] + (flux[IHVWS(j - 2, s, IU, Hnxyt, Hnxystep)] - flux[IHVWS(j - 1, s, IU, Hnxyt, Hnxystep)]) * dtdx;
+  uold[IHU(rowcol + s, j, IU, Hnxt, Hnyt)] =
+    u[IHVWS(j, s, IV, Hnxyt, Hnxystep)] + (flux[IHVWS(j - 2, s, IV, Hnxyt, Hnxystep)] - flux[IHVWS(j - 1, s, IV, Hnxyt, Hnxystep)]) * dtdx;
 }
 
 __kernel void
@@ -434,10 +463,13 @@ Loop4KcuUpdate(const long rowcol, const double dtdx,
                __global double *uold,
                __global double *u,
                __global double *flux,
-               const long Hjmin, const long Hjmax, const long Hnvar, const long Hnxt, const long Hnyt, const long Hnxyt)
+               const long Hjmin, const long Hjmax, const long Hnvar, const long Hnxt, const long Hnyt, const long Hnxyt, 
+	       const int slices, const int Hnxystep)
 {
-  long j = get_global_id(0);
   long ivar;
+  long s,j;
+  idx2d(&j, &s, Hnxyt);
+  if (s >= slices) return;
 
   if (j < (Hjmin + ExtraLayer))
     return;
@@ -445,44 +477,64 @@ Loop4KcuUpdate(const long rowcol, const double dtdx,
     return;
 
   for (ivar = IP + 1; ivar < Hnvar; ivar++) {
-    uold[IHU(rowcol, j, ivar, Hnxt, Hnyt)] =
-      u[IHVW(j, ivar, Hnxyt)] + (flux[IHVW(j - 2, ivar, Hnxyt)] - flux[IHVW(j - 1, ivar, Hnxyt)]) * dtdx;
+    uold[IHU(rowcol + s, j, ivar, Hnxt, Hnyt)] =
+      u[IHVWS(j, s, ivar, Hnxyt, Hnxystep)] + (flux[IHVWS(j - 2, s, ivar, Hnxyt, Hnxystep)] - flux[IHVWS(j - 1, s, ivar, Hnxyt, Hnxystep)]) * dtdx;
   }
 }
 
 
 __kernel void
 Loop1KcuConstoprim(const long n,
-                   __global double *u, __global double *q, __global double *e, const long Hnxyt, const double Hsmallr)
+                   __global double *u, __global double *q, __global double *e, 
+		   const long Hnxyt, const double Hsmallr, const int slices, const int Hnxystep)
 {
   double eken;
-  long i = get_global_id(0);
+  int i, idx = get_global_id(0);
+  int s;
+
+  s = idx / Hnxyt;
+  i = idx % Hnxyt;
+
+  idx2d(&i, &s, Hnxyt);
+
+  if (s >= slices)
+    return;
+  
   if (i >= n)
     return;
 
-  size_t idxID = IHVW(i, ID, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
+  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
 
   q[idxID] = Max(u[idxID], Hsmallr);
   q[idxIU] = u[idxIU] / q[idxID];
   q[idxIV] = u[idxIV] / q[idxID];
   eken = demi * (Square(q[idxIU]) + Square(q[idxIV]));
   q[idxIP] = u[idxIP] / q[idxID] - eken;
-  e[i] = q[idxIP];
+  e[IHS(i, s, Hnxyt)] = q[idxIP];
 }
 
 __kernel void
-Loop2KcuConstoprim(const long n, __global double *u, __global double *q, const long Hnxyt, const long Hnvar)
+Loop2KcuConstoprim(const long n, __global double *u, __global double *q, 
+		   const long Hnxyt, const long Hnvar, const int slices, const int Hnxystep)
 {
   long IN;
-  long i = get_global_id(0);
+  long i, idx = get_global_id(0);
+  int s;
+
+  s = idx / Hnxyt;
+  i = idx % Hnxyt;
+
+  if (s >= slices)
+    return;
+
   if (i >= n)
     return;
 
   for (IN = IP + 1; IN < Hnvar; IN++) {
-    size_t idxIN = IHVW(i, IN, Hnxyt);
+    size_t idxIN = IHVWS(i, s, IN, Hnxyt, Hnxystep);
     q[idxIN] = u[idxIN] / q[idxIN];
   }
 }
@@ -491,22 +543,26 @@ __kernel void
 LoopEOS(__global double *q, 
 	__global double *eint,
         __global double *c,
-        const long offsetIP, const long offsetID, const long imin, const long imax, const double Hsmallc, const double Hgamma)
+        const long offsetIP, const long offsetID, const long imin, const long imax, 
+	const double Hsmallc, const double Hgamma, const int slices, const int Hnxyt)
 {
   double smallp;
   __global double *p = &q[offsetIP];
   __global double *rho = &q[offsetID];
-  long k = get_global_id(0);
+  long s, k;
 
+  idx2d(&k, &s, Hnxyt);
+  if (s >= slices)
+    return;
   if (k < imin)
     return;
   if (k >= imax)
     return;
 
   smallp = Square(Hsmallc) / Hgamma;
-  p[k] = (Hgamma - one) * rho[k] * eint[k];
-  p[k] = Max(p[k], (double) (rho[k] * smallp));
-  c[k] = Sqrt(Hgamma * p[k] / rho[k]);
+  p[IHS(k, s, Hnxyt)] = (Hgamma - one) * rho[IHS(k, s, Hnxyt)] * eint[IHS(k, s, Hnxyt)];
+  p[IHS(k, s, Hnxyt)] = Max(p[IHS(k, s, Hnxyt)], (double) (rho[IHS(k, s, Hnxyt)] * smallp));
+  c[IHS(k, s, Hnxyt)] = Sqrt(Hgamma * p[IHS(k, s, Hnxyt)] / rho[IHS(k, s, Hnxyt)]);
 }
 
 __kernel void
@@ -549,17 +605,22 @@ Loop2KcuMakeBoundary(const int j, const int j0, const double sign, const long Hi
 
 
 __kernel void
-Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt,
+Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt, const int slices, const int Hstep,
                    __global double *qxm, __global double *qxp, __global double *qleft, __global double *qright)
 {
   long nvar;
-  long i = get_global_id(0);
+  long idx = get_global_id(0);
+  long i, s;
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices)
+    return;
+  
   if (i >= bmax)
     return;
 
   for (nvar = 0; nvar < Hnvar; nvar++) {
-    qleft[IHVW(i, nvar, Hnxyt)] = qxm[IHVW(i + 1, nvar, Hnxyt)];
-    qright[IHVW(i, nvar, Hnxyt)] = qxp[IHVW(i + 2, nvar, Hnxyt)];
+    qleft[IHVWS(i, s, nvar, Hnxyt, Hstep)] = qxm[IHVWS(i + 1, s, nvar, Hnxyt, Hstep)];
+    qright[IHVWS(i, s, nvar, Hnxyt, Hstep)] = qxp[IHVWS(i + 2, s, nvar, Hnxyt, Hstep)];
   }
 }
 
@@ -702,40 +763,48 @@ Init4KcuRiemann(__global Args_t * K, __global long *ind, __global long *ind2)
 
 __kernel void
 LoopKcuSlope(__global double *q, __global double *dq,
-             const long Hnvar, const long Hnxyt, const double slope_type, const long ijmin, const long ijmax)
+             const long Hnvar, const long Hnxyt, 
+	     const double slope_type, 
+	     const long ijmin, const long ijmax, 
+	     const int slices, const int Hnxystep)
 {
-  long n;
+  int n;
   double dlft, drgt, dcen, dsgn, slop, dlim;
   long ihvwin, ihvwimn, ihvwipn;
 
-  long i;
-  idx2d(&i, &n, (ijmax - ijmin));
+  long i,s;
+  idx2d(&i, &s, Hnxyt);
 
-  if (n >= Hnvar)
+  if (s >= slices)
     return;
 
+#warning "Doute ici "
   i = i + ijmin;
+  if (i >= ijmax) return;
 
-  ihvwin = IHVW(i, n, Hnxyt);
-  ihvwimn = IHVW(i - 1, n, Hnxyt);
-  ihvwipn = IHVW(i + 1, n, Hnxyt);
-  dlft = slope_type * (q[ihvwin] - q[ihvwimn]);
-  drgt = slope_type * (q[ihvwipn] - q[ihvwin]);
-  dcen = demi * (dlft + drgt) / slope_type;
-  dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;     // sign(one, dcen);
-  slop = (double) Min(Fabs(dlft), Fabs(drgt));
-  dlim = ((dlft * drgt) <= zero) ? zero : slop;
-  //         if ((dlft * drgt) <= zero) {
-  //             dlim = zero;
-  //         }
-  dq[ihvwin] = dsgn * (double) Min(dlim, Fabs(dcen));
+  for (n = 0; n < Hnvar; n++) {
+    ihvwin  = IHVWS(i, s, n, Hnxyt, Hnxystep);
+    ihvwimn = IHVWS(i - 1, s, n, Hnxyt, Hnxystep);
+    ihvwipn = IHVWS(i + 1, s, n, Hnxyt, Hnxystep);
+    dlft = slope_type * (q[ihvwin]  - q[ihvwimn]);
+    drgt = slope_type * (q[ihvwipn] - q[ihvwin]);
+    dcen = demi * (dlft + drgt) / slope_type;
+    dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;     // sign(one, dcen);
+    slop = (double) Min(Fabs(dlft), Fabs(drgt));
+    dlim = ((dlft * drgt) <= zero) ? zero : slop;
+    //         if ((dlft * drgt) <= zero) {
+    //             dlim = zero;
+    //         }
+    dq[ihvwin] = dsgn * (double) Min(dlim, Fabs(dcen));
+  }
 }
 
 __kernel void
 Loop1KcuTrace(__global double *q, __global double *dq, __global double *c,
               __global double *qxm, __global double *qxp,
               const double dtdx, const long Hnxyt,
-              const long imin, const long imax, const double zeror, const double zerol, const double project)
+              const long imin, const long imax, const double zeror, const double zerol, 
+	      const double project, const int slices, const int Hnxystep)
 {
   double cc, csq, r, u, v, p;
   double dr, du, dv, dp;
@@ -744,18 +813,27 @@ Loop1KcuTrace(__global double *q, __global double *dq, __global double *c,
   double apright, amright, azrright, azv1right;
   double apleft, amleft, azrleft, azv1left;
 
-  long i = get_global_id(0);
+  long idx = get_global_id(0);
+  int i, s;
+
+  s = idx / Hnxyt;
+  i = idx % Hnxyt;
+
+  if (s >= slices)
+    return;
+
   if (i < imin)
     return;
   if (i >= imax)
     return;
 
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxID = IHVW(i, ID, Hnxyt);
+  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
+  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  size_t is    = IHS  (i, s, Hnxyt);
 
-  cc = c[i];
+  cc = c[is];
   csq = Square(cc);
   r = q[idxID];
   u = q[idxIU];
@@ -919,11 +997,10 @@ KernelMemsetV4(__global int4 * a, int v, long lobj)
 
 __kernel void
 Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double *sgnm, __global double *qgdnv, long Hnxyt,
-                long Knarray, double Hsmallc, double Hgamma, double Hsmallr, long Hniter_riemann)
+                long Knarray, double Hsmallc, double Hgamma, double Hsmallr, long Hniter_riemann, const int slices, const int HStep)
 {
   double smallp, gamma6, ql, qr, usr, usl, wwl, wwr, smallpp;
   long iter;
-  long tid = get_local_id(0);
   double ulS = 0.0;
   double plS = 0.0;
   double clS = 0.0;
@@ -939,14 +1016,21 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double
   double Kwoi = 0.0;
   double Kdelpi = 0.0;
 
-  long i = get_global_id(0);
+  int s, i, j, idx = get_global_id(0);
+  s = idx / Hnxyt;
+  i = idx % Hnxyt;
+
+  if (s >= slices)
+    return;
+
   if (i >= Knarray)
     return;
 
-  size_t idxIU = IHVW(i, IU, Hnxyt);
-  size_t idxIV = IHVW(i, IV, Hnxyt);
-  size_t idxIP = IHVW(i, IP, Hnxyt);
-  size_t idxID = IHVW(i, ID, Hnxyt);
+  size_t idxIU = IHVWS(i, s, IU, Hnxyt, HStep);
+  size_t idxIV = IHVWS(i, s, IV, Hnxyt, HStep);
+  size_t idxIP = IHVWS(i, s, IP, Hnxyt, HStep);
+  size_t idxID = IHVWS(i, s, ID, Hnxyt, HStep);
+  size_t is    = IHS  (i, s, Hnxyt);
 
   smallp = Square(Hsmallc) / Hgamma;
 
@@ -1013,8 +1097,8 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double
   Kwri = Sqrt(Kcri * (one + gamma6 * (Kpstari - Kpri) / Kpri));
 
   double Kustari = demi * (Kuli + (Kpli - Kpstari) / Kwli + Kuri - (Kpri - Kpstari) / Kwri);
-  sgnm[i] = (Kustari > 0) ? 1 : -1;
-  if (sgnm[i] == 1) {
+  sgnm[is] = (Kustari > 0) ? 1 : -1;
+  if (sgnm[is] == 1) {
     Kroi = Krli;
     Kuoi = Kuli;
     Kpoi = Kpli;
@@ -1029,9 +1113,9 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double
   double Krstari = Kroi / (one + Kroi * (Kpoi - Kpstari) / Square(Kwoi));
   Krstari = Max(Krstari, Hsmallr);
   double Kcstari = Max(Hsmallc, Sqrt(Fabs(Hgamma * Kpstari / Krstari)));
-  double Kspouti = Kcoi - sgnm[i] * Kuoi;
-  double Kspini = Kcstari - sgnm[i] * Kustari;
-  double Kushocki = Kwoi / Kroi - sgnm[i] * Kuoi;
+  double Kspouti = Kcoi - sgnm[is] * Kuoi;
+  double Kspini = Kcstari - sgnm[is] * Kustari;
+  double Kushocki = Kwoi / Kroi - sgnm[is] * Kuoi;
   if (Kpstari >= Kpoi) {
     Kspini = Kushocki;
     Kspouti = Kushocki;
@@ -1055,7 +1139,7 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double
     qgdnv[idxIP] = Kpstari;
   }
 
-  if (sgnm[i] == 1) {
+  if (sgnm[is] == 1) {
     qgdnv[idxIV] = qleft[idxIV];
   } else {
     qgdnv[idxIV] = qright[idxIV];
@@ -1064,20 +1148,23 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright, __global double
 
 __kernel void
 Loop10KcuRiemann(__global Args_t * K, __global double *qleft, __global double *qright, __global double *sgnm,
-                 __global double *qgdnv, long Knarray, long Knvar, long KHnxyt)
+                 __global double *qgdnv, long Knarray, long Knvar, long KHnxyt, const int slices, const int Hstep)
 {
   long invar;
-  long i = get_global_id(0);
+  long s, i = get_global_id(0);
   long Hnxyt = KHnxyt;
+  idx2d(&i, &s, Hnxyt);
+  if (s >= slices)
+    return;
   if (i >= Knarray)
     return;
 
+  size_t is = IHS(i, s, Hnxyt);
   for (invar = IP + 1; invar < Knvar; invar++) {
-    size_t idxIN = IHVW(i, invar, Hnxyt);
-    if (sgnm[i] == 1) {
+    size_t idxIN = IHVWS(i, s, invar, Hnxyt, Hstep);
+    if (sgnm[is] == 1) {
       qgdnv[idxIN] = qleft[idxIN];
-    }
-    if (sgnm[i] != 1) {
+    } else {
       qgdnv[idxIN] = qright[idxIN];
     }
   }

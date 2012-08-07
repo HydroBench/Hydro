@@ -44,7 +44,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void oclEquationOfState(long offsetIP, long offsetID, long imin, long imax, 
 			const double Hsmallc, const double Hgamma,
-			const int slices,
+			const int slices, const int Hnxyt,
 			cl_mem qDEV, cl_mem eintDEV, cl_mem cDEV);
 
 #endif // EQUATION_OF_STATE_H_INCLUDED

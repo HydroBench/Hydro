@@ -78,11 +78,11 @@ oclTrace(const double dtdx, const long n, const long Hscheme,
     zeror = zero;
     project = zero;
   }
-  OCLSETARG12(ker[Loop1KcuTrace], q, dq, c, qxm, qxp, dtdx, Hnxyt, ijmin, ijmax, zeror, zerol, project);
-  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, ((ijmax - 1) - (ijmin + 1)), THREADSSZ);
+  OCLSETARG14(ker[Loop1KcuTrace], q, dq, c, qxm, qxp, dtdx, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
+  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, Hnxyt * slices, THREADSSZ);
   if (Hnvar > IP + 1) {
-    OCLSETARG12(ker[Loop2KcuTrace], q, dq, qxm, qxp, dtdx, Hnvar, Hnxyt, ijmin, ijmax, zeror, zerol, project);
-    oclLaunchKernel(ker[Loop2KcuTrace], cqueue, Hnxyt, THREADSSZ);
+    OCLSETARG14(ker[Loop2KcuTrace], q, dq, qxm, qxp, dtdx, Hnvar, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
+    oclLaunchKernel(ker[Loop2KcuTrace], cqueue, Hnxyt * slices, THREADSSZ);
   }
 }                               // trace
 

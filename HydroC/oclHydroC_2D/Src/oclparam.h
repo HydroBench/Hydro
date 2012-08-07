@@ -37,3 +37,6 @@ knowledge of the CeCILL license and that you accept its terms.
 /*
   This is the bridge between c options and opencl ones.
 */
+inline size_t IHS(const int i, const int s, const int Hnxyt) { return (i) + Hnxyt * (s); }
+
+inline size_t IHVWS(const int i, const int s, const int v, const int Hnxyt, const int Hnxystep) { return i + Hnxyt * s + Hnxyt * Hnxystep * v ; }

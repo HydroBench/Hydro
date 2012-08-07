@@ -49,7 +49,7 @@
 void
 oclSlope(const long narray, const long Hnvar, 
 	 const long Hnxyt, const double slope_type,
-	 const int slices,
+	 const int slices, const int Hnxystep, 
 	 cl_mem q, cl_mem dq 
 	 )
 {
@@ -58,8 +58,8 @@ oclSlope(const long narray, const long Hnvar,
   WHERE("slope");
   ijmin = 0;
   ijmax = narray;
-  OCLSETARG07(ker[LoopKcuSlope], q, dq, Hnvar, Hnxyt, slope_type, ijmin, ijmax);
-  oclLaunchKernel(ker[LoopKcuSlope], cqueue, Hnxyt * Hnvar, THREADSSZ);
+  OCLSETARG09(ker[LoopKcuSlope], q, dq, Hnvar, Hnxyt, slope_type, ijmin, ijmax, slices, Hnxystep);
+  oclLaunchKernel(ker[LoopKcuSlope], cqueue, Hnxyt * slices, THREADSSZ);
 }                               // slope
 
 #undef IHVW

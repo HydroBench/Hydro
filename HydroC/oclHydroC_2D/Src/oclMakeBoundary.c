@@ -105,11 +105,10 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   int size;
   long n = 1;
   double sign;
-#warning "Dangereux = a modifier"
-  double sendbufld[ExtraLayer * H.nxyt * H.nvar];
-  double sendbufru[ExtraLayer * H.nxyt * H.nvar];
-  double recvbufru[ExtraLayer * H.nxyt * H.nvar];
-  double recvbufld[ExtraLayer * H.nxyt * H.nvar];
+  double *sendbufld;
+  double *sendbufru;
+  double *recvbufru;
+  double *recvbufld;
 
   cl_mem recvbufruDEV, recvbufldDEV, sendbufldDEV, sendbufruDEV;
   MPI_Request requests[4];
@@ -119,12 +118,21 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   static FILE *fic = NULL;
   char fname[256];
 
-  if (fic == NULL) {
-    sprintf(fname, "trace%04d.lst", H.mype);
-    fic = fopen(fname, "w");
-  }
+  // if (fic == NULL) {
+  //   sprintf(fname, "trace%04d.lst", H.mype);
+  //   fic = fopen(fname, "w");
+  // }
 
   if (H.nproc > 1) {
+    sendbufld = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    assert(sendbufld);
+    sendbufru = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    assert(sendbufru);
+    recvbufru = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    assert(recvbufru);
+    recvbufld = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    assert(recvbufld);
+    
     recvbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
     oclCheckErr(error, "");
     recvbufldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
@@ -353,6 +361,13 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
     oclCheckErr(error, "make_boundary");
   }
   // fprintf(stderr, "make_boundary END\n");
+
+  if (H.nproc > 1) {
+    free(recvbufld);
+    free(recvbufru);
+    free(sendbufru);
+    free(sendbufld);
+  }
 }                               // make_boundary
 
 

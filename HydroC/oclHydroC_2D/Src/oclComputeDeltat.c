@@ -101,7 +101,7 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
 
   for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
     oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt);
-    oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, qDEV, eDEV, cDEV);
+    oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
     // on calcule courant pour chaque cellule de la ligne pour tous les j
     oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc);
   }
