@@ -46,21 +46,6 @@ void oclRiemann(const long narray,
 		const long Hniter_riemann, const long Hnvar, const long Hnxyt,
 		const int slices, const int Hstep,
 		cl_mem qleftDEV, cl_mem qrightDEV,
-                cl_mem qgdnvDEV, cl_mem rlDEV,
-                cl_mem ulDEV, cl_mem plDEV,
-                cl_mem clDEV, cl_mem wlDEV,
-                cl_mem rrDEV, cl_mem urDEV,
-                cl_mem prDEV, cl_mem crDEV,
-                cl_mem wrDEV, cl_mem roDEV,
-                cl_mem uoDEV, cl_mem poDEV,
-                cl_mem coDEV, cl_mem woDEV,
-                cl_mem rstarDEV, cl_mem ustarDEV,
-                cl_mem pstarDEV, cl_mem cstarDEV,
-                cl_mem sgnmDEV, cl_mem spinDEV,
-                cl_mem spoutDEV, cl_mem ushockDEV,
-                cl_mem fracDEV, cl_mem scrDEV,
-                cl_mem delpDEV, cl_mem poldDEV,
-                cl_mem indDEV, cl_mem ind2DEV
-		);
+                cl_mem qgdnvDEV, cl_mem sgnmDEV);
 
 #endif // CURIEMANN_H_INCLUDED

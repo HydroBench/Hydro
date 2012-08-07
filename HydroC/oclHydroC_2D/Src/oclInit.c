@@ -61,14 +61,11 @@ oclMemset(cl_mem a, cl_int v, size_t lbyte)
   size_t lgr;
 
   lgr = lbyte / sizeof(cl_double);
-  OCLINITARG;
-  OCLSETARG(ker[KernelMemset], a);
-  OCLSETARG(ker[KernelMemset], v);
-  OCLSETARG(ker[KernelMemset], lgr);    // en objets de type int
+  OCLSETARG03(ker[KernelMemset], a, v, lgr);    // in int
   maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
   if (lgr < maxthr)
     maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
 }
 
 void
@@ -79,36 +76,32 @@ oclMemset4(cl_mem a, cl_int v, size_t lbyte)
 
   // traitement vectoriel d'abord sous forme de int4
   lgr = lbyte / sizeof(cl_int) / 4;
-  OCLINITARG;
-  OCLSETARG(ker[KernelMemsetV4], a);
-  OCLSETARG(ker[KernelMemsetV4], v);
-  OCLSETARG(ker[KernelMemsetV4], lgr);  // en objets de type int4
+  OCLSETARG03(ker[KernelMemsetV4], a, v, lgr);  // in int4
   maxthr = oclGetMaxWorkSize(ker[KernelMemsetV4], oclGetDeviceOfCQueue(cqueue));
   if (lgr < maxthr)
     maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr);
+  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr, __FILE__, __LINE__);
 
   if ((lbyte - lgr * 4 * sizeof(cl_int)) > 0) {
     // traitement du reste
     lgr = lbyte - lgr * 4 * sizeof(cl_int);
 
-    OCLINITARG;
-    OCLSETARG(ker[KernelMemset], a);
-    OCLSETARG(ker[KernelMemset], v);
-    OCLSETARG(ker[KernelMemset], lgr);  // en byte
+    OCLSETARG03(ker[KernelMemset], a, v, lgr);  // in byte
     assert((lgr % sizeof(cl_int)) == 0);
     maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
     if (lgr < maxthr)
       maxthr = lgr;
-    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
+    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
   }
 }
 
 void
 oclMakeHydroKernels()
 {
-  // on cree tous les kernels d'un coup pour gagner du temps
-  // en preprocesseur, #a transforma a en "a".
+  // All the kernels are created in one shot to save time.
+
+  // the preprocessor transforms #a in "a"
+
   assert(pgm != 0);
 
   ker = (cl_kernel *) calloc(LastEntryKernel, sizeof(cl_kernel));
@@ -132,10 +125,6 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[Loop1KcuMakeBoundary], Loop1KcuMakeBoundary);
   CREATEKER(pgm, ker[Loop2KcuMakeBoundary], Loop2KcuMakeBoundary);
   CREATEKER(pgm, ker[Loop1KcuQleftright], Loop1KcuQleftright);
-  CREATEKER(pgm, ker[Init1KcuRiemann], Init1KcuRiemann);
-  CREATEKER(pgm, ker[Init2KcuRiemann], Init2KcuRiemann);
-  CREATEKER(pgm, ker[Init3KcuRiemann], Init3KcuRiemann);
-  CREATEKER(pgm, ker[Init4KcuRiemann], Init4KcuRiemann);
   CREATEKER(pgm, ker[Loop1KcuRiemann], Loop1KcuRiemann);
   CREATEKER(pgm, ker[Loop10KcuRiemann], Loop10KcuRiemann);
   CREATEKER(pgm, ker[LoopKcuSlope], LoopKcuSlope);

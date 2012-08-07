@@ -77,9 +77,9 @@ main(int argc, char **argv)
   hydro_init(&H, &Hv);
   // PRINTUOLD(stdout, H, &Hv);
 
-  oclAllocOnDevice(H);
   // Allocate work space for 1D sweeps
   allocate_work_space(H, &Hw, &Hvw);
+  oclAllocOnDevice(H);
 
   // vtkfile(nvtk, H, &Hv);
   if (H.dtoutput > 0) {
@@ -89,10 +89,7 @@ main(int argc, char **argv)
     next_output_time = next_output_time + H.dtoutput;
   }
   oclPutUoldOnDevice(H, &Hv);
-  //   {
-  //     printf("version demarrage\n");
-  //     printuold(H, &Hv);
-  //   }
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     start_iter = cclock();
     outnum[0] = 0;

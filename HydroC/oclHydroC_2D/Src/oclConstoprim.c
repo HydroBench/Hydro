@@ -52,12 +52,12 @@ oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsm
 {
 
   WHERE("constoprim");
-  // fprintf(stderr, "oclConstoprim %d\n", slices);
+
   OCLSETARG08(ker[Loop1KcuConstoprim], n, u, q, e, Hnxyt, Hsmallr, slices, Hnxystep);
-  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n * slices, THREADSSZ);
+  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n * slices, THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLSETARG07(ker[Loop2KcuConstoprim], n, u, q, Hnxyt, Hnvar, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n * slices, THREADSSZ);
+    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n * slices, THREADSSZ, __FILE__, __LINE__);
   }
 }                               // constoprim
 

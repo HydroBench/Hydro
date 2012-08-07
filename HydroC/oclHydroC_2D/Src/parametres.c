@@ -45,10 +45,10 @@ knowledge of the CeCILL license and that you accept its terms.
 static void
 usage(void)
 {
-  fprintf(stderr, "options possibles du programme hydro");
+  fprintf(stderr, "options of hydro");
   fprintf(stderr, "--help");
   fprintf(stderr, "-i input");
-  fprintf(stderr, "-v :: pour avoir les impressions internes");
+  fprintf(stderr, "-v :: to increase verbosity");
   fprintf(stderr, "------------------------------------");
   exit(1);
 } static void
@@ -109,7 +109,7 @@ keyval(char *buffer, char **pkey, char **pval)
   if (*pval)
     **pval = 0;
 
-  // suppress lead whites or tabs
+  // suppress leading whites or tabs
   while ((**pkey == ' ') || (**pkey == '\t'))
     (*pkey)++;
   *pval = strchr(buffer, '=');
@@ -133,7 +133,7 @@ process_input(char *datafile, hydroparam_t * H)
   char *pval, *pkey;
   fd = fopen(datafile, "r");
   if (fd == NULL) {
-    fprintf(stderr, "Fichier de donnees illisible\n");
+    fprintf(stderr, "Input file not readable\n");
     exit(1);
   }
   while (fgets(buffer, 1024, fd) == buffer) {
@@ -230,7 +230,7 @@ process_input(char *datafile, hydroparam_t * H)
       } else if (strcmp(pval, "collela") == 0) {
         H->scheme = HSCHEME_COLLELA;
       } else {
-        fprintf(stderr, "Nom de schema <%s> inconnu, devrait etre l'un de [muscl,plmde,collela]\n", pval);
+        fprintf(stderr, "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n", pval);
         exit(1);
       }
       continue;
@@ -274,13 +274,13 @@ process_args(long argc, char **argv, hydroparam_t * H)
       n++;
       continue;
     }
-    fprintf(stderr, "Clef %s inconnue\n", argv[n]);
+    fprintf(stderr, "Key %s is unkown\n", argv[n]);
     n++;
   }
   if (donnees != NULL) {
     process_input(donnees, H);
   } else {
-    fprintf(stderr, "Option -f donnees manquantes\n");
+    fprintf(stderr, "Option -i is missing\n");
     exit(1);
   }
 
@@ -321,7 +321,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
   // adapt to the local resizing if needed
   if (H->nxystep > H->nx) H->nxystep = H->nx;
   if (H->nxystep > H->ny) H->nxystep = H->ny;
-  // petit resume de la situation
+  // small summary of the run conditions
   if (H->mype == 0) {
     printf("+-------------------+\n");
     printf("|nx=%-7ld         |\n", H->nx);

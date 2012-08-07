@@ -56,23 +56,23 @@ knowledge of the CeCILL license and that you accept its terms.
 void
 oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
                    const double Hsmallr, const long Hnx, const long Hnxt, 
-		   const long Hnyt, const long Hnxyt)
+		   const long Hnyt, const long Hnxyt, const int slices, const int Hstep)
 {
   cl_int err = 0;
   dim3 gws, lws;
-  cl_event event;
   double elapsk;
 
-  OCLSETARG09(ker[LoopKQEforRow], j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx);
-  elapsk = oclLaunchKernel(ker[LoopKQEforRow], cqueue, Hnx, THREADSSZ);
+  OCLSETARG11(ker[LoopKQEforRow], j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx, slices, Hstep);
+  elapsk = oclLaunchKernel(ker[LoopKQEforRow], cqueue, Hnx * slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
-oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_mem q, double Hsmallc)
+oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_mem q, 
+	       double Hsmallc, const int slices, const int Hstep)
 {
   double elapsk;
-  OCLSETARG06(ker[LoopKcourant], q, courant, Hsmallc, c, Hnxyt, Hnx);
-  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ);
+  OCLSETARG08(ker[LoopKcourant], q, courant, Hsmallc, c, Hnxyt, Hnx, slices, Hstep);
+  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx * slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
@@ -84,30 +84,42 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   double maxCourant;
   long Hnxyt = H.nxyt;
   cl_int err = 0;
-  long offsetIP = IHVW(0, IP);
-  long offsetID = IHVW(0, ID);
-  int slices = 1;
+  int slices = 1, jend, Hstep, Hnxystep;
+  long Hmin, Hmax;
 
   WHERE("compute_deltat");
 
   //   compute time step on grid interior
+  Hnxystep = H.nxystep;
+  Hmin = H.jmin + ExtraLayer;
+  Hmax = H.jmax - ExtraLayer;
 
-  // on recupere les buffers du device qui sont deja alloues
+  Hstep = H.nxystep;
+  //   compute time step on grid interior
+
+  // reuse of already allocated buffers
   oclGetUoldQECDevicePtr(&uoldDEV, &qDEV, &eDEV, &cDEV);
 
-  lcourant = (double *) calloc(Hnxyt, sizeof(double));
-  courantDEV = clCreateBuffer(ctx, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, Hnxyt * sizeof(double), lcourant, &err);
+  lcourant = (double *) calloc(Hnxyt * Hstep, sizeof(double));
+  courantDEV = clCreateBuffer(ctx, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, Hnxyt * Hstep * sizeof(double), lcourant, &err);
   oclCheckErr(err, "clCreateBuffer");
 
-  for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
-    oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt);
+  long offsetIP = IHVWS(0, 0, IP);
+  long offsetID = IHVWS(0, 0, ID);
+
+  for (j = Hmin; j < Hmax; j += Hstep) {
+    jend = j + Hstep;
+    if (jend >= Hmax)
+      jend = Hmax;
+    slices = jend - j;
+
+    oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, slices, Hnxystep);
     oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
-    // on calcule courant pour chaque cellule de la ligne pour tous les j
-    oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc);
+    oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc, slices, Hnxystep);
   }
 
-  // on cherche le max global des max locaux
-  maxCourant = oclReduceMax(courantDEV, H.nx);
+  // find the global max of the local maxs
+  maxCourant = oclReduceMax(courantDEV, H.nx * Hstep);
 
   *dt = H.courant_factor * H.dx / maxCourant;
   err = clReleaseMemObject(courantDEV);

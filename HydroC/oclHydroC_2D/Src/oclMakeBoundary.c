@@ -144,18 +144,16 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   }
 
   WHERE("make_boundary");
-  // la boucle sur les variables est integree au kernel. Le changement
-  // de signe est pris en compte dans les kernels.
   if (idim == 1) {
     if (H.nproc > 1) {
       i = ExtraLayer;
       // fprintf(stderr, "make_boundary 01--%d\n", H.mype);
       OCLSETARG06(ker[kpack_arrayv], i, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
-      oclLaunchKernel(ker[kpack_arrayv], cqueue, H.nyt, THREADSSZ);
+      oclLaunchKernel(ker[kpack_arrayv], cqueue, H.nyt, THREADSSZ, __FILE__, __LINE__);
       i = H.nx;
       // fprintf(stderr, "make_boundary 02--%d\n", H.mype);
       OCLSETARG06(ker[kpack_arrayv], i, H.nxt, H.nyt, H.nvar, sendbufruDEV, uoldDEV);
-      oclLaunchKernel(ker[kpack_arrayv], cqueue, H.nyt, THREADSSZ);
+      oclLaunchKernel(ker[kpack_arrayv], cqueue, H.nyt, THREADSSZ, __FILE__, __LINE__);
 
       size = ExtraLayer * H.nyt * H.nvar;
       // fprintf(stderr, "[%d] size pack_arrayv1 %d [%d %d %d %d]\n", H.mype, size, H.box[DOWN_BOX], H.box[UP_BOX], H.box[RIGHT_BOX], H.box[LEFT_BOX]);
@@ -164,6 +162,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(double), sendbufru, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
 	// print_bufferv(fic, H.nx, H, Hv, sendbufru, "H.nx");
 
         MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
@@ -173,6 +172,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(double), sendbufld, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
 	// print_bufferv(fic, ExtraLayer, H, Hv, sendbufld, "ExtraLayer");
         MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
@@ -195,8 +195,9 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(double), recvbufru, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         OCLSETARG06(ker[kunpack_arrayv], i, H.nxt, H.nyt, H.nvar, recvbufruDEV, uoldDEV);
-        oclLaunchKernel(ker[kunpack_arrayv], cqueue, H.nyt, THREADSSZ);
+        oclLaunchKernel(ker[kunpack_arrayv], cqueue, H.nyt, THREADSSZ, __FILE__, __LINE__);
       }
 
       if (H.box[LEFT_BOX] != -1) {
@@ -205,8 +206,9 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(double), recvbufld, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         OCLSETARG06(ker[kunpack_arrayv], i, H.nxt, H.nyt, H.nvar, recvbufldDEV, uoldDEV);
-        oclLaunchKernel(ker[kunpack_arrayv], cqueue, H.nyt, THREADSSZ);
+        oclLaunchKernel(ker[kunpack_arrayv], cqueue, H.nyt, THREADSSZ, __FILE__, __LINE__);
       }
     }
     // Left boundary
@@ -216,6 +218,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         sign = 1.0;
         if (H.boundary_left == 1) {
           i0 = ExtraLayerTot - i - 1;
+	  // change of sign is in the kernel
           //         if (ivar == IU) {
           //           sign = -1.0;
           //         }
@@ -225,7 +228,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           i0 = H.nx + i;
         }
         OCLSETARG09(ker[Loop1KcuMakeBoundary], i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
     // Right boundary
@@ -243,7 +246,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           i0 = i - H.nx;
         }
         OCLSETARG09(ker[Loop1KcuMakeBoundary], i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
   } else {
@@ -252,11 +255,11 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       j = ExtraLayer;
       // fprintf(stderr, "make_boundary 05--%d\n", H.mype);
       OCLSETARG06(ker[kpack_arrayh], j, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
-      oclLaunchKernel(ker[kpack_arrayh], cqueue, H.nxt, THREADSSZ);
+      oclLaunchKernel(ker[kpack_arrayh], cqueue, H.nxt, THREADSSZ, __FILE__, __LINE__);
       j = H.ny;
       // fprintf(stderr, "make_boundary 06--%d\n", H.mype);
       OCLSETARG06(ker[kpack_arrayh], j, H.nxt, H.nyt, H.nvar, sendbufruDEV, uoldDEV);
-      oclLaunchKernel(ker[kpack_arrayh], cqueue, H.nxt, THREADSSZ);
+      oclLaunchKernel(ker[kpack_arrayh], cqueue, H.nxt, THREADSSZ, __FILE__, __LINE__);
 
       size = ExtraLayer * H.nxt * H.nvar;
       // printf("[%d] size pack_arrayh1 %d [%d %d %d %d]\n", H.mype, size, H.box[DOWN_BOX], H.box[UP_BOX], H.box[RIGHT_BOX], H.box[LEFT_BOX]);
@@ -265,6 +268,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(double), sendbufld, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stderr, ExtraLayer, H, Hv, sendbufld);
         MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
@@ -273,6 +277,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(double), sendbufru, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stderr, j, H, Hv, sendbufru);
         MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
@@ -295,20 +300,22 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         error =
           clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(double), recvbufld, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stdout, j, H, Hv, recvbufld);
         // fprintf(stderr, "make_boundary 07--%d\n", H.mype);
         OCLSETARG06(ker[kunpack_arrayh], j, H.nxt, H.nyt, H.nvar, recvbufldDEV, uoldDEV);
-        oclLaunchKernel(ker[kunpack_arrayh], cqueue, H.nxt, THREADSSZ);
+        oclLaunchKernel(ker[kunpack_arrayh], cqueue, H.nxt, THREADSSZ, __FILE__, __LINE__);
       }
       if (H.box[UP_BOX] != -1) {
         j = H.ny + ExtraLayer;
         error =
           clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(double), recvbufru, 0, NULL, &event);
         oclCheckErr(error, "");
+	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stdout, j, H, Hv, recvbufru);
         // fprintf(stderr, "make_boundary 08--%d\n", H.mype);
         OCLSETARG06(ker[kunpack_arrayh], j, H.nxt, H.nyt, H.nvar, recvbufruDEV, uoldDEV);
-        oclLaunchKernel(ker[kunpack_arrayh], cqueue, H.nxt, THREADSSZ);
+        oclLaunchKernel(ker[kunpack_arrayh], cqueue, H.nxt, THREADSSZ, __FILE__, __LINE__);
       }
     }
     n = ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
@@ -328,7 +335,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           j0 = H.ny + j;
         }
         OCLSETARG09(ker[Loop2KcuMakeBoundary], j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
     // Upper boundary
@@ -337,6 +344,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         sign = 1.0;
         if (H.boundary_up == 1) {
           j0 = 2 * H.ny + ExtraLayerTot - j - 1;
+	  // change of sign is in the kernel
           //         if (ivar == IV) {
           //           sign = -1.0;
           //         }
@@ -346,7 +354,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           j0 = j - H.ny;
         }
         OCLSETARG09(ker[Loop2KcuMakeBoundary], j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
   }

@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
+#include <assert.h>
 #include <CL/cl.h>
 
 #include "parametres.h"
@@ -63,19 +64,7 @@
 // Variables DEVice 
 cl_mem uoldDEV = 0, uDEV = 0, eDEV = 0, qDEV = 0, dqDEV = 0, cDEV = 0, qxpDEV = 0, qxmDEV = 0;
 cl_mem qleftDEV = 0, qrightDEV = 0, qgdnvDEV = 0, fluxDEV = 0;
-cl_mem rlDEV = 0, ulDEV = 0, plDEV = 0, clDEV = 0, wlDEV = 0, rrDEV = 0, urDEV = 0;
-cl_mem prDEV = 0, crDEV = 0, wrDEV = 0, roDEV = 0, uoDEV = 0, poDEV = 0, coDEV = 0, woDEV = 0;
-cl_mem rstarDEV = 0, ustarDEV = 0, pstarDEV = 0, cstarDEV = 0;
 cl_mem sgnmDEV = 0;
-cl_mem spinDEV = 0, spoutDEV = 0, ushockDEV = 0, fracDEV = 0, scrDEV = 0, delpDEV = 0, poldDEV = 0;
-cl_mem indDEV = 0, ind2DEV = 0;
-
-void ClearArray(cl_mem array, size_t lg)
-{
-  int lzero = 0;
-  OCLSETARG03(ker[KernelMemset], array, lzero, lg);
-  oclLaunchKernel(ker[KernelMemset], cqueue, lg, THREADSSZ);
-}
 
 void
 oclGetUoldQECDevicePtr(cl_mem * uoldDEV_p, cl_mem * qDEV_p, cl_mem * eDEV_p, cl_mem * cDEV_p)
@@ -89,9 +78,6 @@ oclGetUoldQECDevicePtr(cl_mem * uoldDEV_p, cl_mem * qDEV_p, cl_mem * eDEV_p, cl_
 void
 oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
-  //   cudaError_t status;
-  //   status = cudaMemcpy(uoldDEV, Hv->uold, H.arUoldSz * sizeof(double), cudaMemcpyHostToDevice);
-  //   VERIF(status, "cmcpy H2D uoldDEV");
   cl_int err = 0;
   cl_event event;
   err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
@@ -105,9 +91,6 @@ oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 void
 oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
-  //   cudaError_t status;
-  //   status = cudaMemcpy(Hv->uold, uoldDEV, H.arUoldSz * sizeof(double), cudaMemcpyDeviceToHost);
-  //   VERIF(status, "cmcpy D2H uoldDEV");
   cl_int err = 0;
   cl_event event;
   err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
@@ -116,6 +99,25 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clWaitForEvents");
   err = clReleaseEvent(event);
   oclCheckErr(err, "clReleaseEvent");
+}
+
+void ClearArray(cl_mem array, size_t lgrBytes)
+{
+  int lzero = 0;
+  long ldble = lgrBytes / sizeof(double);
+  assert(array != NULL);
+  OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgrBytes, THREADSSZ, __FILE__, __LINE__);
+}
+
+cl_mem  AllocClear(size_t lgrBytes) {
+  cl_mem tab;
+  cl_int status;
+
+  tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
+  oclCheckErr(status, "");
+  // ClearArray(tab, lgrBytes);
+  return tab;
 }
 
 void
@@ -127,212 +129,47 @@ oclAllocOnDevice(const hydroparam_t H)
   size_t lSz = H.arSz * H.nxystep * sizeof(double);
   size_t lSzL = H.arSz * H.nxystep * sizeof(long);
 
-  uoldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arUoldSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  uDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  dqDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qxpDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qleftDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qrightDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qxmDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  qgdnvDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
-  fluxDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lVarSz, NULL, &status);
-  oclCheckErr(status, "");
+  uoldDEV = AllocClear(H.arUoldSz * sizeof(double));
+  uDEV = AllocClear(lVarSz);
+  qDEV = AllocClear(lVarSz);
+  dqDEV = AllocClear(lVarSz);
+  qxpDEV = AllocClear(lVarSz);
+  qleftDEV = AllocClear(lVarSz);
+  qrightDEV = AllocClear(lVarSz);
+  qxmDEV = AllocClear(lVarSz);
+  qgdnvDEV = AllocClear(lVarSz);
+  fluxDEV = AllocClear(lVarSz);
 
-
-  eDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  cDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  rlDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  ulDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  plDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  clDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  wlDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  rrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  urDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  prDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  crDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  wrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  roDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  uoDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  poDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  coDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  woDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  rstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  ustarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  pstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  cstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  spinDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  spoutDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  ushockDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  fracDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  scrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  delpDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-  poldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSz, NULL, &status);
-  oclCheckErr(status, "");
-
-  sgnmDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSzL, NULL, &status);
-  oclCheckErr(status, "");
-  indDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSzL, NULL, &status);
-  oclCheckErr(status, "");
-  ind2DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lSzL, NULL, &status);
-  oclCheckErr(status, "");
-
-  ClearArray(qleftDEV, lVarSz);
-  ClearArray(qrightDEV, lVarSz);
-  ClearArray(fluxDEV, lVarSz);
-  ClearArray(qxmDEV, lVarSz);
-  ClearArray(qxpDEV, lVarSz);
-  ClearArray(qgdnvDEV, lVarSz);
-  ClearArray(cDEV, lSz);
-  ClearArray(eDEV, lSz);
+  eDEV = AllocClear(lSz);
+  cDEV = AllocClear(lSz);
+  sgnmDEV = AllocClear(lSzL);
 }
 
 void
 oclFreeOnDevice()
 {
-  cl_int status = 0;
-  // liberation de la memoire sur le device (en attendant de la remonter dans le main).
-  status = clReleaseMemObject(uoldDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(uDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(dqDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qxpDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qxmDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(eDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(cDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qleftDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qrightDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qgdnvDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(fluxDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rlDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ulDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(plDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(clDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(wlDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rrDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(urDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(prDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(crDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(wrDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(roDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(uoDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(poDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(coDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(woDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rstarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ustarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(pstarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(cstarDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(sgnmDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(spinDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(spoutDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(ushockDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(fracDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(scrDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(delpDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(poldDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(indDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ind2DEV);
-  oclCheckErr(status, "");
+  OCLFREE(uoldDEV);
+  OCLFREE(uDEV);
+  OCLFREE(qDEV);
+  OCLFREE(dqDEV);
+  OCLFREE(qxpDEV);
+  OCLFREE(qxmDEV);
+  OCLFREE(eDEV);
+  OCLFREE(cDEV);
+  OCLFREE(qleftDEV);
+  OCLFREE(qrightDEV);
+  OCLFREE(qgdnvDEV);
+  OCLFREE(fluxDEV);
+  OCLFREE(sgnmDEV);
 }
 
-#define GETARRV(vdev, v) do { status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, "");} while(0);
-#define GETARR(vdev, v)  do { status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, "");} while(0);
+#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
 
 void
 oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   cl_int status;
-  cl_event event;
   // Local variables
   int i, j, idim, idimIndex;
   int Hmin, Hmax, Hstep, Hnxystep;
@@ -429,13 +266,7 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
 
       // Solve Riemann problem at interfaces
       oclRiemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep,
-		 qleftDEV, qrightDEV, qgdnvDEV,
-                 rlDEV, ulDEV, plDEV, clDEV, wlDEV,
-                 rrDEV, urDEV, prDEV, crDEV, wrDEV,
-                 roDEV, uoDEV, poDEV, coDEV, woDEV,
-                 rstarDEV, ustarDEV, pstarDEV, cstarDEV,
-                 sgnmDEV, spinDEV, spoutDEV, ushockDEV, fracDEV,
-                 scrDEV, delpDEV, poldDEV, indDEV, ind2DEV);
+		 qleftDEV, qrightDEV, qgdnvDEV,sgnmDEV);
       if (H.prt) { GETARRV(qgdnvDEV, Hvw->qgdnv); }
       PRINTARRAYV2(fic, Hvw->qgdnv, Hdimsize, "qgdnv", H);
       // Compute fluxes

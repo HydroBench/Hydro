@@ -46,138 +46,25 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "oclInit.h"
 #include "ocltools.h"
 
-typedef struct _Args {
-  cl_mem qleft;
-  cl_mem qright;
-  cl_mem qgdnv;
-  cl_mem rl;
-  cl_mem ul;
-  cl_mem pl;
-  cl_mem cl;
-  cl_mem wl;
-  cl_mem rr;
-  cl_mem ur;
-  cl_mem pr;
-  cl_mem cr;
-  cl_mem wr;
-  cl_mem ro;
-  cl_mem uo;
-  cl_mem po;
-  cl_mem co;
-  cl_mem wo;
-  cl_mem rstar;
-  cl_mem ustar;
-  cl_mem pstar;
-  cl_mem cstar;
-  cl_mem sgnm;
-  cl_mem spin;
-  cl_mem spout;
-  cl_mem ushock;
-  cl_mem frac;
-  cl_mem scr;
-  cl_mem delp;
-  cl_mem pold;
-  cl_mem ind;
-  cl_mem ind2;
-  long narray;
-  double Hsmallr;
-  double Hsmallc;
-  double Hgamma;
-  long Hniter_riemann;
-  long Hnvar;
-  long Hnxyt;
-} Args_t;
-
-// Args_t est une structure que l'on place en memoire de constante sur
-// le device et qui va contenir les arguments de riemann. on les
-// transmets en bloc en une fois et les differents kernels pourront y
-// acceder.
 void
 oclRiemann(const long narray,
-                const double Hsmallr,
-		const double Hsmallc, const double Hgamma, 
-		const long Hniter_riemann, const long Hnvar, const long Hnxyt,
-		const int slices, const int Hstep,
-		cl_mem qleft, cl_mem qright,
-                cl_mem qgdnv, cl_mem rl,
-                cl_mem ul, cl_mem pl,
-                cl_mem cl, cl_mem wl,
-                cl_mem rr, cl_mem ur,
-                cl_mem pr, cl_mem cr,
-                cl_mem wr, cl_mem ro,
-                cl_mem uo, cl_mem po,
-                cl_mem co, cl_mem wo,
-                cl_mem rstar, cl_mem ustar,
-                cl_mem pstar, cl_mem cstar,
-                cl_mem sgnm, cl_mem spin,
-                cl_mem spout, cl_mem ushock,
-                cl_mem frac, cl_mem scr,
-                cl_mem delp, cl_mem pold,
-                cl_mem ind, cl_mem ind2)
-{
+           const double Hsmallr,
+           const double Hsmallc, const double Hgamma,
+           const long Hniter_riemann, const long Hnvar, const long Hnxyt,
+           const int slices, const int Hstep, cl_mem qleft, cl_mem qright, cl_mem qgdnv, cl_mem sgnm) {
   // Local variables
-  Args_t k;
-  cl_mem K;
   cl_int err = 0;
 
   WHERE("riemann");
-  k.qleft = qleft;
-  k.qright = qright;
-  k.qgdnv = qgdnv;
-  k.rl = rl;
-  k.ul = ul;
-  k.pl = pl;
-  k.cl = cl;
-  k.wl = wl;
-  k.rr = rr;
-  k.ur = ur;
-  k.pr = pr;
-  k.cr = cr;
-  k.wr = wr;
-  k.ro = ro;
-  k.uo = uo;
-  k.po = po;
-  k.co = co;
-  k.wo = wo;
-  k.rstar = rstar;
-  k.ustar = ustar;
-  k.pstar = pstar;
-  k.cstar = cstar;
-  k.sgnm = sgnm;
-  k.spin = spin;
-  k.spout = spout;
-  k.ushock = ushock;
-  k.frac = frac;
-  k.scr = scr;
-  k.delp = delp;
-  k.pold = pold;
-  k.ind = ind;
-  k.ind2 = ind2;
-  k.narray = narray;
-  k.Hsmallr = Hsmallr;
-  k.Hsmallc = Hsmallc;
-  k.Hgamma = Hgamma;
-  k.Hniter_riemann = Hniter_riemann;
-  k.Hnvar = Hnvar;
-  k.Hnxyt = Hnxyt;
 
+  OCLSETARG12(ker[Loop1KcuRiemann], qleft, qright, sgnm, qgdnv, Hnxyt, narray, Hsmallc, Hgamma, Hsmallr, Hniter_riemann,
+              slices, Hstep);
+  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
 
-  // Ici la creation se fait en dupliquant directement la
-  // structure. Pas besoin de faire un write ensuite.
-  K = clCreateBuffer(ctx, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(k), &k, &err);
-  oclCheckErr(err, "clCreateBuffer");
-
-  OCLSETARG12(ker[Loop1KcuRiemann], k.qleft, k.qright, k.sgnm, k.qgdnv, k.Hnxyt, k.narray, k.Hsmallc, k.Hgamma, k.Hsmallr,
-              k.Hniter_riemann, slices, Hstep);
-  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ);
-  // exit(123);
   if (Hnvar > IP + 1) {
-    OCLSETARG10(ker[Loop10KcuRiemann], K, k.qleft, k.qright, k.sgnm, k.qgdnv, k.narray, k.Hnvar, k.Hnxyt, slices, Hstep);
-    // fprintf(stderr, "Lancement de Loop10KcuRiemann\n");
-    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ);
+    OCLSETARG09(ker[Loop10KcuRiemann], qleft, qright, sgnm, qgdnv, narray, Hnvar, Hnxyt, slices, Hstep);
+    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
   }
-  err = clReleaseMemObject(K);
-  oclCheckErr(err, "clReleaseMemObject");
 }                               // riemann
 
 

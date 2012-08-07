@@ -151,10 +151,10 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
       if ((lws[0] * lws[1]) < nbthreads)
         lws[1] *= 2;
     }
-    // pour ne pas depasser le nombre de threads demandes
+    // 
     if ((lws[0] * lws[1]) > nbthreads)
       lws[1]--;
-    // normalisation des dimensions pour faire plaisir a OpenCL
+    // normalisation of dimensions to please OpenCL
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
     gws[1] = (sizec + lws[1] - 1) / lws[1];
@@ -177,14 +177,14 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
       if ((lws[0] * lws[1] * lws[2]) < nbthreads)
         lws[2] *= 2;
     }
-    // pour ne pas depasser le nombre de threads demandes
+    // 
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[2] > 1))
       lws[2]--;
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[1] > 1))
       lws[1]--;
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[0] > 1))
       lws[0]--;
-    // normalisation des dimensions pour faire plaisir a OpenCL
+    // normalisation of dimensions to please OpenCL
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
     gws[1] = (sizec + lws[1] - 1) / lws[1];
@@ -268,25 +268,25 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   size_t msgl = 0;
   char options[1000];
 
-  // creation d'un programme
+  // create a programme
   // printf("CreateProgramString\n");
-  // -- on va lire le programme depuis le disque pour le mettre dans un tableau de strings
+  // -- we put the whole file in a string
   err = oclCreateProgramString(srcFile, &pgmt, &pgml);
   // printf("CreateProgramString. (%d)\n", pgml);
 
-  // Sortie du programme pour le voir ;-)
+  // Output the program
   if (verbose == 2) {
     for (i = 0; i < pgml; i++) {
       printf("%s", pgmt[i]);
     }
   }
-  // creation du programme OpenCL a partir des strings
+  // create the OpenCL program from the string
   // printf("clCreateProgramWithSource\n");
   pgm = clCreateProgramWithSource(ctx, pgml, (const char **) pgmt, NULL, &err);
   // printf("clCreateProgramWithSource.\n");
   oclCheckErr(err, "Creation du program");
 
-  // compilation du programme
+  // compilation
   //err = clBuildProgram(pgm, 0, NULL, "", NULL, NULL);
   // ,-cl-nv-opt-level 3
   strcpy(options, "");
@@ -319,7 +319,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   err = clBuildProgram(pgm, 1, &pdesc[theplatform].devices[thedev], options, NULL, NULL);
   // printf("clBuildProgram.\n");
 
-  // Seul moyen de recuperer les infos de compilation : les demander a l'objet programme
+  // The only way to retrieve compilation information is to ask for them
   // CheckErr(err, "clGetProgramBuildInfo");
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Build OpenCL (opts=\"%s\") has error(s).\n", options);
@@ -343,7 +343,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   } else {
     fprintf(stderr, "Build OpenCL (opts=\"%s\") OK.\n", options);
   }
-  // menage du texte du programme
+  // cleanup
   for (i = 0; i < pgml; i++) {
     if (pgmt[i])
       free(pgmt[i]);
@@ -372,7 +372,7 @@ oclGetNbPlatforms(const int verbose)
   cl_uint nbdevices = 0;
   cl_uint devmaxcu = 0;
 
-  // informations sur la platform
+  // informations on the platform
   err = 0;
   err = clGetPlatformIDs(0, NULL, &nbplatforms);
   oclCheckErr(err, "GetPlatformIDs -- 1");
@@ -571,8 +571,7 @@ oclCreateCtxForPlatform(const int theplatform, const int verbose)
     printf("[%d] : nbdevices = %d\n", theplatform, nbdevices);
   if (verbose)
     fflush(stdout);
-  // Creation d'un contexte sur la platform[0] 
-  // que veut dire la notion de multiplateforme ?
+  // Create a contexte for the platform
 
   proplist[0] = CL_CONTEXT_PLATFORM;
   proplist[1] = (cl_context_properties) platform[theplatform];
@@ -592,14 +591,14 @@ oclCreateCommandQueueForDev(const int theplatform, const int devselected, const 
   assert(pdesc != NULL);
   assert(pdesc[theplatform].devices != NULL);
 
-  // creation de la command queue
+  // create a command queue
   if (profiling) {
     cqueue = clCreateCommandQueue(ctx, pdesc[theplatform].devices[devselected], CL_QUEUE_PROFILING_ENABLE, &err);
     _profiling = 1;
   } else {
     cqueue = clCreateCommandQueue(ctx, pdesc[theplatform].devices[devselected], 0, &err);
   }
-  // peut etre CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
+  // could be CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
   oclCheckErr(err, "Creation queue");
   return cqueue;
 }
@@ -801,7 +800,7 @@ oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *m
 }
 
 double
-oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
+oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char *fname, const int line)
 {
   cl_int err = 0;
   dim3 gws, lws;
@@ -817,15 +816,15 @@ oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
   // printf("Launch: %ld G:%ld %ld %ld L:%ld %ld %ld\n", nbobj, gws[0], gws[1], gws[2], lws[0], lws[1], lws[2]);
 
   err = clEnqueueNDRangeKernel(q, k, NDR_1D, NULL, gws, lws, 0, NULL, &event);
-  oclCheckErr(err, "clEnqueueNDRangeKernel");
+  oclCheckErrF(err, "clEnqueueNDRangeKernel", fname, line);
 
   err = clWaitForEvents(one, &event);
-  oclCheckErr(err, "clWaitForEvents");
+  oclCheckErrF(err, "clWaitForEvents", fname, line);
 
   elapsk = oclChronoElaps(event);
 
   err = clReleaseEvent(event);
-  oclCheckErr(err, "clReleaseEvent");
+  oclCheckErrF(err, "clReleaseEvent", fname, line);
 
   return elapsk;
 }
