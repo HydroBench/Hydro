@@ -1100,7 +1100,6 @@ reduceMaxDble(__global double *buffer,
     accumulator = fmax(accumulator, element);
     global_index += get_local_size(0);  // to favor coalescing
   }
-  barrier(CLK_LOCAL_MEM_FENCE);
 
   // Pass 2
   // Perform parallel reduction
@@ -1119,7 +1118,6 @@ reduceMaxDble(__global double *buffer,
   }
 }
 #endif
-
 
 //EOF
 #ifdef NOTDEF

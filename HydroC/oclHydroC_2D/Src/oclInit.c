@@ -140,7 +140,7 @@ oclMakeHydroKernels()
 }
 
 void
-oclInitCode()
+oclInitCode(const int nproc, const int mype)
 {
   int verbose = 1;
   int nbplatf = 0;
@@ -148,6 +148,7 @@ oclInitCode()
   int nbcpu = 0;
   char srcdir[1024];
 
+  if (mype > 0) verbose = 0; // assumes a homogeneous machine :-(
   nbplatf = oclGetNbPlatforms(verbose);
   if (nbplatf == 0) {
     fprintf(stderr, "No OpenCL platform available\n");
@@ -167,14 +168,20 @@ oclInitCode()
 #if CPUVERSION == 0
     nbgpu = oclGetNbOfGpu(platformselected);
     if (nbgpu > 0) {
-      fprintf(stderr, "Building a GPU version\n");
-      devselected = oclGetGpuDev(platformselected, 0);
+      if (mype == 0) fprintf(stderr, "Building a GPU version\n");
+      if (nproc == 1) {
+	devselected = oclGetGpuDev(platformselected, 0);
+      } else {
+	devselected = oclGetGpuDev(platformselected, (mype % nbgpu));
+      }
+      fprintf(stdout, "Hydro: %03d GPU %d\n", mype, (mype % nbgpu));
+      fflush(stdout);
       break;
     }
 #else
     nbcpu = oclGetNbOfCpu(platformselected);
     if (nbcpu > 0) {
-      fprintf(stderr, "Building a CPU version\n");
+      if (mype == 0) fprintf(stderr, "Building a CPU version\n");
       devselected = oclGetCpuDev(platformselected, 0);
       break;
     }

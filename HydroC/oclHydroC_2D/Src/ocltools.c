@@ -342,7 +342,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
     oclCheckErr(err, "clGetProgramBuildInfo");
     abort();
   } else {
-    fprintf(stderr, "Build OpenCL (opts=\"%s\") OK.\n", options);
+    if (verbose) fprintf(stderr, "Build OpenCL (opts=\"%s\") OK.\n", options);
   }
   // cleanup
   for (i = 0; i < pgml; i++) {

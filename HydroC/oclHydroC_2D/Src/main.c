@@ -65,15 +65,19 @@ main(int argc, char **argv)
   double start_time = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
+  char cdt;
   start_time = cclock();
-  fprintf(stdout, "Hydro starts.\n");
 
   MPI_Init(&argc, &argv);
-  
   process_args(argc, argv, &H);
+  if (H.mype == 0) {
+    fprintf(stdout, "Hydro starts.\n");
+    fflush(stdout);
+  }
+  
   MPI_Barrier(MPI_COMM_WORLD);
 
-  oclInitCode();
+  oclInitCode(H.nproc, H.mype);
   MPI_Barrier(MPI_COMM_WORLD);
 
   hydro_init(&H, &Hv);
@@ -96,8 +100,10 @@ main(int argc, char **argv)
     start_iter = cclock();
     outnum[0] = 0;
     flops = 0;
+    cdt = ' ';
     if ((H.nstep % 2) == 0) {
       oclComputeDeltat(&dt, H, &Hw, &Hv, &Hvw);
+      cdt = '*';
       // fprintf(stdout, "dt=%lg\n", dt);
       if (H.nstep == 0) {
         dt = dt / 2.0;
@@ -141,7 +147,7 @@ main(int argc, char **argv)
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     }
-    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s %c\n", H.nstep, H.t, dt, outnum, cdt);
   }
 
   hydro_finish(H, &Hv);

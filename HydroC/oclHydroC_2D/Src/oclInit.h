@@ -85,7 +85,7 @@ extern int platformselected;
 extern cl_kernel *ker;
 void oclMemset(cl_mem a, cl_int v, size_t lbyte);
 void oclMakeHydroKernels();
-void oclInitCode();
+void oclInitCode(const int nproc, const int mype);
 
 #endif // OCLINIT_H
 //EOF

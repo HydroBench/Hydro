@@ -6,31 +6,31 @@
 */
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -301,8 +301,8 @@ process_args(long argc, char **argv, hydroparam_t * H)
     H->nx = H->box[XMAX_BOX] - H->box[XMIN_BOX];
     H->ny = H->box[YMAX_BOX] - H->box[YMIN_BOX];
     fprintf(stderr, "[%4d/%4d] x=%4d X=%4d y=%4d Y=%4d / u=%4d d=%4d l=%4d r=%4d \n", H->mype, H->nproc,
-           H->box[XMIN_BOX], H->box[XMAX_BOX], H->box[YMIN_BOX], H->box[YMAX_BOX],
-           H->box[UP_BOX], H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
+	    H->box[XMIN_BOX], H->box[XMAX_BOX], H->box[YMIN_BOX], H->box[YMAX_BOX],
+	    H->box[UP_BOX], H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
     // adapt the boundary conditions 
     if (H->box[LEFT_BOX] != -1) {
       H->boundary_left = 0;
@@ -324,9 +324,9 @@ process_args(long argc, char **argv, hydroparam_t * H)
   // small summary of the run conditions
   if (H->mype == 0) {
     printf("+-------------------+\n");
-    printf("|nx=%-7ld         |\n", H->nx);
-    printf("|ny=%-7ld         |\n", H->ny);
-    printf("|nxystep=%-2ld         |\n", H->nxystep);
+    printf("|nx=%-7d          |\n", H->globnx);
+    printf("|ny=%-7d          |\n", H->globny);
+    printf("|nxystep=%-4ld       |\n", H->nxystep);
     printf("|tend=%-10.3f    |\n", H->tend);
     printf("|nstepmax=%-7ld   |\n", H->nstepmax);
     printf("|noutput=%-7ld    |\n", H->noutput);
