@@ -53,7 +53,6 @@ oclReduceMax(cl_mem array, long nb)
 {
   cl_event event;
   cl_int err;
-  long bs = 64;
   double resultat = 0, elapsk;
   cl_mem temp1DEV;
   size_t gws[3], lws[3];
@@ -63,10 +62,11 @@ oclReduceMax(cl_mem array, long nb)
   temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(double), NULL, &err);
   oclCheckErr(err, "");
 
-  wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble],  oclGetDeviceOfCQueue(cqueue));
-  wrkgrp = (nb < wrkgrp)? nb: wrkgrp;
+  wrksiz = wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble],  oclGetDeviceOfCQueue(cqueue));
   lws[0] = wrkgrp; gws[0] = wrkgrp;
   lgrlocal =  wrkgrp * sizeof(double);
+
+  // fprintf(stdout, "Reduc: %d %d %ld\n", wrksiz, wrkgrp, nb);
 
   OCLSETARG03(ker[LoopKredMaxDble], array, nb, temp1DEV);
   oclSetArg(ker[LoopKredMaxDble], 3, lgrlocal, NULL, __FILE__, __LINE__);

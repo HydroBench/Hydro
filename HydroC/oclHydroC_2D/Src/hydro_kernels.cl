@@ -807,36 +807,6 @@ Loop2KcuTrace(__global double *q, __global double *dq,
 }
 
 __kernel void
-reduceMaxDbleOLD(__global double *buffer, __const long length, __global double *result, __local double *scratch) {
-  int global_index = get_global_id(0);
-  double accumulator = buffer[0];
-  // Pass 1
-  // Loop sequentially over chunks of input vector
-  while (global_index < length) {
-    double element = buffer[global_index];
-    accumulator = (accumulator > element) ? accumulator : element;
-    global_index += get_local_size(0);  // to favor coalescing
-  }
-
-  // Pass 2
-  // Perform parallel reduction
-  int local_index = get_local_id(0);
-  scratch[local_index] = accumulator;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  for (int offset = get_local_size(0) / 2; offset > 0; offset = offset / 2) {
-    if (local_index < offset) {
-      double other = scratch[local_index + offset];
-      double mine = scratch[local_index];
-      scratch[local_index] = (mine > other) ? mine : other;
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-  }
-  if (local_index == 0) {
-    result[get_group_id(0)] = scratch[0];
-  }
-}
-
-__kernel void
 KernelMemset(__global double *a, int v, long lobj) {
   size_t gid = get_global_id(0);
   if (gid >= lobj)
@@ -1094,6 +1064,9 @@ kunpack_arrayh(const int ymin, const long Hnxt, const long Hnyt, const long Hnva
   }
 }
 
+#define REDUCALGO 1
+
+#if REDUCALGO == 2
 __kernel void
 reduceMaxDble(__global double *buffer, __const long length, __global double *result, __local double *scratch) {
   int global_index = get_global_id(0);
@@ -1108,7 +1081,44 @@ reduceMaxDble(__global double *buffer, __const long length, __global double *res
     result[get_group_id(0)] = lmaxCourant;
   }
 }
+#endif
+#if REDUCALGO == 1
+__kernel void
+reduceMaxDble(__global double *buffer, 
+	      __const long length, 
+	      __global double *result, 
+	      __local double *scratch) {
+  int global_index = get_global_id(0);
+  int local_index  = get_local_id(0);
+  double accumulator = buffer[0];
+  // Pass 1
+  // Loop sequentially over chunks of input vector
 
+  if (global_index >= length) return;
+  while (global_index < length) {
+    double element = buffer[global_index];
+    accumulator = fmax(accumulator, element);
+    global_index += get_local_size(0);  // to favor coalescing
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  // Pass 2
+  // Perform parallel reduction
+  scratch[local_index] = accumulator;
+  barrier(CLK_LOCAL_MEM_FENCE);
+  for (int offset = get_local_size(0) / 2; offset > 0; offset = offset / 2) {
+    if (local_index < offset) {
+      double other = scratch[local_index + offset];
+      double mine = scratch[local_index];
+      scratch[local_index] = fmax(mine, other);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+  if (local_index == 0) {
+    result[get_group_id(0)] = scratch[0];
+  }
+}
+#endif
 
 
 //EOF
