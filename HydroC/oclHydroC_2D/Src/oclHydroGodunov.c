@@ -101,7 +101,7 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clReleaseEvent");
 }
 
-void ClearArray(cl_mem array, size_t lgrBytes)
+static void ClearArrayDble(cl_mem array, size_t lgrBytes)
 {
   int lzero = 0;
   long ldble = lgrBytes / sizeof(double);
@@ -116,7 +116,7 @@ cl_mem  AllocClear(size_t lgrBytes) {
 
   tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
   oclCheckErr(status, "");
-  // ClearArray(tab, lgrBytes);
+  ClearArrayDble(tab, lgrBytes);
   return tab;
 }
 
@@ -188,6 +188,7 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
   }
 
   WHERE("hydro_godunov");
+  if (H.prt) fprintf(fic, "loop dt=%lg\n", dt);
 
   for (idimIndex = 0; idimIndex < 2; idimIndex++) {
     idim = (idimStart - 1 + idimIndex) % 2 + 1;
@@ -249,7 +250,8 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
       // Characteristic tracing
       if (H.iorder != 1) {
-        oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hnxystep, qDEV, dqDEV);
+	oclMemset(dqDEV, 0, H.arVarSz);
+        oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, qDEV, dqDEV);
 	if (H.prt) { GETARRV(dqDEV, Hvw->dq); }
 	PRINTARRAYV2(fic, Hvw->dq, Hdimsize, "dq", H);
       }
@@ -276,6 +278,10 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       PRINTARRAYV2(fic, Hvw->flux, Hdimsize, "flux", H);
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
       PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
+      // if (H.prt) {
+      // 	GETUOLD; PRINTUOLD(fic, H, Hv);
+      // }
+      if (H.prt) fprintf(fic, "dxdt=%lg\n", dtdx);
       oclUpdateConservativeVars(idim, i, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, 
 				uoldDEV, uDEV, fluxDEV);
       if (H.prt) {

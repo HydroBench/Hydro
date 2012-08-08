@@ -261,8 +261,12 @@ LoopKQEforRow(const long j, __global double *uold, __global double *q, __global 
 }
 
 __kernel void
-LoopKcourant(__global double *q, __global double *courant, const double Hsmallc, __global const double *c,
-             const long Hnxyt, const long n, const int slices, const int Hnxystep) {
+LoopKcourant(__global double *q, 
+	     __global double *courant, 
+	     const double Hsmallc, 
+	     __global const double *c,
+             const long Hnxyt, const long n, 
+	     const int slices, const int Hnxystep) {
   double cournox, cournoy, courantl;
   long i, s;
   idx2d(&i, &s, Hnxyt);
@@ -386,6 +390,7 @@ Loop1KcuUpdate(const long rowcol, const double dtdx,
                const long Hnxyt, const int slices, const int Hnxystep) {
   long i, s;
   idx2d(&i, &s, Hnxyt);
+
   if (s >= slices)
     return;
 
@@ -498,8 +503,8 @@ Loop1KcuConstoprim(const long n,
                    __global double *u, __global double *q, __global double *e,
                    const long Hnxyt, const double Hsmallr, const int slices, const int Hnxystep) {
   double eken;
-  int i, idx = get_global_id(0);
-  int s;
+  int idx = get_global_id(0);
+  long i, s;
 
   s = idx / Hnxyt;
   i = idx % Hnxyt;
@@ -567,9 +572,10 @@ LoopEOS(__global double *q,
     return;
 
   smallp = Square(Hsmallc) / Hgamma;
-  p[IHS(k, s, Hnxyt)] = (Hgamma - one) * rho[IHS(k, s, Hnxyt)] * eint[IHS(k, s, Hnxyt)];
-  p[IHS(k, s, Hnxyt)] = Max(p[IHS(k, s, Hnxyt)], (double) (rho[IHS(k, s, Hnxyt)] * smallp));
-  c[IHS(k, s, Hnxyt)] = Sqrt(Hgamma * p[IHS(k, s, Hnxyt)] / rho[IHS(k, s, Hnxyt)]);
+  int is = IHS(k, s, Hnxyt);
+  p[is] = (Hgamma - one) * rho[is] * eint[is];
+  p[is] = Max(p[is], (double) (rho[is] * smallp));
+  c[is] = Sqrt(Hgamma * p[is] / rho[is]);
 }
 
 __kernel void
@@ -611,7 +617,6 @@ __kernel void
 Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt, const int slices, const int Hstep,
                    __global double *qxm, __global double *qxp, __global double *qleft, __global double *qright) {
   long nvar;
-  long idx = get_global_id(0);
   long i, s;
   idx2d(&i, &s, Hnxyt);
   if (s >= slices)
@@ -640,12 +645,12 @@ LoopKcuSlope(__global double *q, __global double *dq,
   if (s >= slices)
     return;
 
-  i = i + ijmin;
+  // i = i + ijmin;
   if (i >= ijmax)
     return;
 
   for (n = 0; n < Hnvar; n++) {
-    ihvwin = IHVWS(i, s, n, Hnxyt, Hnxystep);
+    ihvwin =  IHVWS(i,     s, n, Hnxyt, Hnxystep);
     ihvwimn = IHVWS(i - 1, s, n, Hnxyt, Hnxystep);
     ihvwipn = IHVWS(i + 1, s, n, Hnxyt, Hnxystep);
     dlft = slope_type * (q[ihvwin] - q[ihvwimn]);
@@ -802,7 +807,7 @@ Loop2KcuTrace(__global double *q, __global double *dq,
 }
 
 __kernel void
-reduceMaxDble(__global double *buffer, __const long length, __global double *result, __local double *scratch) {
+reduceMaxDbleOLD(__global double *buffer, __const long length, __global double *result, __local double *scratch) {
   int global_index = get_global_id(0);
   double accumulator = buffer[0];
   // Pass 1
@@ -1086,6 +1091,21 @@ kunpack_arrayh(const int ymin, const long Hnxt, const long Hnyt, const long Hnva
     for (j = ymin; j < ymin + ExtraLayer; j++) {
       uold[IHV(i, j, ivar, Hnxt, Hnyt)] = buffer[IHv2h(i, j - ymin, ivar)];
     }
+  }
+}
+
+__kernel void
+reduceMaxDble(__global double *buffer, __const long length, __global double *result, __local double *scratch) {
+  int global_index = get_global_id(0);
+  int i;
+  double lmaxCourant;
+  if (global_index == 0) {
+    lmaxCourant = 0.;
+    for (i = 0; i < length; i++) {
+      lmaxCourant = fmax(lmaxCourant, buffer[i]);
+    }
+    
+    result[get_group_id(0)] = lmaxCourant;
   }
 }
 

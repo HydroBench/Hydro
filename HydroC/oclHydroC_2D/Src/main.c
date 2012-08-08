@@ -71,8 +71,10 @@ main(int argc, char **argv)
   MPI_Init(&argc, &argv);
   
   process_args(argc, argv, &H);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   oclInitCode();
+  MPI_Barrier(MPI_COMM_WORLD);
 
   hydro_init(&H, &Hv);
   // PRINTUOLD(stdout, H, &Hv);

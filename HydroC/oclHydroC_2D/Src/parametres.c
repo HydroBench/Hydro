@@ -300,7 +300,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
 
     H->nx = H->box[XMAX_BOX] - H->box[XMIN_BOX];
     H->ny = H->box[YMAX_BOX] - H->box[YMIN_BOX];
-    printf("[%4d/%4d] x=%4d X=%4d y=%4d Y=%4d / u=%4d d=%4d l=%4d r=%4d \n", H->mype, H->nproc,
+    fprintf(stderr, "[%4d/%4d] x=%4d X=%4d y=%4d Y=%4d / u=%4d d=%4d l=%4d r=%4d \n", H->mype, H->nproc,
            H->box[XMIN_BOX], H->box[XMAX_BOX], H->box[YMIN_BOX], H->box[YMAX_BOX],
            H->box[UP_BOX], H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
     // adapt the boundary conditions 

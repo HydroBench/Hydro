@@ -136,9 +136,10 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
 
   if (form == NDR_1D) {
     sizec = nb;
-    lws[0] = nbthreads;
+    lws[0] = ((nbthreads + 1) % 32) * 32;
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
+    // fprintf(stderr, "gws[0] %ld lws[0] %ld\n", gws[0], lws[0]);
   }
 
   if (form == NDR_2D) {

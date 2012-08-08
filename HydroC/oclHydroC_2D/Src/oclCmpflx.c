@@ -62,7 +62,7 @@ oclCmpflx(const long narray, const long Hnxyt, const long Hnvar,
 
   WHERE("cmpflx");
 
-  oclMkNDrange(narray * slices, THREADSSZ, NDR_1D, gws, lws);
+  oclMkNDrange(Hnxyt * slices, THREADSSZ, NDR_1D, gws, lws);
 
   // Compute fluxes
   OCLSETARG07(ker[Loop1KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hgamma, slices, Hstep);
