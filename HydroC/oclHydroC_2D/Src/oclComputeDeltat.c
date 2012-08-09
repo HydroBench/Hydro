@@ -118,7 +118,7 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
 
   lcourant = (double *) calloc(Hnxyt * H.nxystep, sizeof(double));
   // the buffer is created and filled by zeros immediately
-  courantDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.nxyt * H.nxystep * sizeof(double), lcourant, &err);
+  courantDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.nxyt * H.nxystep * sizeof(double), NULL, &err);
   oclCheckErr(err, "clCreateBuffer");
   ClearArrayDble(courantDEV, H.nxyt * H.nxystep * sizeof(double));
 
