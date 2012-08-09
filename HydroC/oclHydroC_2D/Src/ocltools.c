@@ -304,8 +304,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
 #endif
 #if INTEL==1
   strcat(options, "-DINTEL ");
-  // strcat(options, "-cl-nv-opt-level 3 ");
-  strcat(options, "-g ");
+  // strcat(options, "-g "); // -g has a huge perf impact on a SNB quad core.
 #endif
   if (pdesc[theplatform].devdesc[thedev].fpdp) {
     strcat(options, "-DHASFP64 ");

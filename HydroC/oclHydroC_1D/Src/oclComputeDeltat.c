@@ -141,17 +141,22 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
     oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc);
   }
 
-  // err = clEnqueueReadBuffer(cqueue, courantDEV, CL_TRUE, 0, H.nx * sizeof(double), lcourant, 0, NULL, NULL);
+  err = clEnqueueReadBuffer(cqueue, courantDEV, CL_TRUE, 0, H.nx * sizeof(double), lcourant, 0, NULL, NULL);
 
+  int ic;
+  double lmax = 0.;
+  for (ic = 0; ic < H.nx; ic++) {
+    lmax = fmax(lmax, lcourant[ic]);
+  }
 
   // on cherche le max global des max locaux
   maxCourant = oclReduceMax(courantDEV, H.nx);
-
+  // fprintf(stderr, "Courant=%lg (%lg)\n", maxCourant, lmax);
   *dt = H.courant_factor * H.dx / maxCourant;
   err = clReleaseMemObject(courantDEV);
-  free(lcourant);
   oclCheckErr(err, "clReleaseMemObject");
-
+  free(lcourant);
+  // exit(0);
   // fprintf(stdout, "%g %g %g %g\n", cournox, cournoy, H.smallc, H.courant_factor);
 }                               // compute_deltat
 
