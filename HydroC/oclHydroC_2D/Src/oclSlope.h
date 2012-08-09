@@ -40,6 +40,10 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <CL/cl.h>
 
-void oclSlope(cl_mem qDEV, cl_mem dqDEV, const long narray, const long Hnvar, const long Hnxyt, const double slope_type);
+void oclSlope(const long narray, const long Hnvar, 
+	      const long Hnxyt, const double slope_type,
+	      const int slices, const int Hnxystep, 
+	      cl_mem qDEV, cl_mem dqDEV 
+	      );
 
 #endif // SLOPE_H_INCLUDED

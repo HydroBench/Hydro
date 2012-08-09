@@ -41,6 +41,8 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #define THREADSSZ 32
 
+// This enum list all the possible kernels that are created in one shot.
+
 typedef enum {
   Loop1KcuCmpflx = 1,
   Loop2KcuCmpflx,
@@ -60,10 +62,6 @@ typedef enum {
   Loop1KcuMakeBoundary,
   Loop2KcuMakeBoundary,
   Loop1KcuQleftright,
-  Init1KcuRiemann,
-  Init2KcuRiemann,
-  Init3KcuRiemann,
-  Init4KcuRiemann,
   Loop1KcuRiemann,
   Loop10KcuRiemann,
   LoopKcuSlope,
@@ -72,9 +70,12 @@ typedef enum {
   LoopKredMaxDble,
   KernelMemset,
   KernelMemsetV4,
+  kpack_arrayv, kunpack_arrayv, kpack_arrayh, kunpack_arrayh, 
   LastEntryKernel
 } myKernel_t;
 
+
+// Those global variables are ugly but that's the fastest way to do it.
 extern cl_command_queue cqueue;
 extern cl_context ctx;
 extern cl_program pgm;
@@ -84,7 +85,7 @@ extern int platformselected;
 extern cl_kernel *ker;
 void oclMemset(cl_mem a, cl_int v, size_t lbyte);
 void oclMakeHydroKernels();
-void oclInitCode();
+void oclInitCode(const int nproc, const int mype);
 
 #endif // OCLINIT_H
 //EOF

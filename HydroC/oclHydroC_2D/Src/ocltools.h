@@ -52,14 +52,20 @@ knowledge of the CeCILL license and that you accept its terms.
 typedef enum { NDR_1D = 1, NDR_2D = 2, NDR_3D = 3 } MkNDrange_t;
 typedef size_t dim3[3];
 
+// Here we define a set of macros to pass arguments to kernels.  The
+// only limitation is that each argument MUST be a variable. No
+// expression or constant is allowed by the OpenCL mechanism.
+
 #define OCLINITARG cl_uint narg = 0
 #define OCLRESETARG narg = 0
-#define OCLSETARG(k, a) do { oclSetArg((k), narg, sizeof((a)), &(a)); narg++; } while(0);
+#define OCLSETARG(k, a) do { oclSetArg((k), narg, sizeof((a)), &(a), __FILE__, __LINE__); narg++; } while(0);
 
 #define OCLSETARG01(k, a) { OCLINITARG ; OCLSETARG((k), (a)) ; }
 #define OCLSETARG02(k, a, b) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; }
-#define OCLSETARG03(k, a, b, c) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ;  OCLSETARG((k), (c)) ; }
-#define OCLSETARG04(k, a, b, c, d) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ;  OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; }
+#define OCLSETARG03(k, a, b, c) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ;  \
+    OCLSETARG((k), (c)) ; }
+#define OCLSETARG04(k, a, b, c, d) { OCLINITARG ; OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ;  \
+    OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; }
 #define OCLSETARG05(k, a, b, c, d, e) { OCLINITARG ;			\
     OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
     OCLSETARG((k), (e)) ; }
@@ -89,7 +95,20 @@ typedef size_t dim3[3];
     OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
     OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; }
 
-#define CREATEKER(pgm, k, a) do {cl_int err = 0; (k) = clCreateKernel((pgm), #a, &err); oclCheckErr(err, #a); } while (0)
+#define OCLSETARG13(k, a, b, c, d, e, f, g, h, i, j, l, m, n) { OCLINITARG ; \
+    OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
+    OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
+    OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
+    OCLSETARG((k), (n)) ; }
+#define OCLSETARG14(k, a, b, c, d, e, f, g, h, i, j, l, m, n, o) { OCLINITARG ; \
+    OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
+    OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
+    OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
+    OCLSETARG((k), (n)) ; OCLSETARG((k), (o)) ; }
+
+#define CREATEKER(pgm, k, a) do {cl_int err = 0; (k) = clCreateKernel((pgm), #a, &err); oclCheckErrF(err, #a, __FILE__, __LINE__); } while (0)
+
+#define OCLFREE(tab) do {cl_int status = 0; status = clReleaseMemObject((tab)); oclCheckErrF(status, "",  __FILE__, __LINE__); } while (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,9 +141,9 @@ extern "C" {
   size_t oclGetMaxWorkSize(cl_kernel k, cl_device_id d);
   size_t oclGetMaxMemAllocSize(int theplatform, int thedev);
   int oclFp64Avail(int theplatform, int thedev);
-  void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg);
-  void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l);
-  double oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread);
+  void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg, const char * file, const int line);
+  void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l, const char * file, const int line);
+  double oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char *fname, const int line);
   void oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *maxth, long *nbblocks);
 #ifdef __cplusplus
 };

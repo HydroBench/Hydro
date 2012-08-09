@@ -121,14 +121,7 @@ typedef struct _hydrowork {
   double *c;                    // nxt or nyt
   double *e;                    // nxt or nyt
   // all others nx+1 or ny+1
-  double *rl, *ul, *pl, *cl, *wl;
-  double *rr, *ur, *pr, *cr, *wr;
-  double *ro, *uo, *po, *co, *wo;
-  double *rstar, *ustar, *pstar, *cstar;
   long *sgnm;
-  double *spin, *spout, *ushock;
-  double *frac, *scr, *delp, *pold;
-  long *ind, *ind2;
 } hydrowork_t;
 
 // All variables are grouped in structs for clarity sake.
@@ -160,11 +153,10 @@ void process_args(long argc, char **argv, hydroparam_t * H);
 #ifndef MFLOPS
 #if defined(FLOPS) && !defined(HMPP)
 /*
-	Pour le calcul des flops on utilise le bareme CRAY-Los Alamos
-	1 flop pour +-*
-	1 flop pour ABS MAX MIN SIGN (quelque soit la forme de l'expression)
-	4 flops pour / et SQRT
-	8 flops pour SIN, COS, EXP, ...
+	1 flop for +-*
+	1 flop for ABS MAX MIN SIGN 
+	4 flops for /, SQRT
+	8 flops for SIN, COS, EXP, ...
 */
 #define MFLOPS(simple, reciproque, maxmin, transcendant) do { flops += ((simple) + (maxmin) + 4 * (reciproque) + 8 * (transcendant)); } while (0)
 #else

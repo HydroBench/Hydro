@@ -119,6 +119,7 @@ void
 allocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   WHERE("allocate_work_space");
+
   Hvw->u = DMalloc(H.nxystep * H.arVarSz);
   Hvw->q = DMalloc(H.nxystep * H.arVarSz);
   Hvw->dq = DMalloc(H.nxystep * H.arVarSz);
@@ -131,57 +132,15 @@ allocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw
   Hw->e = DMalloc(H.nxystep * H.arSz);
   Hw->c = DMalloc(H.nxystep * H.arSz);
   Hw->sgnm = IMalloc(H.nxystep * H.arSz);
-  //
-  Hw->rl = DMalloc(H.nxystep * H.arSz);
-  Hw->ul = DMalloc(H.nxystep * H.arSz);
-  Hw->pl = DMalloc(H.nxystep * H.arSz);
-  Hw->cl = DMalloc(H.nxystep * H.arSz);
-  Hw->rr = DMalloc(H.nxystep * H.arSz);
-  Hw->ur = DMalloc(H.nxystep * H.arSz);
-  Hw->pr = DMalloc(H.nxystep * H.arSz);
-  Hw->cr = DMalloc(H.nxystep * H.arSz);
-  Hw->ro = DMalloc(H.nxystep * H.arSz);
-  Hw->uo = DMalloc(H.nxystep * H.arSz);
-  Hw->po = DMalloc(H.nxystep * H.arSz);
-  Hw->co = DMalloc(H.nxystep * H.arSz);
-  Hw->rstar = DMalloc(H.nxystep * H.arSz);
-  Hw->ustar = DMalloc(H.nxystep * H.arSz);
-  Hw->pstar = DMalloc(H.nxystep * H.arSz);
-  Hw->cstar = DMalloc(H.nxystep * H.arSz);
-  Hw->wl = DMalloc(H.nxystep * H.arSz);
-  Hw->wr = DMalloc(H.nxystep * H.arSz);
-  Hw->wo = DMalloc((H.nxystep * H.arSz));
-  Hw->spin = DMalloc(H.nxystep * H.arSz);
-  Hw->spout = DMalloc(H.nxystep * H.arSz);
-  Hw->ushock = DMalloc(H.nxystep * H.arSz);
-  Hw->frac = DMalloc(H.nxystep * H.arSz);
-  Hw->scr = DMalloc(H.nxystep * H.arSz);
-  Hw->delp = DMalloc(H.nxystep * H.arSz);
-  Hw->pold = DMalloc(H.nxystep * H.arSz);
-  Hw->ind = IMalloc(H.nxystep * H.arSz);
-  Hw->ind2 = IMalloc(H.nxystep * H.arSz);
 }                               // allocate_work_space
 
 
-/*
-static void
-VFree(double **v, const hydroparam_t H)
-{
-    long i;
-    for (i = 0; i < H.nvar; i++) {
-        Free(v[i]);
-    }
-    Free(v);
-} // VFree
-*/
 void
 deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   WHERE("deallocate_work_space");
 
-  //
   Free(Hw->e);
-  //
   Free(Hvw->u);
   Free(Hvw->q);
   Free(Hvw->dq);
@@ -192,37 +151,7 @@ deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * H
   Free(Hvw->qgdnv);
   Free(Hvw->flux);
   Free(Hw->sgnm);
-
-  //
   Free(Hw->c);
-  Free(Hw->rl);
-  Free(Hw->ul);
-  Free(Hw->pl);
-  Free(Hw->cl);
-  Free(Hw->rr);
-  Free(Hw->ur);
-  Free(Hw->pr);
-  Free(Hw->cr);
-  Free(Hw->ro);
-  Free(Hw->uo);
-  Free(Hw->po);
-  Free(Hw->co);
-  Free(Hw->rstar);
-  Free(Hw->ustar);
-  Free(Hw->pstar);
-  Free(Hw->cstar);
-  Free(Hw->wl);
-  Free(Hw->wr);
-  Free(Hw->wo);
-  Free(Hw->spin);
-  Free(Hw->spout);
-  Free(Hw->ushock);
-  Free(Hw->frac);
-  Free(Hw->scr);
-  Free(Hw->delp);
-  Free(Hw->pold);
-  Free(Hw->ind);
-  Free(Hw->ind2);
 }                               // deallocate_work_space
 
 

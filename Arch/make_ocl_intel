@@ -1,6 +1,6 @@
 # C compiler
 #------------------
-CC = gcc -DINTEL 
+CC = /usr/lib64/openmpi/bin/mpicc -DINTEL 
 
 # Cuda compiler
 #------------------
@@ -12,7 +12,7 @@ F90 = ifort
 
 # MPI C compiler
 #------------------
-MPICC = mpcc
+MPICC = mpicc
 
 # MPI Fortran compilers
 #------------------
