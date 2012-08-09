@@ -90,6 +90,7 @@ typedef size_t dim3[3];
     OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; }
 
 #define CREATEKER(pgm, k, a) do {cl_int err = 0; (k) = clCreateKernel((pgm), #a, &err); oclCheckErr(err, #a); } while (0)
+#define OCLFREE(tab) do {cl_int status = 0; status = clReleaseMemObject((tab)); oclCheckErrF(status, "",  __FILE__, __LINE__); } while (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,7 +125,10 @@ extern "C" {
   int oclFp64Avail(int theplatform, int thedev);
   void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg);
   void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l);
-  double oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread);
+
+#define oclLaunchKernel(a,b,c,d) oclLaunchKernelF((a), (b), (c), (d), __FILE__, __LINE__)
+
+  double oclLaunchKernelF(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char *fname, const int line);
   void oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *maxth, long *nbblocks);
 #ifdef __cplusplus
 };

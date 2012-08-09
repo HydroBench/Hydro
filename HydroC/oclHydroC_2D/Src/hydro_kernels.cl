@@ -1090,11 +1090,10 @@ reduceMaxDble(__global double *buffer,
 	      __local double *scratch) {
   int global_index = get_global_id(0);
   int local_index  = get_local_id(0);
-  double accumulator = buffer[0];
+  double accumulator = -DBL_MAX;
   // Pass 1
   // Loop sequentially over chunks of input vector
 
-  if (global_index >= length) return;
   while (global_index < length) {
     double element = buffer[global_index];
     accumulator = fmax(accumulator, element);

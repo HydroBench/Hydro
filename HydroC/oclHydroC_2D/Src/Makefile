@@ -3,11 +3,16 @@
 #--------------------------------------
 include make.inc
 
+# Optimization level wanted
+#--------------------------
+OPTFLAGS=-O3
+
 # OpenMP options
 #---------------
-CFLAGS += $(CFLAGS_MPI)
-NVCFLAGS += $(NVCFLAGS_MPI)
-LDFLAGS += $(LDFLAGS_MPI)
+CFLAGS += $(CFLAGS_MPI) $(OPTFLAGS)
+NVCFLAGS += $(NVCFLAGS_MPI) $(OPTFLAGS)
+LDFLAGS += $(LDFLAGS_MPI) $(OPTFLAGS)
+
 
 # Sources directories
 #--------------------

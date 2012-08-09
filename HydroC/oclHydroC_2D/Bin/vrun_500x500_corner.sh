@@ -12,6 +12,6 @@ cp ${EXEDIR}/oclparam.h ${RUNDIR}
 
 cd ${RUNDIR}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib64/openmpi/lib
-${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
+${RUNCMD} valgrind --tool=memcheck ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
 
 #EOF

@@ -304,7 +304,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
 #if INTEL==1
   strcat(options, "-DINTEL ");
   // strcat(options, "-cl-nv-opt-level 3 ");
-  strcat(options, "-g ");
+  // strcat(options, "-g ");
 #endif
   if (pdesc[theplatform].devdesc[thedev].fpdp) {
     strcat(options, "-DHASFP64 ");
@@ -793,7 +793,7 @@ oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *m
 }
 
 double
-oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
+oclLaunchKernelF(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char * fname, const int line)
 {
   cl_int err = 0;
   dim3 gws, lws;
@@ -805,19 +805,21 @@ oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
   maxThreads = oclGetMaxWorkSize(k, oclGetDeviceOfCQueue(q));
   maxThreads = MIN(maxThreads, nbthread);
 
+  // fprintf(stderr, "Kernel launch from %s %d\n", fname, line);
+
   oclMkNDrange(nbobj, maxThreads, NDR_1D, gws, lws);
   // printf("Launch: %ld G:%ld %ld %ld L:%ld %ld %ld\n", nbobj, gws[0], gws[1], gws[2], lws[0], lws[1], lws[2]);
 
   err = clEnqueueNDRangeKernel(q, k, NDR_1D, NULL, gws, lws, 0, NULL, &event);
-  oclCheckErr(err, "clEnqueueNDRangeKernel");
+  oclCheckErrF(err, "clEnqueueNDRangeKernel", fname, line);
 
   err = clWaitForEvents(one, &event);
-  oclCheckErr(err, "clWaitForEvents");
+  oclCheckErrF(err, "clWaitForEvents", fname, line);
 
   elapsk = oclChronoElaps(event);
 
   err = clReleaseEvent(event);
-  oclCheckErr(err, "clReleaseEvent");
+  oclCheckErrF(err, "clReleaseEvent", fname, line);
 
   return elapsk;
 }
