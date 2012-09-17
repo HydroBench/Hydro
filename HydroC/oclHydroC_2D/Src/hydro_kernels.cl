@@ -645,8 +645,8 @@ LoopKcuSlope(__global double *q, __global double *dq,
   if (s >= slices)
     return;
 
-  // i = i + ijmin;
-  if (i >= ijmax)
+  i = i + ijmin + 1;
+  if (i >= ijmax - 1)
     return;
 
   for (n = 0; n < Hnvar; n++) {

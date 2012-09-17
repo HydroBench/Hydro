@@ -177,7 +177,7 @@ main(int argc, char **argv) {
         sprintf(outnum, "%s [%04d]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;
         sprintf(outnum, "%s [%04d]", outnum, nvtk);
