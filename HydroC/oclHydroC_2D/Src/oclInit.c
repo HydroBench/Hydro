@@ -60,11 +60,14 @@ oclMemset(cl_mem a, cl_int v, size_t lbyte)
   int maxthr;
   size_t lgr;
 
-  lgr = lbyte / sizeof(cl_double);
-  OCLSETARG03(ker[KernelMemset], a, v, lgr);    // in int
+  lgr = lbyte;
+  lgr /= (size_t) sizeof(cl_double);
+  OCLSETARG03(ker[KernelMemset], a, v, lgr); 
   maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
   if (lgr < maxthr)
     maxthr = lgr;
+  assert(maxthr > 0);
+  assert(lgr > 0);
   oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
 }
 
