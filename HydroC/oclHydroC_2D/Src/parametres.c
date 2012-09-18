@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <values.h>
 #include <mpi.h>
 #include "SplitSurface.h"
 
@@ -51,8 +52,9 @@ usage(void)
   fprintf(stderr, "-v :: to increase verbosity");
   fprintf(stderr, "------------------------------------");
   exit(1);
-} static void
+} 
 
+static void
 default_values(hydroparam_t * H)
 {
 
@@ -94,10 +96,13 @@ default_values(hydroparam_t * H)
   H->boundary_left = 1;
   H->boundary_up = 1;
   H->boundary_down = 1;
-  H->noutput = 1000000;
-  H->nstepmax = 1000000;
+  H->noutput = 0;
+  H->nstepmax = INT_MAX;
   H->dtoutput = 0.0;
-} static void
+  H->testCase = 0;
+} 
+
+static void
 keyval(char *buffer, char **pkey, char **pval)
 {
   char *ptr;
@@ -125,6 +130,7 @@ keyval(char *buffer, char **pkey, char **pval)
     *ptr = 0;
   }
 }
+
 static void
 process_input(char *datafile, hydroparam_t * H)
 {
@@ -303,6 +309,19 @@ process_args(long argc, char **argv, hydroparam_t * H)
     fprintf(stderr, "[%4d/%4d] x=%4d X=%4d y=%4d Y=%4d / u=%4d d=%4d l=%4d r=%4d \n", H->mype, H->nproc,
 	    H->box[XMIN_BOX], H->box[XMAX_BOX], H->box[YMIN_BOX], H->box[YMAX_BOX],
 	    H->box[UP_BOX], H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
+
+    if (H->nx <= 0) {
+      printf("Decomposition not suited for this geometry along X: increase nx or change number of procs\n");
+    }
+
+    if (H->ny <= 0) {
+      printf("Decomposition not suited for this geometry along Y: increase ny or change number of procs\n");
+    }
+
+    if (H->nx == 0 || H->ny == 0) {
+      MPI_Abort(MPI_COMM_WORLD, 123);
+    }
+
     // adapt the boundary conditions 
     if (H->box[LEFT_BOX] != -1) {
       H->boundary_left = 0;

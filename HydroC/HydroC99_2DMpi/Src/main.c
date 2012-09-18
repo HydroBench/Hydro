@@ -113,6 +113,7 @@ main(int argc, char **argv) {
 
   if (H.mype == 1)
     fprintf(stdout, "Hydro starts main loop.\n");
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     // reset perf counter for this iteration
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
@@ -188,6 +189,7 @@ main(int argc, char **argv) {
       fflush(stdout);
     }
   }
+
   hydro_finish(H, &Hv);
   end_time = cclock();
   elaps = (double) (end_time - start_time);
