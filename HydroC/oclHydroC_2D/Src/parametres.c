@@ -309,9 +309,12 @@ process_args(long argc, char **argv, hydroparam_t * H)
   // Output the type of device selected
   if (H->mype == 0) {
     switch (runUnit) {
-    case RUN_CPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = CPU\n"); break;
-    case RUN_GPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = GPU\n"); break;
-    case RUN_ACC:fprintf(stdout, "Hydro:  OpenCL compute unit type = ACC\n"); break;
+    case RUN_CPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = CPU\n"); 
+      break;
+    case RUN_GPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = GPU\n"); 
+      break;
+    case RUN_ACC:fprintf(stdout, "Hydro:  OpenCL compute unit type = ACC\n"); 
+      break;
     }
   }
 
