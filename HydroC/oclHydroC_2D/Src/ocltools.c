@@ -85,7 +85,7 @@ typedef struct _DeviceDesc {
   int vecfloat;                 // CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT
   int vecdouble;                // CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE
   int fpdp;                     // Has Double Float support 
-  char *nature;                 // CPU GPU
+  char *nature;                 // CPU GPU ACC
 } DeviceDesc_t;
 
 typedef struct _PlatformDesc {
@@ -612,6 +612,28 @@ oclGetNumberOfDev(const int theplatform)
 }
 
 int
+oclGetNbOfAcc(const int theplatform)
+{
+  int j, nbAcc = 0;
+  cl_int err = 0;
+  cl_device_type devtype;
+
+  assert(pdesc != NULL);
+  assert(pdesc[theplatform].devices != NULL);
+
+  for (j = 0; j < pdesc[theplatform].nbdevices; j++) {
+    err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_TYPE, sizeof(devtype), &devtype, NULL);
+    oclCheckErr(err, "deviceInfo");
+    switch (devtype) {
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      nbAcc++;
+      break;
+    }
+  }
+  return nbAcc;
+}
+
+int
 oclGetNbOfGpu(const int theplatform)
 {
   int j, nbgpu = 0;
@@ -654,6 +676,31 @@ oclGetNbOfCpu(const int theplatform)
     }
   }
   return nbcpu;
+}
+
+int
+oclGetAccDev(const int theplatform, const int accnum)
+{
+  int j, nbacc = 0, numdev = -1;
+  cl_int err = 0;
+  cl_device_type devtype;
+
+  assert(pdesc != NULL);
+  assert(pdesc[theplatform].devices != NULL);
+
+  for (j = 0; j < pdesc[theplatform].nbdevices; j++) {
+    err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_TYPE, sizeof(devtype), &devtype, NULL);
+    oclCheckErr(err, "deviceInfo");
+    switch (devtype) {
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      if (accnum == nbacc) {
+	numdev = j;
+      }
+      nbacc++;
+      break;
+    }
+  }
+  return numdev;
 }
 
 int

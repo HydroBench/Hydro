@@ -74,6 +74,11 @@ typedef enum {
   LastEntryKernel
 } myKernel_t;
 
+typedef enum {
+  RUN_CPU,
+  RUN_GPU,
+  RUN_ACC
+} OclUnit_t;
 
 // Those global variables are ugly but that's the fastest way to do it.
 extern cl_command_queue cqueue;
@@ -81,10 +86,12 @@ extern cl_context ctx;
 extern cl_program pgm;
 extern int devselected;
 extern int platformselected;
+extern OclUnit_t runUnit;
 
 extern cl_kernel *ker;
 void oclMemset(cl_mem a, cl_int v, size_t lbyte);
 void oclMakeHydroKernels();
+
 void oclInitCode(const int nproc, const int mype);
 
 #endif // OCLINIT_H

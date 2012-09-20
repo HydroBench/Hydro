@@ -29,7 +29,7 @@ SRC=SplitSurface.c hydro_funcs.c hydro_utils.c main.c oclCmpflx.c oclComputeDelt
 
 
 hydro:  $(OBJ)
-	$(CC) $(LDFLAGS) $(OBJ) -o hydro
+	$(CC) $(LDFLAGS) $(OBJ) -o hydro $(SYSLIB)
 
 clean:
 	rm -f *.o *~

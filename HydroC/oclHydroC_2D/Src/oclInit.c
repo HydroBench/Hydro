@@ -149,6 +149,7 @@ oclInitCode(const int nproc, const int mype)
   int nbplatf = 0;
   int nbgpu = 0;
   int nbcpu = 0;
+  int nbacc = 0;
   char srcdir[1024];
 
   if (mype > 0) verbose = 0; // assumes a homogeneous machine :-(
@@ -161,34 +162,32 @@ oclInitCode(const int nproc, const int mype)
   devselected = -1;
   for (platformselected = 0; platformselected < nbplatf; platformselected++) {
 
-#if defined(INTEL)
-    // The current Linux OpenCL by Intel is available for CPU only.
-#define CPUVERSION 1
-#else
-#define CPUVERSION 0
-#endif
-
-#if CPUVERSION == 0
     nbgpu = oclGetNbOfGpu(platformselected);
-    if (nbgpu > 0) {
+    if ((runUnit == RUN_GPU) && (nbgpu > 0)) {
       if (mype == 0) fprintf(stderr, "Building a GPU version\n");
       if (nproc == 1) {
-	devselected = oclGetGpuDev(platformselected, 0);
+    	devselected = oclGetGpuDev(platformselected, 0);
       } else {
-	devselected = oclGetGpuDev(platformselected, (mype % nbgpu));
+	    devselected = oclGetGpuDev(platformselected, (mype % nbgpu));
       }
       fprintf(stdout, "Hydro: %03d GPU %d\n", mype, (mype % nbgpu));
       fflush(stdout);
       break;
     }
-#else
+
+    nbacc = oclGetNbOfAcc(platformselected);
+	if ((runUnit == RUN_ACC) && (nbacc > 0)) {
+       if (mype == 0) fprintf(stderr, "Building an ACC version\n");
+       devselected = oclGetAccDev(platformselected, 0);
+       break;
+	}
+
     nbcpu = oclGetNbOfCpu(platformselected);
-    if (nbcpu > 0) {
+    if ((runUnit == RUN_CPU) && (nbcpu > 0)) {
       if (mype == 0) fprintf(stderr, "Building a CPU version\n");
       devselected = oclGetCpuDev(platformselected, 0);
       break;
     }
-#endif
   }
 
   ctx = oclCreateCtxForPlatform(platformselected, verbose);

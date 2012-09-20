@@ -47,11 +47,13 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "oclInit.h"
 
+OclUnit_t runUnit = RUN_CPU;
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
 hydrovarwork_t Hvw;             // nvar
 hydrowork_t Hw;
 unsigned long flops = 0;
+
 int
 main(int argc, char **argv)
 {

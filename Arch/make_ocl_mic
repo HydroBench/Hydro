@@ -1,0 +1,69 @@
+# C compiler
+#------------------
+CC = icc -DINTEL 
+
+# Cuda compiler
+#------------------
+NVCC = 
+
+# Fortran compilers
+#------------------
+F90 = ifort
+
+# MPI C compiler
+#------------------
+MPICC = mpicc
+
+# MPI Fortran compilers
+#------------------
+MPIF90 = mpif90
+
+# C compilation options
+#-----------------------------
+OCLINC=
+CFLAGS = $(OCLINC)
+
+# Fortran compilation options
+#-----------------------------
+FFLAGS = 
+
+# Linker options
+#---------------
+OCLLIB=/usr/lib64
+SYSLIB = -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
+
+# OpenMP C compilation options
+#---------------------------
+CFLAGS_OMP = -openmp
+
+# Cuda compilation options
+#---------------------------
+NVCFLAGS_OMP = 
+
+# OpenMP Fortran compilation options
+#---------------------------
+FFLAGS_OMP = -openmp
+
+# MPI C compilation options
+#---------------------------
+#MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
+MPIROOT=/opt/intel/impi/4.1.0.018/intel64
+CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
+#NVCFLAGS_MPI = -I$(MPIROOT)/include
+
+
+# MPI Fortran compilation options
+#---------------------------
+FFLAGS_MPI =
+
+# OpenMP link options
+#--------------------
+LDFLAGS_OMP = -openmp
+
+# MPI link options
+#--------------------
+LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+
+
+# OPTFLAGS is left to the Makefile to specify the optimization level
+OPTFLAGS=

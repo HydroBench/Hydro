@@ -43,6 +43,8 @@
 #include "SplitSurface.h"
 
 #include "parametres.h"
+#include "oclInit.h"
+
 static void
 usage(void)
 {
@@ -50,6 +52,7 @@ usage(void)
   fprintf(stderr, "--help");
   fprintf(stderr, "-i input");
   fprintf(stderr, "-v :: to increase verbosity");
+  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC ");
   fprintf(stderr, "------------------------------------");
   exit(1);
 } 
@@ -257,6 +260,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
 {
   long n = 1;
   char donnees[512];
+  char rununit[512];
 
   default_values(H);
 
@@ -271,6 +275,19 @@ process_args(long argc, char **argv, hydroparam_t * H)
     if (strcmp(argv[n], "-v") == 0) {
       n++;
       H->prt++;
+      continue;
+    }
+    if (strcmp(argv[n], "-u") == 0) {
+      n++;
+      strncpy(rununit, argv[n], 512);
+      rununit[511] = 0;         // security
+      n++;
+      if (strcmp(rununit, "c") == 0) runUnit = RUN_CPU;
+      if (strcmp(rununit, "C") == 0) runUnit = RUN_CPU;
+      if (strcmp(rununit, "g") == 0) runUnit = RUN_GPU;
+      if (strcmp(rununit, "G") == 0) runUnit = RUN_GPU;
+      if (strcmp(rununit, "a") == 0) runUnit = RUN_ACC;
+      if (strcmp(rununit, "A") == 0) runUnit = RUN_ACC;
       continue;
     }
     if (strcmp(argv[n], "-i") == 0) {
@@ -288,6 +305,14 @@ process_args(long argc, char **argv, hydroparam_t * H)
   } else {
     fprintf(stderr, "Option -i is missing\n");
     exit(1);
+  }
+  // Output the type of device selected
+  if (H->mype == 0) {
+    switch (runUnit) {
+    case RUN_CPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = CPU\n"); break;
+    case RUN_GPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = GPU\n"); break;
+    case RUN_ACC:fprintf(stdout, "Hydro:  OpenCL compute unit type = ACC\n"); break;
+    }
   }
 
   H->globnx = H->nx;
