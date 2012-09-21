@@ -1,6 +1,7 @@
 # C compiler
 #------------------
-CC = icc -DNVIDIA 
+CC = icc -mmic
+CC = icc
 
 # Cuda compiler
 #------------------
@@ -12,7 +13,7 @@ F90 = ifort
 
 # MPI C compiler
 #------------------
-MPICC = mpcc
+MPICC = mpicc
 
 # MPI Fortran compilers
 #------------------
@@ -20,21 +21,21 @@ MPIF90 = mpif90
 
 # C compilation options
 #-----------------------------
-OCLINC=-I/opt/cuda/4.0/include
-CFLAGS = -g $(OCLINC)
+# PROF=-pg
+CFLAGS = -O3 $(PROF)
+# -no-vec 
 
 # Fortran compilation options
 #-----------------------------
-FFLAGS = -g
+FFLAGS = -O3
 
 # Linker options
 #---------------
-OCLLIB=/usr/lib64/nvidia 
-LDFLAGS = -g -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
+LDFLAGS = -O3 $(PROF)
 
 # OpenMP C compilation options
 #---------------------------
-CFLAGS_OMP = -openmp
+CFLAGS_OMP = -openmp -openmp-report1
 
 # Cuda compilation options
 #---------------------------
@@ -46,7 +47,8 @@ FFLAGS_OMP = -openmp
 
 # MPI C compilation options
 #---------------------------
-MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
+MPIROOT=/opt/intel/impi/4.1.0.018/mic
+MPIROOT=/opt/intel/impi/4.1.0.018/intel64
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
 NVCFLAGS_MPI = -I$(MPIROOT)/include
 

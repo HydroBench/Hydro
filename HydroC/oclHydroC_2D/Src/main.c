@@ -47,11 +47,13 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "oclInit.h"
 
+OclUnit_t runUnit = RUN_CPU;
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
 hydrovarwork_t Hvw;             // nvar
 hydrowork_t Hw;
 unsigned long flops = 0;
+
 int
 main(int argc, char **argv)
 {
@@ -96,6 +98,12 @@ main(int argc, char **argv)
   }
   oclPutUoldOnDevice(H, &Hv);
 
+  if (H.dtoutput > 0 || H.noutput > 0)
+    vtkfile(++nvtk, H, &Hv);
+
+  if (H.mype == 1)
+    fprintf(stdout, "Hydro starts main loop.\n");
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     start_iter = cclock();
     outnum[0] = 0;
@@ -133,14 +141,14 @@ main(int argc, char **argv)
       double iter_time = (double) (end_iter - start_iter);
       sprintf(outnum, "%s (%.3fs)", outnum, iter_time);
     }
-    if (time_output == 0) {
+    if (time_output == 0 && H.noutput > 0) {
       if ((H.nstep % H.noutput) == 0) {
         oclGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         oclGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;

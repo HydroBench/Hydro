@@ -38,10 +38,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <values.h>
 #include <mpi.h>
 #include "SplitSurface.h"
 
 #include "parametres.h"
+#include "oclInit.h"
+
 static void
 usage(void)
 {
@@ -49,10 +52,12 @@ usage(void)
   fprintf(stderr, "--help");
   fprintf(stderr, "-i input");
   fprintf(stderr, "-v :: to increase verbosity");
+  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC ");
   fprintf(stderr, "------------------------------------");
   exit(1);
-} static void
+} 
 
+static void
 default_values(hydroparam_t * H)
 {
 
@@ -94,10 +99,13 @@ default_values(hydroparam_t * H)
   H->boundary_left = 1;
   H->boundary_up = 1;
   H->boundary_down = 1;
-  H->noutput = 1000000;
-  H->nstepmax = 1000000;
+  H->noutput = 0;
+  H->nstepmax = INT_MAX;
   H->dtoutput = 0.0;
-} static void
+  H->testCase = 0;
+} 
+
+static void
 keyval(char *buffer, char **pkey, char **pval)
 {
   char *ptr;
@@ -125,6 +133,7 @@ keyval(char *buffer, char **pkey, char **pval)
     *ptr = 0;
   }
 }
+
 static void
 process_input(char *datafile, hydroparam_t * H)
 {
@@ -251,6 +260,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
 {
   long n = 1;
   char donnees[512];
+  char rununit[512];
 
   default_values(H);
 
@@ -265,6 +275,19 @@ process_args(long argc, char **argv, hydroparam_t * H)
     if (strcmp(argv[n], "-v") == 0) {
       n++;
       H->prt++;
+      continue;
+    }
+    if (strcmp(argv[n], "-u") == 0) {
+      n++;
+      strncpy(rununit, argv[n], 512);
+      rununit[511] = 0;         // security
+      n++;
+      if (strcmp(rununit, "c") == 0) runUnit = RUN_CPU;
+      if (strcmp(rununit, "C") == 0) runUnit = RUN_CPU;
+      if (strcmp(rununit, "g") == 0) runUnit = RUN_GPU;
+      if (strcmp(rununit, "G") == 0) runUnit = RUN_GPU;
+      if (strcmp(rununit, "a") == 0) runUnit = RUN_ACC;
+      if (strcmp(rununit, "A") == 0) runUnit = RUN_ACC;
       continue;
     }
     if (strcmp(argv[n], "-i") == 0) {
@@ -282,6 +305,17 @@ process_args(long argc, char **argv, hydroparam_t * H)
   } else {
     fprintf(stderr, "Option -i is missing\n");
     exit(1);
+  }
+  // Output the type of device selected
+  if (H->mype == 0) {
+    switch (runUnit) {
+    case RUN_CPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = CPU\n"); 
+      break;
+    case RUN_GPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = GPU\n"); 
+      break;
+    case RUN_ACC:fprintf(stdout, "Hydro:  OpenCL compute unit type = ACC\n"); 
+      break;
+    }
   }
 
   H->globnx = H->nx;
@@ -303,6 +337,19 @@ process_args(long argc, char **argv, hydroparam_t * H)
     fprintf(stderr, "[%4d/%4d] x=%4d X=%4d y=%4d Y=%4d / u=%4d d=%4d l=%4d r=%4d \n", H->mype, H->nproc,
 	    H->box[XMIN_BOX], H->box[XMAX_BOX], H->box[YMIN_BOX], H->box[YMAX_BOX],
 	    H->box[UP_BOX], H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
+
+    if (H->nx <= 0) {
+      printf("Decomposition not suited for this geometry along X: increase nx or change number of procs\n");
+    }
+
+    if (H->ny <= 0) {
+      printf("Decomposition not suited for this geometry along Y: increase ny or change number of procs\n");
+    }
+
+    if (H->nx == 0 || H->ny == 0) {
+      MPI_Abort(MPI_COMM_WORLD, 123);
+    }
+
     // adapt the boundary conditions 
     if (H->box[LEFT_BOX] != -1) {
       H->boundary_left = 0;

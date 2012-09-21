@@ -126,7 +126,9 @@ extern "C" {
                                                const int devselected, const cl_context ctx, const int profiling);
   int oclGetNumberOfDev(const int theplatform);
   int oclGetNbOfGpu(const int theplatform);
+  int oclGetNbOfAcc(const int theplatform);
   int oclGetNbOfCpu(const int theplatform);
+  int oclGetAccDev(const int theplatform, const int accnum);
   int oclGetGpuDev(const int theplatform, const int gpunum);
   int oclGetCpuDev(const int theplatform, const int cpunum);
   char *oclGetDevNature(const int theplatform, const int thedev);
