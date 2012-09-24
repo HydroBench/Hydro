@@ -104,6 +104,30 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
       }
     }
   }
+  if (H->testCase == 2) {
+    if (H->nproc == 1) {
+      x = ExtraLayer;
+      y = ExtraLayer;
+      for (j = y; j < H->jmax; j++) {
+	Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
+      }
+      printf("SOD tube test case\n");
+    } else {
+      x = ExtraLayer;
+      y = ExtraLayer;
+      for (j = 0; j < H->globny; j++) {
+	if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
+	  y = j - H->box[YMIN_BOX] + ExtraLayer;
+	  Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+	}
+      }
+      printf("SOD tube test case in //\n");
+    }
+  }
+  if (H->testCase > 2) {
+      printf("Test case not implemented -- aborting !\n");
+      abort();
+  }
 }                               // hydro_init
 
 void

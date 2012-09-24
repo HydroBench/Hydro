@@ -47,7 +47,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "oclInit.h"
 
+#ifdef NVIDIA
+OclUnit_t runUnit = RUN_GPU;
+#else
 OclUnit_t runUnit = RUN_CPU;
+#endif
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
 hydrovarwork_t Hvw;             // nvar
