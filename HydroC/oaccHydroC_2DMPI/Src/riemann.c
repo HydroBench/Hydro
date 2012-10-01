@@ -260,7 +260,7 @@ riemann (const int narray,
       #pragma acc loop independent 
       for (int invar = IP + 1; invar < Hnvar; invar++)
       {
-        #pragma acc loop independent private(i)
+        #pragma acc loop independent 
         for (int s = 0; s < slices; s++)
         {
           for (int i = 0; i < narray; i++)

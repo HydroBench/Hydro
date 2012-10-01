@@ -100,7 +100,7 @@ compute_deltat (double *dt, const hydroparam_t H, hydrowork_t * Hw,
   double cournox, cournoy;
   int j, jend, slices, Hstep, Hmin, Hmax;
   double (*e)[H.nxyt];
-  double (*c)[H.nxystep];
+  double (*c)[H.nxyt];
   double (*q)[H.nxystep][H.nxyt];
   WHERE ("compute_deltat");
 
@@ -111,8 +111,8 @@ compute_deltat (double *dt, const hydroparam_t H, hydrowork_t * Hw,
   //Hw->e = (double (*)) malloc ((H.nxyt) * H.nxystep * sizeof (double));
   //Hw->c = (double (*)) malloc ((H.nxyt) * H.nxystep * sizeof (double));
 
-  c = (double (*)[H.nxystep]) Hw->c;
-  e = (double (*)[H.nxystep]) Hw->e;
+  c = (double (*)[H.nxyt]) Hw->c;
+  e = (double (*)[H.nxyt]) Hw->e;
   q = (double (*)[H.nxystep][H.nxyt]) Hvw->q;
 
   Hstep = H.nxystep;
