@@ -57,45 +57,15 @@ cl_kernel *ker = NULL;
 void
 oclMemset(cl_mem a, cl_int v, size_t lbyte)
 {
+  cl_int err = 0;
   int maxthr;
   size_t lgr;
+  cl_kernel kern = ker[KernelMemset]; 
 
   lgr = lbyte;
   lgr /= (size_t) sizeof(cl_double);
-  OCLSETARG03(ker[KernelMemset], a, v, lgr); 
-  maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
-  if (lgr < maxthr)
-    maxthr = lgr;
-  assert(maxthr > 0);
-  assert(lgr > 0);
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
-}
-
-void
-oclMemset4(cl_mem a, cl_int v, size_t lbyte)
-{
-  int maxthr;
-  size_t lgr;
-
-  // traitement vectoriel d'abord sous forme de int4
-  lgr = lbyte / sizeof(cl_int) / 4;
-  OCLSETARG03(ker[KernelMemsetV4], a, v, lgr);  // in int4
-  maxthr = oclGetMaxWorkSize(ker[KernelMemsetV4], oclGetDeviceOfCQueue(cqueue));
-  if (lgr < maxthr)
-    maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr, __FILE__, __LINE__);
-
-  if ((lbyte - lgr * 4 * sizeof(cl_int)) > 0) {
-    // traitement du reste
-    lgr = lbyte - lgr * 4 * sizeof(cl_int);
-
-    OCLSETARG03(ker[KernelMemset], a, v, lgr);  // in byte
-    assert((lgr % sizeof(cl_int)) == 0);
-    maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
-    if (lgr < maxthr)
-      maxthr = lgr;
-    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
-  }
+  OCLSETARG03(kern, a, v, lgr); 
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, 1024, __FILE__, __LINE__);
 }
 
 void
@@ -191,7 +161,7 @@ oclInitCode(const int nproc, const int mype)
   }
 
   ctx = oclCreateCtxForPlatform(platformselected, verbose);
-  cqueue = oclCreateCommandQueueForDev(platformselected, devselected, ctx, 1);
+  cqueue = oclCreateCommandQueueForDev(platformselected, devselected, ctx, 0);
   getcwd(srcdir, 1023);
   pgm = oclCreatePgmFromCtx("hydro_kernels.cl", srcdir, ctx, platformselected, devselected, verbose);
   // exit(2);

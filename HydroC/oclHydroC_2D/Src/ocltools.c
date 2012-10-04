@@ -799,13 +799,14 @@ oclGetMaxWorkSize(cl_kernel k, cl_device_id d)
   size_t maxth = 0;
 
   // #ifndef CONSERVATIVE
-  err = clGetDeviceInfo(d, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(size_t), &res, NULL);
-  oclCheckErr(err, "oclGetMaxWorkSize maxcu");
+   err = clGetDeviceInfo(d, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(size_t), &res, NULL);
+   oclCheckErr(err, "oclGetMaxWorkSize maxcu");
   // err = clGetKernelWorkGroupInfo(k, d, CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxth), &maxth, NULL);
   // oclCheckErr(err, "clGetCommandQueueInfo qCtx");
   // maxcu = res;
   // fprintf(stderr, "oclGetMaxWorkSize %d (%ld)\n", maxcu, maxth);
-  return res;
+   return res;
+   // return 1;
 }
 
 
@@ -865,9 +866,18 @@ oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, con
   double elapsk;
   int maxThreads = 0;
   cl_uint one = 1;
+  cl_device_id dId = oclGetDeviceOfCQueue(q);
+  size_t prefsz = 32;
 
-  maxThreads = oclGetMaxWorkSize(k, oclGetDeviceOfCQueue(q));
+  maxThreads = oclGetMaxWorkSize(k, dId);
   maxThreads = MIN(maxThreads, nbthread);
+
+  // Get the proper size for the hardware
+  err = clGetKernelWorkGroupInfo(k, dId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(prefsz), &prefsz, NULL);
+  oclCheckErr(err, "clGetKernelWorkGroupInfo CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+ 
+  // make sure we have the proper multiple: AMD 7970 crashes is not met.
+  maxThreads = oclMultiple(maxThreads, prefsz);
 
   oclMkNDrange(nbobj, maxThreads, NDR_1D, gws, lws);
   // printf("Launch: %ld G:%ld %ld %ld L:%ld %ld %ld\n", nbobj, gws[0], gws[1], gws[2], lws[0], lws[1], lws[2]);
