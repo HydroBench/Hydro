@@ -92,8 +92,6 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
 
   // int hmppGuard = 1;
   int idimIndex = 0;
-  // Allocate work space for 1D sweeps
-  allocate_work_space(H.nxyt, H, Hw, Hvw);
 
   for (idimIndex = 0; idimIndex < 2; idimIndex++) {
     int idim = (idimStart - 1 + idimIndex) % 2 + 1;
@@ -209,8 +207,7 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       PRINTUOLD(fic, H, Hv);
     }
   }
-  // Deallocate work space
-  deallocate_work_space(H, Hw, Hvw);
+
   if ((H.t + dt >= H.tend) || (H.nstep + 1 >= H.nstepmax)) {
     /* LM -- HERE a more secure implementation should be used: a new parameter ? */
   }

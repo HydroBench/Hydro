@@ -51,8 +51,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
-hydrovarwork_t Hvw;             // nvar
-hydrowork_t Hw;
+//for compute_delta
+hydrovarwork_t Hvw_deltat;             // nvar
+hydrowork_t Hw_deltat;
+hydrovarwork_t Hvw_godunov;             // nvar
+hydrowork_t Hw_godunov;
 
 int
 main(int argc, char **argv) {
@@ -114,6 +117,11 @@ main(int argc, char **argv) {
   if (H.mype == 1)
     fprintf(stdout, "Hydro starts main loop.\n");
 
+  //pre-allocate memory before entering in loop
+  //For godunov scheme
+  allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
+  compute_deltat_init_mem(H,&Hw_deltat,&Hvw_deltat);
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     // reset perf counter for this iteration
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
@@ -122,7 +130,7 @@ main(int argc, char **argv) {
     if ((H.nstep % 2) == 0) {
       dt=0;
       // if (H.mype == 1) fprintf(stdout, "Hydro computes deltat.\n");
-      compute_deltat(&dt, H, &Hw, &Hv, &Hvw);
+      compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
       if (H.nstep == 0) {
         dt = dt / 2.0;
       }
@@ -137,10 +145,10 @@ main(int argc, char **argv) {
     }
     // if (H.mype == 1) fprintf(stdout, "Hydro starts godunov.\n");
     if ((H.nstep % 2) == 0) {
-      hydro_godunov(1, dt, H, &Hv, &Hw, &Hvw);
+      hydro_godunov(1, dt, H, &Hv, &Hw_godunov, &Hvw_godunov);
       //            hydro_godunov(2, dt, H, &Hv, &Hw, &Hvw);
     } else {
-      hydro_godunov(2, dt, H, &Hv, &Hw, &Hvw);
+      hydro_godunov(2, dt, H, &Hv, &Hw_godunov, &Hvw_godunov);
       //            hydro_godunov(1, dt, H, &Hv, &Hw, &Hvw);
     }
     end_iter = cclock();
@@ -189,6 +197,10 @@ main(int argc, char **argv) {
       fflush(stdout);
     }
   }
+
+  // Deallocate work spaces
+  deallocate_work_space(H, &Hw_godunov, &Hvw_godunov);
+  compute_deltat_clean_mem(&Hw_deltat,&Hvw_deltat);
 
   hydro_finish(H, &Hv);
   end_time = cclock();
