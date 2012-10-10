@@ -34,31 +34,10 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+#ifndef COMPUTE_DELTAT_H_INCLUDED
+#define COMPUTE_DELTAT_H_INCLUDED
 
+void compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw);
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
-  );
-
-void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
-
-void Dmemset(size_t nbr, double t[nbr], double motif);
-
-#endif // RIEMANN_H_INCLUDED
+#endif // COMPUTE_DELTAT_H_INCLUDED

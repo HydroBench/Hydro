@@ -3,7 +3,9 @@
   (C) Romain Teyssier : CEA/IRFU           -- original F90 code
   (C) Pierre-Francois Lavallee : IDRIS      -- original F90 code
   (C) Guillaume Colin de Verdiere : CEA/DAM -- for the C version
+  (C) Jeffrey Poznanovic : CSCS             -- for the OpenACC version
 */
+
 /*
 
 This software is governed by the CeCILL license under French law and
@@ -58,6 +60,10 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "cmpflx.h"
 #include "conservar.h"
 
+#ifdef CRAYPAT
+#include <pat_api.h>
+#endif
+
 // variables auxiliaires pour mettre en place le mode resident de HMPP
 void
 hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
@@ -66,21 +72,25 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
   double dtdx;
   int clear=0;
 
-  double (*e)[H.nxyt];
-  double (*flux)[H.nxystep][H.nxyt];
-  double (*qleft)[H.nxystep][H.nxyt];
-  double (*qright)[H.nxystep][H.nxyt];
-  double (*c)[H.nxyt];
-  double *uold;
-  int (*sgnm)[H.nxyt];
-  double (*qgdnv)[H.nxystep][H.nxyt];
-  double (*u)[H.nxystep][H.nxyt];
-  double (*qxm)[H.nxystep][H.nxyt];
-  double (*qxp)[H.nxystep][H.nxyt];
-  double (*q)[H.nxystep][H.nxyt];
-  double (*dq)[H.nxystep][H.nxyt];
+  double *restrict e;
+  double *restrict flux;
+  double *restrict qleft;
+  double *restrict qright;
+  double *restrict c;
+  double *restrict uold;
+  int *restrict sgnm;
+  double *restrict qgdnv;
+  double *restrict u;
+  double *restrict qxm;
+  double *restrict qxp;
+  double *restrict q;
+  double *restrict dq;
 
   static FILE *fic = NULL;
+
+#ifdef CRAYPAT
+  PAT_record(PAT_STATE_ON);
+#endif
 
   if (fic == NULL && H.prt == 1) {
     char logname[256];
@@ -90,8 +100,34 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
 
   WHERE("hydro_godunov");
 
+  uold = Hv->uold;
+#pragma acc data present(uold[0:H.nvar*H.nxt*H.nyt])
+  {
+
   // int hmppGuard = 1;
   int idimIndex = 0;
+  // Allocate work space for 1D sweeps
+  allocate_work_space(H.nxyt, H, Hw, Hvw);
+
+  qgdnv = Hvw->qgdnv;
+  flux = Hvw->flux;
+  c = Hw->c;
+  e = Hw->e;
+  qleft = Hvw->qleft;
+  qright = Hvw->qright;
+  sgnm = Hw->sgnm;
+  q = Hvw->q;
+  dq = Hvw->dq;
+  u = Hvw->u;
+  qxm = Hvw->qxm;
+  qxp = Hvw->qxp;
+
+#pragma acc data \
+  create(qleft[0:H.nvar*H.nxystep*H.nxyt], qright[0:H.nvar*H.nxystep*H.nxyt], \
+         q[0:H.nvar*H.nxystep*H.nxyt], qgdnv[0:H.nvar*H.nxystep*H.nxyt], \
+         flux[0:H.nvar*H.nxystep*H.nxyt], u[0:H.nvar*H.nxystep*H.nxyt], \
+         dq[0:H.nvar*H.nxystep*H.nxyt], e[0:H.nxystep*H.nxyt], c[0:H.nxystep*H.nxyt], \
+         sgnm[0:H.nxystep*H.nxyt], qxm[0:H.nvar*H.nxystep*H.nxyt], qxp[0:H.nvar*H.nxystep*H.nxyt])
 
   for (idimIndex = 0; idimIndex < 2; idimIndex++) {
     int idim = (idimStart - 1 + idimIndex) % 2 + 1;
@@ -104,23 +140,14 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       PRINTUOLD(fic, H, Hv);
     }
     // if (H.mype == 1) fprintf(fic, "Hydro makes boundary.\n");
+#if 0
     make_boundary(idim, H, Hv);
+#else
+    #pragma acc host_data use_device(uold)
+    cuMakeBoundary(idim, H, Hv, uold);
+#endif
     if (H.prt) {fprintf(fic, "MakeBoundary\n");}
     PRINTUOLD(fic, H, Hv);
-
-    uold = Hv->uold;
-    qgdnv = (double (*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
-    flux = (double (*)[H.nxystep][H.nxyt]) Hvw->flux;
-    c = (double (*)[H.nxyt]) Hw->c;
-    e = (double (*)[H.nxyt]) Hw->e;
-    qleft = (double (*)[H.nxystep][H.nxyt]) Hvw->qleft;
-    qright = (double (*)[H.nxystep][H.nxyt]) Hvw->qright;
-    sgnm = (int (*)[H.nxyt]) Hw->sgnm;
-    q = (double (*)[H.nxystep][H.nxyt]) Hvw->q;
-    dq = (double (*)[H.nxystep][H.nxyt]) Hvw->dq;
-    u = (double (*)[H.nxystep][H.nxyt]) Hvw->u;
-    qxm = (double (*)[H.nxystep][H.nxyt]) Hvw->qxm;
-    qxp = (double (*)[H.nxystep][H.nxyt]) Hvw->qxp;
 
     int Hmin, Hmax, Hstep;
     int Hdimsize;
@@ -140,17 +167,15 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       Hstep = H.nxystep;
     }
 
-    if (!H.nstep && idim == 1) {
-      /* LM -- HERE a more secure implementation should be used: a new parameter ? */
-    }
-    // if (H.mype == 1) fprintf(fic, "Hydro computes slices.\n");
+    //#pragma acc update device(uold[0:H.nvar*H.nxt*H.nyt])
+
     for (j = Hmin; j < Hmax; j += Hstep) {
       // we try to compute many slices each pass
       int jend = j + Hstep;
       if (jend >= Hmax)
         jend = Hmax;
       int slices = jend - j;    // numbre of slices to compute
-      // fprintf(stderr, "Godunov idim=%d, j=%d %d \n", idim, j, slices);
+      //printf("Godunov idim=%d, j=%d %d \n", idim, j, slices);
 
       if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
       gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep, uold,
@@ -181,6 +206,7 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qright, 0);
       if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) flux, 0);
       if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qgdnv, 0);
+
       trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, q, dq, c, qxm, qxp);
       PRINTARRAYV2(fic, qxm, Hdimsize, "qxm", H);
       PRINTARRAYV2(fic, qxp, Hdimsize, "qxp", H);
@@ -189,8 +215,8 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       PRINTARRAYV2(fic, qleft, Hdimsize, "qleft", H);
       PRINTARRAYV2(fic, qright, Hdimsize, "qright", H);
 
-      riemann_vec(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv, sgnm, Hw);
-     //  riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv, sgnm);
+      riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep, qleft, qright,
+              qgdnv, sgnm);
       PRINTARRAYV2(fic, qgdnv, Hdimsize, "qgdnv", H);
 
       cmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hstep, qgdnv, flux);
@@ -206,10 +232,15 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       // printf("[%d] After pass %d\n", H.mype, idim);
       PRINTUOLD(fic, H, Hv);
     }
+    //#pragma acc update host(uold[0:H.nvar*H.nxt*H.nyt])
   }
+  // Deallocate work space
+  deallocate_work_space(H, Hw, Hvw);
 
   if ((H.t + dt >= H.tend) || (H.nstep + 1 >= H.nstepmax)) {
     /* LM -- HERE a more secure implementation should be used: a new parameter ? */
+  }
+
   }
 
 }                               // hydro_godunov

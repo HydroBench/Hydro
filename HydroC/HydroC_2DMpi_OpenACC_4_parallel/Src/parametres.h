@@ -34,6 +34,7 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
+
 #ifndef PARAMETRES_H_INCLUDED
 #define PARAMETRES_H_INCLUDED
 extern unsigned long flops;
@@ -83,9 +84,6 @@ typedef struct _hydroparam {
   // char scheme[20];
   int scheme;
   int boundary_right, boundary_left, boundary_down, boundary_up;
-
-  // test case 
-  int testCase;
 } hydroparam_t;
 
 #define HSCHEME_MUSCL 1
@@ -123,7 +121,6 @@ typedef struct _hydrowork {
   double *rstar, *ustar, *pstar, *cstar;
   double *spin, *spout, *ushock;
   int *sgnm;
-  int *goon; // convergence indicator for riemann
   double *frac, *scr, *delp, *pold;
   int *ind, *ind2;
 } hydrowork_t;
@@ -176,5 +173,10 @@ static const int ExtraLayerTot = 2 * 2;
 #define ExtraLayerTot (2 * 2)
 #endif /*  */
 void process_args(int argc, char **argv, hydroparam_t * H);
+
+#define IHS(i,s)     ( (i) + Hnxyt * (s)                          )
+#define IHVW(i,v)    ( (i) + Hnxyt * (v)                          )
+#define IHVWS(i,j,v) ( (i) + Hnxyt * (j) + Hnxyt * Hnxystep * (v) )
+
 #endif // PARAMETRES_H_INCLUDED
 //EOF

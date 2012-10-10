@@ -4,6 +4,7 @@
   (C) Pierre-Francois Lavallee : IDRIS      -- original F90 code
   (C) Guillaume Colin de Verdiere : CEA/DAM -- for the C version
 */
+
 /*
 
 This software is governed by the CeCILL license under French law and
@@ -72,62 +73,37 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
   }
 
   // Initial shock
-  if (H->testCase == 0) {
-    if (H->nproc == 1) {
-      x = (H->imax - H->imin) / 2 + ExtraLayer * 0;
-      y = (H->jmax - H->jmin) / 2 + ExtraLayer * 0;
+  if (H->nproc == 1) {
+    x = (H->imax - H->imin) / 2 + ExtraLayer * 0;
+    y = (H->jmax - H->jmin) / 2 + ExtraLayer * 0;
+    Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+    printf("%d %d\n", x, y);
+  } else {
+    x = ((H->globnx + 2 * ExtraLayer) / 2);
+    y = ((H->globny + 2 * ExtraLayer) / 2);
+    if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
+      x = (H->globnx / 2) - H->box[XMIN_BOX] + ExtraLayer;
+      y = (H->globny / 2) - H->box[YMIN_BOX] + ExtraLayer;
       Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-      printf("Centered test case : %d %d\n", x, y);
-    } else {
-      x = ((H->globnx) / 2);
-      y = ((H->globny) / 2);
-      if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
-        x = x - H->box[XMIN_BOX] + ExtraLayer;
-        y = y - H->box[YMIN_BOX] + ExtraLayer;
-        Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-        printf("Centered test case : [%d] %d %d\n", H->mype, x, y);
-      }
+      printf("[%d] %d %d\n", H->mype, x, y);
     }
   }
-  if (H->testCase == 1) {
-    if (H->nproc == 1) {
-      x = ExtraLayer;
-      y = ExtraLayer;
-      Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-      printf("Lower corner test case : %d %d\n", x, y);
-    } else {
-      x = ExtraLayer;
-      y = ExtraLayer;
-      if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
-        Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-        printf("Lower corner test case : [%d] %d %d\n", H->mype, x, y);
-      }
-    }
-  }
-  if (H->testCase == 2) {
-    if (H->nproc == 1) {
-      x = ExtraLayer;
-      y = ExtraLayer;
-      for (j = y; j < H->jmax; j++) {
-	Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
-      }
-      printf("SOD tube test case\n");
-    } else {
-      x = ExtraLayer;
-      y = ExtraLayer;
-      for (j = 0; j < H->globny; j++) {
-	if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
-	  y = j - H->box[YMIN_BOX] + ExtraLayer;
-	  Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-	}
-      }
-      printf("SOD tube test case in //\n");
-    }
-  }
-  if (H->testCase > 2) {
-      printf("Test case not implemented -- aborting !\n");
-      abort();
-  }
+//   // Perturbation of the computation
+//   for (i = 0; i < 10; i++) {
+//     x = ((H->globnx + 2 * ExtraLayer) / 5) + i;
+//     y = ((H->globny + 2 * ExtraLayer) / 4);
+//     if (H->nproc == 1) {
+//       Hv->uold[IHvP(x, y, ID)] = 1e5;
+//       printf("%d %d\n", x, y);
+//     } else {
+//       if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
+//         x = x - H->box[XMIN_BOX] + ExtraLayer;
+//         y = y - H->box[YMIN_BOX] + ExtraLayer;
+//         Hv->uold[IHvP(x, y, ID)] = 1e5;;
+//         printf("[%d] %d %d\n", H->mype, x, y);
+//       }
+//     }
+//   }
 }                               // hydro_init
 
 void
@@ -150,24 +126,21 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   Hw->e = DMalloc((ngrid + 1) * H.nxystep);
   Hw->c = DMalloc((ngrid + 1) * H.nxystep);
   Hw->sgnm = IMalloc((ngrid + 0) * H.nxystep);
-
-  Hw->pstar = DMalloc(ngrid * H.nxystep);
-  Hw->rl = DMalloc(ngrid * H.nxystep);
-  Hw->ul = DMalloc(ngrid * H.nxystep);
-  Hw->pl = DMalloc(ngrid * H.nxystep);
-  Hw->cl = DMalloc(ngrid * H.nxystep);
-  Hw->rr = DMalloc(ngrid * H.nxystep);
-  Hw->ur = DMalloc(ngrid * H.nxystep);
-  Hw->pr = DMalloc(ngrid * H.nxystep);
-  Hw->cr = DMalloc(ngrid * H.nxystep);
-  Hw->ro = DMalloc(ngrid * H.nxystep);
-  Hw->goon = IMalloc(ngrid * H.nxystep);
-
+  //   Hw->rl = DMalloc(ngrid);
+  //   Hw->ul = DMalloc(ngrid);
+  //   Hw->pl = DMalloc(ngrid);
+  //   Hw->cl = DMalloc(ngrid);
+  //   Hw->rr = DMalloc(ngrid);
+  //   Hw->ur = DMalloc(ngrid);
+  //   Hw->pr = DMalloc(ngrid);
+  //   Hw->cr = DMalloc(ngrid);
+  //   Hw->ro = DMalloc(ngrid);
   //   Hw->uo = DMalloc(ngrid);
   //   Hw->po = DMalloc(ngrid);
   //   Hw->co = DMalloc(ngrid);
   //   Hw->rstar = DMalloc(ngrid);
   //   Hw->ustar = DMalloc(ngrid);
+  //   Hw->pstar = DMalloc(ngrid);
   //   Hw->cstar = DMalloc(ngrid);
   //   Hw->wl = DMalloc(ngrid);
   //   Hw->wr = DMalloc(ngrid);
@@ -203,21 +176,21 @@ deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * H
   Free(Hw->sgnm);
 
   //
-  Free(Hw->pstar);
-  Free(Hw->rl);
-  Free(Hw->ul);
-  Free(Hw->pl);
-  Free(Hw->cl);
-  Free(Hw->rr);
-  Free(Hw->ur);
-  Free(Hw->pr);
-  Free(Hw->cr);
+  //   Free(Hw->rl);
+  //   Free(Hw->ul);
+  //   Free(Hw->pl);
+  //   Free(Hw->cl);
+  //   Free(Hw->rr);
+  //   Free(Hw->ur);
+  //   Free(Hw->pr);
+  //   Free(Hw->cr);
   //   Free(Hw->ro);
   //   Free(Hw->uo);
   //   Free(Hw->po);
   //   Free(Hw->co);
   //   Free(Hw->rstar);
   //   Free(Hw->ustar);
+  //   Free(Hw->pstar);
   //   Free(Hw->cstar);
   //   Free(Hw->wl);
   //   Free(Hw->wr);

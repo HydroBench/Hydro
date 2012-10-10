@@ -34,31 +34,24 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+#ifndef EQUATION_OF_STATE_H_INCLUDED
+#define EQUATION_OF_STATE_H_INCLUDED
 
+#include "utils.h"
+#include "parametres.h"
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
-  );
+#ifdef HMPP
 
-void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
+#endif
 
-void Dmemset(size_t nbr, double t[nbr], double motif);
+void equation_of_state(int imin,
+                       int imax,
+                       const int Hnxyt,
+                       const int Hnvar,
+                       const double Hsmallc,
+                       const double Hgamma,
+                       const int slices, const int Hstep,
+                       double *eint, double *q, double *c);
 
-#endif // RIEMANN_H_INCLUDED
+#endif // EQUATION_OF_STATE_H_INCLUDED

@@ -34,31 +34,39 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+#ifndef CONSERVAR_H_INCLUDED
+#define CONSERVAR_H_INCLUDED
 
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
+
+void gatherConservativeVars(const int idim,
+                            const int rowcol,
+                            const int Himin,
+                            const int Himax,
+                            const int Hjmin,
+                            const int Hjmax,
+                            const int Hnvar,
+                            const int Hnxt,
+                            const int Hnyt,
+                            const int Hnxyt,
+                            const int slices, const int Hstep,
+                            double uold[Hnvar * Hnxt * Hnyt], double *u);
+
+void updateConservativeVars(const int idim,
+                            const int rowcol,
+                            const double dtdx,
+                            const int Himin,
+                            const int Himax,
+                            const int Hjmin,
+                            const int Hjmax,
+                            const int Hnvar,
+                            const int Hnxt,
+                            const int Hnyt,
+                            const int Hnxyt,
+                            const int slices, const int Hstep,
+                            double uold[Hnvar * Hnxt * Hnyt],
+                            double *u, double *flux
   );
 
-void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
-
-void Dmemset(size_t nbr, double t[nbr], double motif);
-
-#endif // RIEMANN_H_INCLUDED
+#endif // CONSERVAR_H_INCLUDED

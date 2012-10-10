@@ -34,31 +34,19 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+#ifndef CONSTOPRIM_H_INCLUDED
+#define CONSTOPRIM_H_INCLUDED
+
+#include "utils.h"
 
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
-  );
 
-void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
+void constoprim(const int n,
+                const int Hnxyt,
+                const int Hnvar,
+                const double Hsmallr,
+                const int slices, const int Hstep,
+                double *u, double *q, double *e);
 
-void Dmemset(size_t nbr, double t[nbr], double motif);
-
-#endif // RIEMANN_H_INCLUDED
+#endif // CONSTOPRIM_H_INCLUDED

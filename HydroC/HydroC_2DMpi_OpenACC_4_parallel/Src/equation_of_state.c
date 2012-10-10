@@ -3,6 +3,7 @@
   (C) Romain Teyssier : CEA/IRFU           -- original F90 code
   (C) Pierre-Francois Lavallee : IDRIS      -- original F90 code
   (C) Guillaume Colin de Verdiere : CEA/DAM -- for the C version
+  (C) Jeffrey Poznanovic : CSCS             -- for the OpenACC version
 */
 
 /*
@@ -34,31 +35,57 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+// #include <stdlib.h>
+// #include <unistd.h>
+#include <math.h>
+#include <stdio.h>
 
+#ifndef HMPP
+#include "equation_of_state.h"
+#include "parametres.h"
+#include "utils.h"
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
-  );
+#define CFLOPS(c)               /* {flops+=c;} */
+#define IDX(i,j,k)    ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
+#define IDXE(i,j)     ( (i*Hnxyt) + j )
 
 void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
+equation_of_state(int imin,
+                  int imax,
+                  const int Hnxyt,
+                  const int Hnvar,
+                  const double Hsmallc,
+                  const double Hgamma,
+                  const int slices, const int Hstep,
+                  double *eint, double *q, double *c) {
+  //double eint[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt]) {
+  int k, s;
+  double smallp;
 
-void Dmemset(size_t nbr, double t[nbr], double motif);
+  WHERE("equation_of_state");
+  smallp = Square(Hsmallc) / Hgamma;
+  CFLOPS(1);
 
-#endif // RIEMANN_H_INCLUDED
+#pragma acc parallel pcopyin(eint[0:Hstep*Hnxyt]) pcopy(q[0:Hnvar*Hstep*Hnxyt]) pcopyout(c[0:Hstep*Hnxyt])
+#pragma acc loop gang
+  for (s = 0; s < slices; s++) {
+#pragma acc loop vector
+    for (k = imin; k < imax; k++) {
+      double rhok = q[IDX(ID,s,k)];
+      double base = (Hgamma - one) * rhok * eint[IDXE(s,k)];
+      base = MAX(base, (double) (rhok * smallp));
+
+      q[IDX(IP,s,k)] = base;
+      c[IDXE(s,k)] = sqrt(Hgamma * base / rhok);
+
+      CFLOPS(7);
+    }
+  }
+}                               // equation_of_state
+
+#undef IDX
+#undef IDXE
+
+#endif
+// EOF

@@ -34,31 +34,56 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
-#ifndef RIEMANN_H_INCLUDED
-#define RIEMANN_H_INCLUDED
 
-#include "hmpp.h"
+#ifndef GRIDFUNCS_H
+#define GRIDFUNCS_H
 
+inline __device__ long
+idx1dl(void) {
+  return threadIdx.y * blockDim.x + threadIdx.x;
+}
 
-void riemann(int narray,
-             const double Hsmallr,
-             const double Hsmallc,
-             const double Hgamma,
-             const int Hniter_riemann,
-             const int Hnvar,
-             const int Hnxyt,
-             const int slices, const int Hstep,
-             double qleft[Hnvar][Hstep][Hnxyt],
-             double qright[Hnvar][Hstep][Hnxyt], double qgdnv[Hnvar][Hstep][Hnxyt], int sgnm[Hstep][narray]
-  );
+inline __device__ long
+idx1d(void) {
+  return blockIdx.y * (gridDim.x * blockDim.x) + blockDim.x * blockIdx.x + threadIdx.x;
+}
 
-void
-  riemann_vec(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, 
-	      const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, 
-	      const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],        //
-              double qgdnv[Hnvar][Hstep][Hnxyt],        //
-              int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
+inline __device__ void
+idx2d(long &x, long &y, const long nx) {
+  long i1d = idx1d();
+  y = i1d / nx;
+  x = i1d - y * nx;
+  // printf("idx2d: %ld %ld => %ld %ld \n", i1d, nx, x, y);
+}
 
-void Dmemset(size_t nbr, double t[nbr], double motif);
+inline __device__ void
+idx3d(long &x, long &y, long &z, const long nx, const long ny) {
+  long i1d = idx1d();
+  long plan;
+  z = i1d / (nx * ny);
+  plan = i1d - z * (nx * ny);
+  y = plan / nx;
+  x = plan - y * nx;
+}
 
-#endif // RIEMANN_H_INCLUDED
+inline __device__ long
+blcknum1d(void) {
+  return blockIdx.y * gridDim.x + blockIdx.x;
+}
+
+inline __device__ long
+nbblcks(void) {
+  return gridDim.y * gridDim.x;
+}
+
+#define THREADSSZ 128
+#define THREADSSZs 64
+
+void SetBlockDims(long nelmts, long NTHREADS, dim3 & block, dim3 & grid);
+void CheckErr(const char *where);
+void initDevice(long myCard);
+void releaseDevice(long myCard);
+long getDeviceCapability(int *nDevice, long *maxMemOnDevice, long *maxThreads);
+
+double reduceMax(double *array, long nb);
+#endif
