@@ -55,9 +55,9 @@
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
 //for compute_delta
-hydrovarwork_t Hvw_deltat;             // nvar
+hydrovarwork_t Hvw_deltat;      // nvar
 hydrowork_t Hw_deltat;
-hydrovarwork_t Hvw_godunov;             // nvar
+hydrovarwork_t Hvw_godunov;     // nvar
 hydrowork_t Hw_godunov;
 double functim[TIM_END];
 
@@ -128,7 +128,7 @@ main(int argc, char **argv) {
   //pre-allocate memory before entering in loop
   //For godunov scheme
   allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
-  compute_deltat_init_mem(H,&Hw_deltat,&Hvw_deltat);
+  compute_deltat_init_mem(H, &Hw_deltat, &Hvw_deltat);
 
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     // reset perf counter for this iteration
@@ -136,7 +136,7 @@ main(int argc, char **argv) {
     start_iter = dcclock();
     outnum[0] = 0;
     if ((H.nstep % 2) == 0) {
-      dt=0;
+      dt = 0;
       // if (H.mype == 1) fprintf(stdout, "Hydro computes deltat.\n");
       start = cclock();
       compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
@@ -148,7 +148,7 @@ main(int argc, char **argv) {
 #ifdef MPI
       if (H.nproc > 1) {
         double dtmin;
-	// printf("pe=%4d\tdt=%lg\n",H.mype, dt);
+        // printf("pe=%4d\tdt=%lg\n",H.mype, dt);
         MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
         dt = dtmin;
       }
@@ -187,7 +187,7 @@ main(int argc, char **argv) {
       if (flops > 0) {
         if (iter_time > 1.e-9) {
           double mflops = (double) flops / (double) 1.e+6 / iter_time;
-	  MflopsSUM += mflops;
+          MflopsSUM += mflops;
           sprintf(outnum, "%s {%.2f Mflops %ld Ops} (%.3fs)", outnum, mflops, flops, iter_time);
         }
       } else {
@@ -214,7 +214,7 @@ main(int argc, char **argv) {
 
   // Deallocate work spaces
   deallocate_work_space(H, &Hw_godunov, &Hvw_godunov);
-  compute_deltat_clean_mem(&Hw_deltat,&Hvw_deltat);
+  compute_deltat_clean_mem(&Hw_deltat, &Hvw_deltat);
 
   hydro_finish(H, &Hv);
   end_time = dcclock();
@@ -222,19 +222,23 @@ main(int argc, char **argv) {
   timeToString(outnum, elaps);
   if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
-    fprintf(stdout, "%10s ", "COMPDT");
-    fprintf(stdout, "%10s ", "MAKBOU");
-    fprintf(stdout, "%10s ", "GATCON");
-    fprintf(stdout, "%10s ", "CONPRI");
-    fprintf(stdout, "%10s ", "EOS");
-    fprintf(stdout, "%10s ", "SLOPE");
-    fprintf(stdout, "%10s ", "TRACE");
-    fprintf(stdout, "%10s ", "QLEFTR");
-    fprintf(stdout, "%10s ", "RIEMAN");
-    fprintf(stdout, "%10s ", "CMPFLX");
-    fprintf(stdout, "%10s ", "UPDCON");
-    fprintf(stdout, "%10s ", "ALLRED");
+    fprintf(stdout, "    ");
+    fprintf(stdout, "%-10s ", "COMPDT");
+    fprintf(stdout, "%-10s ", "MAKBOU");
+    fprintf(stdout, "%-10s ", "GATCON");
+    fprintf(stdout, "%-10s ", "CONPRI");
+    fprintf(stdout, "%-10s ", "EOS");
+    fprintf(stdout, "%-10s ", "SLOPE");
+    fprintf(stdout, "%-10s ", "TRACE");
+    fprintf(stdout, "%-10s ", "QLEFTR");
+    fprintf(stdout, "%-10s ", "RIEMAN");
+    fprintf(stdout, "%-10s ", "CMPFLX");
+    fprintf(stdout, "%-10s ", "UPDCON");
+    fprintf(stdout, "%-10s ", "ALLRED");
     fprintf(stdout, "\n");
+  }
+  if (H.nproc == 1) {
+    fprintf(stdout, "PE0 ");
     fprintf(stdout, "%10.2g ", functim[TIM_COMPDT]);
     fprintf(stdout, "%10.2g ", functim[TIM_MAKBOU]);
     fprintf(stdout, "%10.2g ", functim[TIM_GATCON]);
@@ -248,8 +252,59 @@ main(int argc, char **argv) {
     fprintf(stdout, "%10.2g ", functim[TIM_UPDCON]);
     fprintf(stdout, "%10.2g ", functim[TIM_ALLRED]);
     fprintf(stdout, "\n");
-  }  
-
+  }
+  if (H.nproc > 1) {
+    double timMAX[TIM_END];
+    double timMIN[TIM_END];
+    double timSUM[TIM_END];
+    MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    if (H.mype == 0) {
+      fprintf(stdout, "MIN ");
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_COMPDT]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_MAKBOU]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_GATCON]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_CONPRI]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_EOS]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_SLOPE]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_TRACE]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_QLEFTR]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_RIEMAN]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_CMPFLX]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_UPDCON]);
+      fprintf(stdout, "%-10.2g ", timMIN[TIM_ALLRED]);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "MAX ");
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_COMPDT]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_MAKBOU]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_GATCON]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_CONPRI]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_EOS]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_SLOPE]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_TRACE]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_QLEFTR]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_RIEMAN]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_CMPFLX]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_UPDCON]);
+      fprintf(stdout, "%-10.2g ", timMAX[TIM_ALLRED]);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "AVG ");
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_COMPDT]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_MAKBOU]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_GATCON]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_CONPRI]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_EOS]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_SLOPE]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_TRACE]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_QLEFTR]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_RIEMAN]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_CMPFLX]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_UPDCON]/H.nproc);
+      fprintf(stdout, "%-10.2g ", timSUM[TIM_ALLRED]/H.nproc);
+      fprintf(stdout, "\n");
+     }
+  }
 #ifdef MPI
   MPI_Finalize();
 #endif
