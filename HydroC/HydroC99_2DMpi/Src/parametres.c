@@ -353,5 +353,6 @@ process_args(int argc, char **argv, hydroparam_t * H) {
       H->boundary_up = 0;
     }
   }
+  fflush(stdout);
 #endif
 }

@@ -128,6 +128,7 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
       printf("Test case not implemented -- aborting !\n");
       abort();
   }
+  fflush(stdout);
 }                               // hydro_init
 
 void

@@ -122,7 +122,7 @@ main(int argc, char **argv) {
   if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
 
-  if (H.mype == 1)
+  if (H.mype == 0)
     fprintf(stdout, "Hydro starts main loop.\n");
 
   //pre-allocate memory before entering in loop
