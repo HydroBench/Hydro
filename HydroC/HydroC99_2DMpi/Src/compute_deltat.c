@@ -126,7 +126,7 @@ courantOnXY(double *cournox,
     FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
   }
 
-#pragma ivdep
+  // #pragma simd
   for (s = 0; s < slices; s++) {
     *cournox = MAX(*cournox, tmpm1[s]);
     *cournoy = MAX(*cournoy, tmpm2[s]);

@@ -221,7 +221,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             i0 = H.nx + i;
           }
-#pragma ivdep
+#pragma simd
           for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i0, j, ivar)] * sign;
           }
@@ -248,7 +248,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             i0 = i - H.nx;
           }
-#pragma ivdep
+#pragma simd
           for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i0, j, ivar)] * sign;
           }
@@ -348,7 +348,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             j0 = H.ny + j;
           }
-#pragma ivdep
+#pragma simd
           for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i, j0, ivar)] * sign;
           }
@@ -374,7 +374,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             j0 = j - H.ny;
           }
-#pragma ivdep
+#pragma simd
           for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i, j0, ivar)] * sign;
           }

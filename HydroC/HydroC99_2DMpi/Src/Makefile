@@ -10,6 +10,7 @@ CFLAGS += $(CFLAGS_OMP)
 CFLAGS += -vec-report3
 LDFLAGS += $(LDFLAGS_MPI)
 LDFLAGS += $(LDFLAGS_OMP)
+LDFLAGS += -lrt
 
 # Sources directories
 #--------------------
@@ -17,11 +18,11 @@ SRCDIR = .
 
 # Objects
 #------------
-OBJ = SplitSurface.o cmpflx.o compute_deltat.o conservar.o constoprim.o equation_of_state.o hydro_funcs.o hydro_godunov.o hydro_utils.o main.o make_boundary.o parametres.o perfcnt.o qleftright.o riemann.o slope.o trace.o utils.o vtkfile.o 
+OBJ = SplitSurface.o cmpflx.o compute_deltat.o conservar.o constoprim.o equation_of_state.o hydro_funcs.o hydro_godunov.o hydro_utils.o main.o make_boundary.o parametres.o perfcnt.o qleftright.o riemann.o slope.o trace.o utils.o vtkfile.o cclock.o
 
 # Sources files
 #--------------
-SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c main.c parametres.c perfcnt.c utils.c vtkfile.c
+SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
 # SRC2 are the files that can be translated to CUDA or OpenCL
 SRC2=cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c 
 SRC+=$(SRC2)

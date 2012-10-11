@@ -168,7 +168,7 @@ updateConservativeVars(const int idim,
     // Update conservative variables
 #pragma omp parallel for schedule(static), private(j, s), shared(uold)
     for (s = 0; s < slices; s++) {
-#pragma ivdep
+#pragma simd
       for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
         uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;

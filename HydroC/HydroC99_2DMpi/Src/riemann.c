@@ -73,175 +73,8 @@ Dmemset(size_t nbr, double t[nbr], double motif) {
 #define MAX(x,y) fmax(x,y)
 #endif
 
-/* For CAL/IL */
-/* #define sqrt(x) ((double) sqrtf((float)x)) */
-/* #define DABS(x) (x > 0.0 ? x : -x) */
-
 void
-riemann(int narray, const double Hsmallr, const double Hsmallc, const double Hgamma, const int Hniter_riemann, const int Hnvar, const int Hnxyt, const int slices, const int Hstep, double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt],      //
-        double qgdnv[Hnvar][Hstep][Hnxyt],      //
-        int sgnm[Hstep][Hnxyt]) {
-  // #define IHVW(i, v) ((i) + (v) * Hnxyt)
-  int i, s;
-  double smallp_ = Square(Hsmallc) / Hgamma;
-  double gamma6_ = (Hgamma + one) / (two * Hgamma);
-  double smallpp_ = Hsmallr * smallp_;
-
- FLOPS(4, 2, 0, 0);
- // __declspec(align(256)) thevariable
-
-// Pressure, density and velocity
-#pragma omp parallel for schedule(static), private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
-  for (s = 0; s < slices; s++) {
-#pragma ivdep
-    for (i = 0; i < narray; i++) {
-      double smallp = smallp_;
-      double gamma6 = gamma6_;
-      double smallpp = smallpp_;
-      double rl_i = MAX(qleft[ID][s][i], Hsmallr);
-      double ul_i = qleft[IU][s][i];
-      double pl_i = MAX(qleft[IP][s][i], (double) (rl_i * smallp));
-      double rr_i = MAX(qright[ID][s][i], Hsmallr);
-      double ur_i = qright[IU][s][i];
-      double pr_i = MAX(qright[IP][s][i], (double) (rr_i * smallp));
-
-      // Lagrangian sound speed
-      double cl_i = Hgamma * pl_i * rl_i;
-      double cr_i = Hgamma * pr_i * rr_i;
-      // First guess
-
-      double wl_i = sqrt(cl_i);
-      double wr_i = sqrt(cr_i);
-      double pstar_i = MAX(((wr_i * pl_i + wl_i * pr_i) + wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), 0.0);
-
-      // Newton-Raphson iterations to find pstar at the required accuracy
-      {
-        int goon = 1;
-	int iter;
-        for (iter = 0; iter < Hniter_riemann ; iter++) { 
-	  /* replace Hniter_riemann by 10 in the above line to make
-	     the for i loop vectorize. This is an ugly cheat which
-	     means more code restructuring to be done. */
-          if (goon) {
-            double wwl, wwr;
-            wwl = sqrt(cl_i * (one + gamma6 * (pstar_i - pl_i) / pl_i));
-            wwr = sqrt(cr_i * (one + gamma6 * (pstar_i - pr_i) / pr_i));
-            double ql = two * wwl * Square(wwl) / (Square(wwl) + cl_i);
-            double qr = two * wwr * Square(wwr) / (Square(wwr) + cr_i);
-            double usl = ul_i - (pstar_i - pl_i) / wwl;
-            double usr = ur_i + (pstar_i - pr_i) / wwr;
-            double delp_i = MAX((qr * ql / (qr + ql) * (usl - usr)), (-pstar_i));
-            pstar_i = pstar_i + delp_i;
-            // Convergence indicator
-            double uo_i = DABS(delp_i / (pstar_i + smallpp));
-            goon = uo_i > PRECISION;
-	    // FLOPS(29, 10, 2, 0);
-          }
-        }                       // iter_riemann
-      }
-
-      if (wr_i) {               // Bug CUDA !!
-        wr_i = sqrt(cr_i * (one + gamma6 * (pstar_i - pr_i) / pr_i));
-        wl_i = sqrt(cl_i * (one + gamma6 * (pstar_i - pl_i) / pl_i));
-      }
-
-      double ustar_i = half * (ul_i + (pl_i - pstar_i) / wl_i + ur_i - (pr_i - pstar_i) / wr_i);
-
-      int left = ustar_i > 0;
-
-      double ro_i, uo_i, po_i, wo_i;
-
-      if (left) {
-        sgnm[s][i] = 1;
-        ro_i = rl_i;
-        uo_i = ul_i;
-        po_i = pl_i;
-        wo_i = wl_i;
-      } else {
-        sgnm[s][i] = -1;
-        ro_i = rr_i;
-        uo_i = ur_i;
-        po_i = pr_i;
-        wo_i = wr_i;
-      }
-
-      double co_i = sqrt(DABS(Hgamma * po_i / ro_i));
-      co_i = MAX(Hsmallc, co_i);
-
-      double rstar_i = ro_i / (one + ro_i * (po_i - pstar_i) / Square(wo_i));
-      rstar_i = MAX(rstar_i, Hsmallr);
-
-      double cstar_i = sqrt(DABS(Hgamma * pstar_i / rstar_i));
-      cstar_i = MAX(Hsmallc, cstar_i);
-
-      double spout_i = co_i - sgnm[s][i] * uo_i;
-      double spin_i = cstar_i - sgnm[s][i] * ustar_i;
-      double ushock_i = wo_i / ro_i - sgnm[s][i] * uo_i;
-
-      if (pstar_i >= po_i) {
-        spin_i = ushock_i;
-        spout_i = ushock_i;
-      }
-
-      double scr_i = MAX((double) (spout_i - spin_i), (double) (Hsmallc + DABS(spout_i + spin_i)));
-
-      double frac_i = (one + (spout_i + spin_i) / scr_i) * half;
-      frac_i = MAX(zero, (double) (MIN(one, frac_i)));
-
-      int addSpout = spout_i < zero;
-      int addSpin = spin_i > zero;
-      // double originalQgdnv = !addSpout & !addSpin;
-      double qgdnv_ID, qgdnv_IU, qgdnv_IP;
-
-      if (addSpout) {
-        qgdnv_ID = ro_i;
-        qgdnv_IU = uo_i;
-        qgdnv_IP = po_i;
-      } else if (addSpin) {
-        qgdnv_ID = rstar_i;
-        qgdnv_IU = ustar_i;
-        qgdnv_IP = pstar_i;
-      } else {
-        qgdnv_ID = (frac_i * rstar_i + (one - frac_i) * ro_i);
-        qgdnv_IU = (frac_i * ustar_i + (one - frac_i) * uo_i);
-        qgdnv_IP = (frac_i * pstar_i + (one - frac_i) * po_i);
-      }
-
-      qgdnv[ID][s][i] = qgdnv_ID;
-      qgdnv[IU][s][i] = qgdnv_IU;
-      qgdnv[IP][s][i] = qgdnv_IP;
-
-      // transverse velocity
-      if (left) {
-        qgdnv[IV][s][i] = qleft[IV][s][i];
-      } else {
-        qgdnv[IV][s][i] = qright[IV][s][i];
-      }
-    }
-  }
-  { 
-    int nops = slices * narray;
-    FLOPS(57 * nops, 17 * nops, 14 * nops, 0 * nops);
-  }
-
-  // other passive variables
-  if (Hnvar > IP) {
-    int invar;
-    for (invar = IP + 1; invar < Hnvar; invar++) {
-      for (s = 0; s < slices; s++) {
-        for (i = 0; i < narray; i++) {
-          int left = (sgnm[s][i] == 1);
-          qgdnv[invar][s][i] = qleft[invar][s][i] * left + qright[invar][s][i] * !left;
-        }
-      }
-    }
-  }
-}                               // riemann
-
-//EOF
-
-void
-riemann_vec(int narray, const double Hsmallr, 
+riemann(int narray, const double Hsmallr, 
 	    const double Hsmallc, const double Hgamma, 
 	    const int Hniter_riemann, const int Hnvar, 
 	    const int Hnxyt, const int slices, 
@@ -276,10 +109,8 @@ riemann_vec(int narray, const double Hsmallr,
   double smallpp = smallpp_;
 
   // fprintf(stderr, "%d\n", __ICC );
-#if __ICC < 1300
 #warning "active pragma simd"
 #define SIMDNEEDED 1
-#endif
 
   // Pressure, density and velocity
 #pragma omp parallel for  schedule(static), private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
@@ -298,6 +129,7 @@ riemann_vec(int narray, const double Hsmallr,
     cr = &Fcr[s * narray];
     goon = &Fgoon[s * narray];
 
+    // Precompute values for this slice
 #ifdef SIMDNEEDED
 #pragma simd
 #endif
@@ -323,6 +155,7 @@ riemann_vec(int narray, const double Hsmallr,
 #define Fmax(a,b) (((a) > (b)) ? (a): (b))
 #define Fabs(a) (((a) > 0) ? (a): -(a))
 
+    // solve the riemann problem on the interfaces of this slice
     for (iter = 0; iter < Hniter_riemann; iter++) {
 #ifdef SIMDNEEDED
 #pragma simd
