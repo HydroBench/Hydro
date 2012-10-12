@@ -55,8 +55,16 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
   H->jmax = H->ny + ExtraLayerTot;
   H->nxt = H->imax - H->imin;   // column size in the array
   H->nyt = H->jmax - H->jmin;   // row size in the array
+
   // maximum direction size
   H->nxyt = (H->nxt > H->nyt) ? H->nxt : H->nyt;
+  // To make sure that slices are properly aligned, we make the array a
+  // multiple of NDBLE double
+#define NDBLE 16
+  // printf("avant %d ", H->nxyt);
+  // H->nxyt = (H->nxyt + NDBLE - 1) / NDBLE;
+  // H->nxyt *= NDBLE;
+  // printf("apres %d \n", H->nxyt);
 
   // allocate uold for each conservative variable
   Hv->uold = (double *) calloc(H->nvar * H->nxt * H->nyt, sizeof(double));
@@ -109,24 +117,24 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
       x = ExtraLayer;
       y = ExtraLayer;
       for (j = y; j < H->jmax; j++) {
-	Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
+        Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
       }
       printf("SOD tube test case\n");
     } else {
       x = ExtraLayer;
       y = ExtraLayer;
       for (j = 0; j < H->globny; j++) {
-	if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
-	  y = j - H->box[YMIN_BOX] + ExtraLayer;
-	  Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-	}
+        if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
+          y = j - H->box[YMIN_BOX] + ExtraLayer;
+          Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+        }
       }
       printf("SOD tube test case in //\n");
     }
   }
   if (H->testCase > 2) {
-      printf("Test case not implemented -- aborting !\n");
-      abort();
+    printf("Test case not implemented -- aborting !\n");
+    abort();
   }
   fflush(stdout);
 }                               // hydro_init
@@ -139,30 +147,31 @@ hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
 void
 allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   WHERE("allocate_work_space");
-  Hvw->u = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->q = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->dq = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qxm = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qxp = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qleft = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qright = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qgdnv = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->flux = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hw->e = DMalloc((ngrid + 1) * H.nxystep);
-  Hw->c = DMalloc((ngrid + 1) * H.nxystep);
-  Hw->sgnm = IMalloc((ngrid + 0) * H.nxystep);
+  Hvw->u = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->q = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->dq = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->qxm = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->qxp = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->qleft = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->qright = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->qgdnv = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hvw->flux = DMalloc(ngrid * H.nxystep * H.nvar);
+  Hw->e = DMalloc(ngrid * H.nxystep);
+  Hw->c = DMalloc((ngrid) * H.nxystep);
 
-  Hw->pstar = DMalloc(ngrid * H.nxystep);
-  Hw->rl = DMalloc(ngrid * H.nxystep);
-  Hw->ul = DMalloc(ngrid * H.nxystep);
-  Hw->pl = DMalloc(ngrid * H.nxystep);
-  Hw->cl = DMalloc(ngrid * H.nxystep);
-  Hw->rr = DMalloc(ngrid * H.nxystep);
-  Hw->ur = DMalloc(ngrid * H.nxystep);
-  Hw->pr = DMalloc(ngrid * H.nxystep);
-  Hw->cr = DMalloc(ngrid * H.nxystep);
-  Hw->ro = DMalloc(ngrid * H.nxystep);
-  Hw->goon = IMalloc(ngrid * H.nxystep);
+  Hw->sgnm = IMalloc(ngrid * H.nxystep);
+
+  Hw->pstar = DMalloc((ngrid) * H.nxystep);
+  Hw->rl    = DMalloc((ngrid) * H.nxystep);
+  Hw->ul    = DMalloc((ngrid) * H.nxystep);
+  Hw->pl    = DMalloc((ngrid) * H.nxystep);
+  Hw->cl    = DMalloc((ngrid) * H.nxystep);
+  Hw->rr    = DMalloc((ngrid) * H.nxystep);
+  Hw->ur    = DMalloc((ngrid) * H.nxystep);
+  Hw->pr    = DMalloc((ngrid) * H.nxystep);
+  Hw->cr    = DMalloc((ngrid) * H.nxystep);
+  Hw->ro    = DMalloc((ngrid) * H.nxystep);
+  Hw->goon  = IMalloc((ngrid) * H.nxystep);
 
   //   Hw->uo = DMalloc(ngrid);
   //   Hw->po = DMalloc(ngrid);

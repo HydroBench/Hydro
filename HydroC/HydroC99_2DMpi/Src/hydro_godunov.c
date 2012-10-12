@@ -193,12 +193,12 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
         PRINTARRAYV2(fic, dq, Hdimsize, "dq", H);
       }
 
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qxm, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qxp, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qleft, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qright, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) flux, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qgdnv, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxm, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxp, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qleft, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qright, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) flux, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qgdnv, 0);
       start = cclock();
       trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, q, dq, c, qxm, qxp);
       end = cclock();

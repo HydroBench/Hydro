@@ -239,18 +239,18 @@ main(int argc, char **argv) {
   }
   if (H.nproc == 1) {
     fprintf(stdout, "PE0 ");
-    fprintf(stdout, "%10.2g ", functim[TIM_COMPDT]);
-    fprintf(stdout, "%10.2g ", functim[TIM_MAKBOU]);
-    fprintf(stdout, "%10.2g ", functim[TIM_GATCON]);
-    fprintf(stdout, "%10.2g ", functim[TIM_CONPRI]);
-    fprintf(stdout, "%10.2g ", functim[TIM_EOS]);
-    fprintf(stdout, "%10.2g ", functim[TIM_SLOPE]);
-    fprintf(stdout, "%10.2g ", functim[TIM_TRACE]);
-    fprintf(stdout, "%10.2g ", functim[TIM_QLEFTR]);
-    fprintf(stdout, "%10.2g ", functim[TIM_RIEMAN]);
-    fprintf(stdout, "%10.2g ", functim[TIM_CMPFLX]);
-    fprintf(stdout, "%10.2g ", functim[TIM_UPDCON]);
-    fprintf(stdout, "%10.2g ", functim[TIM_ALLRED]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_COMPDT]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_MAKBOU]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_GATCON]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_CONPRI]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_EOS]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_SLOPE]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_TRACE]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_QLEFTR]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_RIEMAN]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_CMPFLX]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_UPDCON]);
+    fprintf(stdout, "%-10.2g ", functim[TIM_ALLRED]);
     fprintf(stdout, "\n");
   }
   if (H.nproc > 1) {
