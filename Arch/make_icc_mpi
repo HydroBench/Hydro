@@ -20,7 +20,8 @@ MPIF90 = mpif90
 
 # C compilation options
 #-----------------------------
-CFLAGS = -O3
+CFLAGS = -O3 -pg
+# CFLAGS = -g
 
 # Fortran compilation options
 #-----------------------------
@@ -28,11 +29,11 @@ FFLAGS = -O3
 
 # Linker options
 #---------------
-LDFLAGS = -O3
+LDFLAGS = -O3 -pg
 
 # OpenMP C compilation options
 #---------------------------
-CFLAGS_OMP = -openmp
+CFLAGS_OMP = -openmp -openmp-report1
 
 # Cuda compilation options
 #---------------------------

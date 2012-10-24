@@ -123,6 +123,7 @@ typedef struct _hydrowork {
   double *rstar, *ustar, *pstar, *cstar;
   double *spin, *spout, *ushock;
   int *sgnm;
+  int *goon; // convergence indicator for riemann
   double *frac, *scr, *delp, *pold;
   int *ind, *ind2;
 } hydrowork_t;
@@ -175,5 +176,25 @@ static const int ExtraLayerTot = 2 * 2;
 #define ExtraLayerTot (2 * 2)
 #endif /*  */
 void process_args(int argc, char **argv, hydroparam_t * H);
+
+
+typedef enum {
+  TIM_MAKBOU,
+  TIM_GATCON,
+  TIM_CONPRI,
+  TIM_EOS,
+  TIM_SLOPE,
+  TIM_TRACE,
+  TIM_QLEFTR,
+  TIM_RIEMAN,
+  TIM_CMPFLX,
+  TIM_UPDCON,
+  TIM_COMPDT,
+  TIM_ALLRED,
+  TIM_END
+} Timers_t;
+
+extern double functim[TIM_END];
+
 #endif // PARAMETRES_H_INCLUDED
 //EOF

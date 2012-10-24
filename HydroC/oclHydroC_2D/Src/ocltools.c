@@ -73,6 +73,7 @@ cbrt(double x)
 #endif
 
 typedef struct _DeviceDesc {
+  int    maxcu;                 // CL_DEVICE_MAX_COMPUTE_UNITS
   size_t mwid;                  // CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
   size_t mwis[3];               // CL_DEVICE_MAX_WORK_ITEM_SIZES
   size_t mwgs;                  // CL_DEVICE_MAX_WORK_GROUP_SIZE
@@ -366,6 +367,7 @@ oclGetNbPlatforms(const int verbose)
   size_t maxwgs;
   size_t maxwgss = 0;
   size_t maxclkmhz = 0;
+  cl_uint maxcu = 0;
   cl_ulong maxmemallocsz = 0;
   int i, j, theplatform;
   cl_int err = 0;
@@ -444,10 +446,15 @@ oclGetNbPlatforms(const int verbose)
 
     theplatform=i;
     for (j = 0; j < nbdevices; j++) {
+      err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxcu), &maxcu, NULL);
+      oclCheckErr(err, "deviceInfo maxcu");
+      pdesc[theplatform].devdesc[j].maxcu = maxcu;
+      if (verbose)
+	printf("(%d) :: device maxcu %d", j, maxcu);
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(maxwid), &maxwid, NULL);
       oclCheckErr(err, "deviceInfo maxwid");
       if (verbose)
-	printf("(%d) :: device mxwkitdim %d", j, maxwid);
+	printf(" mxwkitdim %d", maxwid);
       pdesc[theplatform].devdesc[j].mwid = maxwid;
 
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(maxwis[0]) * 3, &maxwis, &maxwiss);
@@ -502,10 +509,6 @@ oclGetNbPlatforms(const int verbose)
       if (verbose)
 	printf(" [%s]\n", message);
       free(message);
-      err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &devmaxcu, NULL);
-      if (verbose)
-	printf(" maxcu=%u \n", devmaxcu);
-      oclCheckErr(err, "deviceInfo");
 
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_EXTENSIONS, 0, NULL, &msgl);
       oclCheckErr(err, "deviceInfo");
@@ -792,10 +795,18 @@ oclGetMaxWorkSize(cl_kernel k, cl_device_id d)
   cl_int err = 0;
   size_t lres = 0;
   size_t res;
+  int maxcu = 0;
+  size_t maxth = 0;
 
-  err = clGetKernelWorkGroupInfo(k, d, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &res, &lres);
-  oclCheckErr(err, "clGetCommandQueueInfo qCtx");
-  return res;
+  // #ifndef CONSERVATIVE
+   err = clGetDeviceInfo(d, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(size_t), &res, NULL);
+   oclCheckErr(err, "oclGetMaxWorkSize maxcu");
+  // err = clGetKernelWorkGroupInfo(k, d, CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxth), &maxth, NULL);
+  // oclCheckErr(err, "clGetCommandQueueInfo qCtx");
+  // maxcu = res;
+  // fprintf(stderr, "oclGetMaxWorkSize %d (%ld)\n", maxcu, maxth);
+   return res;
+   // return 1;
 }
 
 
@@ -855,9 +866,18 @@ oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, con
   double elapsk;
   int maxThreads = 0;
   cl_uint one = 1;
+  cl_device_id dId = oclGetDeviceOfCQueue(q);
+  size_t prefsz = 32;
 
-  maxThreads = oclGetMaxWorkSize(k, oclGetDeviceOfCQueue(q));
+  maxThreads = oclGetMaxWorkSize(k, dId);
   maxThreads = MIN(maxThreads, nbthread);
+
+  // Get the proper size for the hardware
+  err = clGetKernelWorkGroupInfo(k, dId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(prefsz), &prefsz, NULL);
+  oclCheckErr(err, "clGetKernelWorkGroupInfo CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+ 
+  // make sure we have the proper multiple: AMD 7970 crashes is not met.
+  maxThreads = oclMultiple(maxThreads, prefsz);
 
   oclMkNDrange(nbobj, maxThreads, NDR_1D, gws, lws);
   // printf("Launch: %ld G:%ld %ld %ld L:%ld %ld %ld\n", nbobj, gws[0], gws[1], gws[2], lws[0], lws[1], lws[2]);

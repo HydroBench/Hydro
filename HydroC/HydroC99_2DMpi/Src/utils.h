@@ -67,7 +67,6 @@ void printarrayi(FILE * fic, int *a, int n, const char *nom);
 void printarrayv(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
 void printarrayv2(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
 void timeToString(char *buf, const double timeInS);
-double cclock(void);
 
 #ifndef PRINTUOLD
 #ifndef HMPP

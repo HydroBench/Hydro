@@ -68,7 +68,8 @@ slope(const int n,
 #pragma ivdep
       for (i = ijmin + 1; i < ijmax - 1; i++) {
      	double dlft, drgt, dcen, dsgn, slop, dlim;
-		int llftrgt = 0;
+	int llftrgt = 0;
+	double t1;
         dlft = Hslope_type * (q[nbv][s][i] - q[nbv][s][i - 1]);
         drgt = Hslope_type * (q[nbv][s][i + 1] - q[nbv][s][i]);
         dcen = half * (dlft + drgt) / Hslope_type;
@@ -82,7 +83,8 @@ slope(const int n,
         dq[nbv][s][i] = dsgn * fmin(dlim, fabs(dcen));
 #else
         llftrgt = ((dlft * drgt) <= zero);
-        dq[nbv][s][i] = dsgn * fmin((1 - llftrgt) * fmin(fabs(dlft), fabs(drgt)), fabs(dcen));
+	t1 = fmin(fabs(dlft), fabs(drgt));
+        dq[nbv][s][i] = dsgn * fmin((1 - llftrgt) * t1, fabs(dcen));
 #endif
       }
     }

@@ -126,7 +126,7 @@ courantOnXY(double *cournox,
     FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
   }
 
-#pragma ivdep
+  // #pragma simd
   for (s = 0; s < slices; s++) {
     *cournox = MAX(*cournox, tmpm1[s]);
     *cournoy = MAX(*cournoy, tmpm2[s]);
@@ -156,6 +156,21 @@ courantOnXY(double *cournox,
 #endif
 #undef IHVW
 }
+
+void compute_deltat_init_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
+{
+  Hvw->q = (double (*)) calloc(H.nvar * H.nxyt * H.nxystep, sizeof(double));
+  Hw->e = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
+  Hw->c = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
+}
+
+void compute_deltat_clean_mem(hydrowork_t * Hw, hydrovarwork_t * Hvw)
+{
+  Free(Hvw->q);
+  Free(Hw->e);
+  Free(Hw->c);
+}
+
 void
 compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
   double cournox, cournoy;
@@ -168,9 +183,6 @@ compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * 
   //   compute time step on grid interior
   cournox = zero;
   cournoy = zero;
-  Hvw->q = (double (*)) calloc(H.nvar * H.nxyt * H.nxystep, sizeof(double));
-  Hw->e = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
-  Hw->c = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
 
   c = (double (*)[H.nxystep]) Hw->c;
   e = (double (*)[H.nxystep]) Hw->e;
@@ -189,9 +201,7 @@ compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * 
     courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c, q);
     // fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);
   }
-  Free(Hvw->q);
-  Free(Hw->e);
-  Free(Hw->c);
+
   *dt = H.courant_factor * H.dx / MAX(cournox, MAX(cournoy, H.smallc));
   FLOPS(1, 1, 2, 0);
   // fprintf(stdout, "[%2d]\t%g %g %g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor, H.dx, *dt);
