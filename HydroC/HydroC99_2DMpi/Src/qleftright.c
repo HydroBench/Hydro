@@ -68,6 +68,7 @@ qleftright(const int idim,
 #pragma omp parallel for schedule(static), private(nvar, i, s),	shared(qleft, qright)
   for (nvar = 0; nvar < Hnvar; nvar++) {
     for (s = 0; s < slices; s++) {
+#pragma simd
       for (i = 0; i < bmax; i++) {
         qleft[nvar][s][i] = qxm[nvar][s][i + 1];
         qright[nvar][s][i] = qxp[nvar][s][i + 2];

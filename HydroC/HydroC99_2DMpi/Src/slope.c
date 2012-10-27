@@ -62,6 +62,8 @@ slope(const int n,
   ijmin = 0;
   ijmax = n;
 
+  // #define OLDSTYLE
+
 #pragma omp parallel for private(nbv, s, i) shared(dq) 
   for (nbv = 0; nbv < Hnvar; nbv++) {
     for (s = 0; s < slices; s++) {

@@ -49,13 +49,7 @@ double **
 allocate(int imin, int imax, int nvar) {
   int i;
 
-#ifdef FAST
-  double **r = (double **) malloc(nvar * sizeof(double *));
-
-#else /*  */
   double **r = (double **) calloc(nvar, sizeof(double *));
-
-#endif /*  */
   assert(r != NULL);
   for (i = 0; i < nvar; i++) {
     r[i] = DMalloc(imax - imin + 1 + MallocGuard);
@@ -64,29 +58,17 @@ allocate(int imin, int imax, int nvar) {
 }
 
 double *
-DMalloc(long n) {
-
-#ifdef FAST
-  double *r = (double *) malloc((n + MallocGuard) * sizeof(double));
-
-#else /*  */
+DMalloc(size_t n) {
   double *r = (double *) calloc((n + MallocGuard), sizeof(double));
-
-#endif /*  */
+  memset(r, 1, n * sizeof(double));
   assert(r != NULL);
   return r;
 }
 
 int *
-IMalloc(long n) {
-
-#ifdef FAST
-  int *r = (int *) malloc((n + MallocGuard) * sizeof(int));
-
-#else /*  */
+IMalloc(size_t n) {
   int *r = (int *) calloc((n + MallocGuard), sizeof(int));
-
-#endif /*  */
+  memset(r, 1, n * sizeof(int));
   assert(r != NULL);
   return r;
 }
@@ -121,7 +103,7 @@ printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv) {
 void
 printarray(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H) {
   double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
-  long i,j, nbr = 1;
+  long i, j, nbr = 1;
   fprintf(fic, "=%s >\n", nom);
   for (j = 0; j < H.nxystep; j++) {
     nbr = 1;
@@ -129,8 +111,8 @@ printarray(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H) 
       fprintf(fic, "%13.6e ", ptr[j][i]);
       nbr++;
       if (nbr == VALPERLINE) {
-	fprintf(fic, "\n");
-	nbr = 1;
+        fprintf(fic, "\n");
+        nbr = 1;
       }
     }
     if (nbr != 1)
@@ -187,15 +169,15 @@ printarrayv2(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H
     for (j = 0; j < H.nxystep; j++) {
       nbr = 1;
       for (i = 0; i < n; i++) {
-	fprintf(fic, "%13.6le ", ptr[nvar][j][i]);
-	nbr++;
-	if (nbr == VALPERLINE) {
-	  fprintf(fic, "\n#");
-	  nbr = 1;
-	}
+        fprintf(fic, "%13.6le ", ptr[nvar][j][i]);
+        nbr++;
+        if (nbr == VALPERLINE) {
+          fprintf(fic, "\n#");
+          nbr = 1;
+        }
       }
       if (nbr != 1)
-	fprintf(fic, "@\n#");
+        fprintf(fic, "@\n#");
     }
     fprintf(fic, "-J-\n#");
   }
@@ -211,7 +193,7 @@ timeToString(char *buf, const double timeInS) {
   float tenth = (float) (timeInS - hour * 3600 - minute * 60 - second);
   sprintf(ctenth, "%.3f", tenth);
   sprintf(buf, "%02d:%02d:%02d%s", hour, minute, second, &ctenth[1]);
-} 
+}
 
 
 // double
