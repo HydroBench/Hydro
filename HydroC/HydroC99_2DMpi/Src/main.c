@@ -61,6 +61,18 @@ hydrovarwork_t Hvw_godunov;     // nvar
 hydrowork_t Hw_godunov;
 double functim[TIM_END];
 
+int sizeLabel(double *tim, const int N) {
+  double maxi = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    if (maxi < tim[i]) maxi = tim[i];
+
+  if (maxi < 100) return 6;
+  if (maxi < 1000) return 7;
+  if (maxi < 10000) return 8;
+  return 10;
+}
 void percentTimings(double *tim, const int N)
 {
   double sum = 0;
@@ -81,18 +93,24 @@ void avgTimings(double *tim, const int N, const int nbr)
     tim[i] = tim[i] / nbr;
 }
 
-void printTimings(double *tim, const int N)
+void printTimings(double *tim, const int N, const int sizeFmt)
 {
   double sum = 0;
   int i;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%d.3g ", sizeFmt);
 
   for (i = 0; i < N; i++) 
-    fprintf(stdout, "%-10.3g ", tim[i]);
+    fprintf(stdout, fmt, tim[i]);
 }
-void printTimingsLabel(const int N)
+void printTimingsLabel(const int N, const int fmtSize)
 {
   int i;
   char *txt;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%ds ", fmtSize);
   for (i = 0; i < N; i++) {
     switch(i) {
     case TIM_COMPDT: txt = "COMPDT"; break;
@@ -109,7 +127,7 @@ void printTimingsLabel(const int N)
     case TIM_ALLRED: txt = "ALLRED"; break;
     default:;
     }
-    fprintf(stdout, "%-10s ", txt);
+    fprintf(stdout, fmt, txt);
   }
 }
 
@@ -280,16 +298,17 @@ main(int argc, char **argv) {
   if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
     fprintf(stdout, "    ");
-    printTimingsLabel(TIM_END);
-    fprintf(stdout, "\n");
   }
   if (H.nproc == 1) {
+    int sizeFmt = sizeLabel(functim, TIM_END);
+    printTimingsLabel(TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
     fprintf(stdout, "PE0 ");
-    printTimings(functim, TIM_END);
+    printTimings(functim, TIM_END, sizeFmt);
     fprintf(stdout, "\n");
     fprintf(stdout, "%%   ");
     percentTimings(functim, TIM_END);
-    printTimings(functim, TIM_END);
+    printTimings(functim, TIM_END, sizeFmt);
     fprintf(stdout, "\n");
   }
 #ifdef MPI
@@ -301,15 +320,18 @@ main(int argc, char **argv) {
     MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     if (H.mype == 0) {
+      int sizeFmt = sizeLabel(timMAX, TIM_END);
+      printTimingsLabel(TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
       fprintf(stdout, "MIN ");
-      printTimings(timMIN, TIM_END);
+      printTimings(timMIN, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
       fprintf(stdout, "MAX ");
-      printTimings(timMAX, TIM_END);
+      printTimings(timMAX, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
       fprintf(stdout, "AVG ");
       avgTimings(timSUM, TIM_END, H.nproc);
-      printTimings(timSUM, TIM_END);
+      printTimings(timSUM, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
     }
   }
