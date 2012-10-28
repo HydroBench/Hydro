@@ -229,7 +229,8 @@ deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * H
   Free(Hw->ur);
   Free(Hw->pr);
   Free(Hw->cr);
-  //   Free(Hw->ro);
+  Free(Hw->ro);
+  Free(Hw->goon);
   //   Free(Hw->uo);
   //   Free(Hw->po);
   //   Free(Hw->co);
