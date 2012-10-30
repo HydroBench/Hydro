@@ -73,7 +73,6 @@ main(int argc, char **argv)
   
   DeviceSet();
 
-  start_time = cclock();
   if (H.mype == 1) fprintf(stdout, "Hydro starts.\n");
 
   process_args(argc, argv, &H);
@@ -97,6 +96,7 @@ main(int argc, char **argv)
     fprintf(stdout, "Hydro starts main loop.\n");
 
   cuPutUoldOnDevice(H, &Hv);
+  start_time = cclock();
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
     start_iter = cclock();
@@ -165,13 +165,13 @@ main(int argc, char **argv)
     }
     if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
   }
+  end_time = cclock();
 
   hydro_finish(H, &Hv);
   cuFreeOnDevice();
   // Deallocate work space
   deallocate_work_space(H, &Hw, &Hvw);
 
-  end_time = cclock();
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);
   if (H.mype == 0)
