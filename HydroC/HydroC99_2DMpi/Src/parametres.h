@@ -116,6 +116,7 @@ typedef struct _hydrovarwork {
 typedef struct _hydrowork {
   double *c;                    // nxt or nyt
   double *e;                    // nxt or nyt
+  double *tmpm1, *tmpm2;        // for the reduction
   // all others nx+1 or ny+1
   double *rl, *ul, *pl, *cl, *wl;
   double *rr, *ur, *pr, *cr, *wr;
@@ -179,7 +180,6 @@ void process_args(int argc, char **argv, hydroparam_t * H);
 
 
 typedef enum {
-  TIM_MAKBOU,
   TIM_GATCON,
   TIM_CONPRI,
   TIM_EOS,
@@ -190,6 +190,7 @@ typedef enum {
   TIM_CMPFLX,
   TIM_UPDCON,
   TIM_COMPDT,
+  TIM_MAKBOU,
   TIM_ALLRED,
   TIM_END
 } Timers_t;

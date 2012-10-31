@@ -61,6 +61,76 @@ hydrovarwork_t Hvw_godunov;     // nvar
 hydrowork_t Hw_godunov;
 double functim[TIM_END];
 
+int sizeLabel(double *tim, const int N) {
+  double maxi = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    if (maxi < tim[i]) maxi = tim[i];
+
+  if (maxi < 100) return 6;
+  if (maxi < 1000) return 7;
+  if (maxi < 10000) return 8;
+  return 10;
+}
+void percentTimings(double *tim, const int N)
+{
+  double sum = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    sum += tim[i];
+
+  for (i = 0; i < N; i++)
+    tim[i] = 100.0 * tim[i] / sum;
+}
+
+void avgTimings(double *tim, const int N, const int nbr)
+{
+  int i;
+
+  for (i = 0; i < N; i++)
+    tim[i] = tim[i] / nbr;
+}
+
+void printTimings(double *tim, const int N, const int sizeFmt)
+{
+  double sum = 0;
+  int i;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%d.3g ", sizeFmt);
+
+  for (i = 0; i < N; i++) 
+    fprintf(stdout, fmt, tim[i]);
+}
+void printTimingsLabel(const int N, const int fmtSize)
+{
+  int i;
+  char *txt;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%ds ", fmtSize);
+  for (i = 0; i < N; i++) {
+    switch(i) {
+    case TIM_COMPDT: txt = "COMPDT"; break;
+    case TIM_MAKBOU: txt = "MAKBOU"; break;
+    case TIM_GATCON: txt = "GATCON"; break;
+    case TIM_CONPRI: txt = "CONPRI"; break;
+    case TIM_EOS: txt = "EOS"; break;
+    case TIM_SLOPE: txt = "SLOPE"; break;
+    case TIM_TRACE: txt = "TRACE"; break;
+    case TIM_QLEFTR: txt = "QLEFTR"; break;
+    case TIM_RIEMAN: txt = "RIEMAN"; break;
+    case TIM_CMPFLX: txt = "CMPFLX"; break;
+    case TIM_UPDCON: txt = "UPDCON"; break;
+    case TIM_ALLRED: txt = "ALLRED"; break;
+    default:;
+    }
+    fprintf(stdout, fmt, txt);
+  }
+}
+
 int
 main(int argc, char **argv) {
   double dt = 0;
@@ -83,7 +153,6 @@ main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 #endif
 
-  start_time = dcclock();
   process_args(argc, argv, &H);
   hydro_init(&H, &Hv);
 
@@ -127,8 +196,14 @@ main(int argc, char **argv) {
 
   //pre-allocate memory before entering in loop
   //For godunov scheme
+  start = cclock();
+  start = cclock();
   allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
   compute_deltat_init_mem(H, &Hw_deltat, &Hvw_deltat);
+  end = cclock();
+  if (H.mype == 0) fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
+  // we start timings here to avoid the cost of initial memory allocation
+  start_time = dcclock();
 
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     // reset perf counter for this iteration
@@ -137,7 +212,7 @@ main(int argc, char **argv) {
     outnum[0] = 0;
     if ((H.nstep % 2) == 0) {
       dt = 0;
-      // if (H.mype == 1) fprintf(stdout, "Hydro computes deltat.\n");
+      // if (H.mype == 0) fprintf(stdout, "Hydro computes deltat.\n");
       start = cclock();
       compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
       end = cclock();
@@ -223,36 +298,20 @@ main(int argc, char **argv) {
   if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
     fprintf(stdout, "    ");
-    fprintf(stdout, "%-10s ", "COMPDT");
-    fprintf(stdout, "%-10s ", "MAKBOU");
-    fprintf(stdout, "%-10s ", "GATCON");
-    fprintf(stdout, "%-10s ", "CONPRI");
-    fprintf(stdout, "%-10s ", "EOS");
-    fprintf(stdout, "%-10s ", "SLOPE");
-    fprintf(stdout, "%-10s ", "TRACE");
-    fprintf(stdout, "%-10s ", "QLEFTR");
-    fprintf(stdout, "%-10s ", "RIEMAN");
-    fprintf(stdout, "%-10s ", "CMPFLX");
-    fprintf(stdout, "%-10s ", "UPDCON");
-    fprintf(stdout, "%-10s ", "ALLRED");
-    fprintf(stdout, "\n");
   }
   if (H.nproc == 1) {
+    int sizeFmt = sizeLabel(functim, TIM_END);
+    printTimingsLabel(TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
     fprintf(stdout, "PE0 ");
-    fprintf(stdout, "%-10.2g ", functim[TIM_COMPDT]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_MAKBOU]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_GATCON]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_CONPRI]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_EOS]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_SLOPE]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_TRACE]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_QLEFTR]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_RIEMAN]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_CMPFLX]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_UPDCON]);
-    fprintf(stdout, "%-10.2g ", functim[TIM_ALLRED]);
+    printTimings(functim, TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "%%   ");
+    percentTimings(functim, TIM_END);
+    printTimings(functim, TIM_END, sizeFmt);
     fprintf(stdout, "\n");
   }
+#ifdef MPI
   if (H.nproc > 1) {
     double timMAX[TIM_END];
     double timMIN[TIM_END];
@@ -261,50 +320,23 @@ main(int argc, char **argv) {
     MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     if (H.mype == 0) {
+      int sizeFmt = sizeLabel(timMAX, TIM_END);
+      printTimingsLabel(TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
       fprintf(stdout, "MIN ");
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_COMPDT]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_MAKBOU]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_GATCON]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_CONPRI]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_EOS]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_SLOPE]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_TRACE]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_QLEFTR]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_RIEMAN]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_CMPFLX]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_UPDCON]);
-      fprintf(stdout, "%-10.2g ", timMIN[TIM_ALLRED]);
+      printTimings(timMIN, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
       fprintf(stdout, "MAX ");
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_COMPDT]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_MAKBOU]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_GATCON]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_CONPRI]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_EOS]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_SLOPE]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_TRACE]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_QLEFTR]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_RIEMAN]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_CMPFLX]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_UPDCON]);
-      fprintf(stdout, "%-10.2g ", timMAX[TIM_ALLRED]);
+      printTimings(timMAX, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
       fprintf(stdout, "AVG ");
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_COMPDT]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_MAKBOU]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_GATCON]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_CONPRI]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_EOS]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_SLOPE]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_TRACE]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_QLEFTR]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_RIEMAN]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_CMPFLX]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_UPDCON]/H.nproc);
-      fprintf(stdout, "%-10.2g ", timSUM[TIM_ALLRED]/H.nproc);
+      avgTimings(timSUM, TIM_END, H.nproc);
+      printTimings(timSUM, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
-     }
+    }
   }
+#endif
+
 #ifdef MPI
   MPI_Finalize();
 #endif
