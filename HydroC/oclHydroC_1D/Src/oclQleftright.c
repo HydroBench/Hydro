@@ -70,7 +70,7 @@ oclQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt,
   OCLSETARG(ker[Loop1KcuQleftright], qxp);
   OCLSETARG(ker[Loop1KcuQleftright], qleft);
   OCLSETARG(ker[Loop1KcuQleftright], qright);
-  oclLaunchKernel(ker[Loop1KcuQleftright], cqueue, bmax, THREADSSZ);
+  oclLaunchKernel(ker[Loop1KcuQleftright], cqueue, bmax, THREADSSZ, __FILE__, __LINE__);
 }
 
 // EOF

@@ -69,7 +69,7 @@ oclConstoprim(cl_mem u, cl_mem q, cl_mem e, const long n, const long Hnxyt, cons
   OCLSETARG(ker[Loop1KcuConstoprim], e);
   OCLSETARG(ker[Loop1KcuConstoprim], Hnxyt);
   OCLSETARG(ker[Loop1KcuConstoprim], Hsmallr);
-  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n, THREADSSZ);
+  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, n, THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLINITARG;
     OCLSETARG(ker[Loop2KcuConstoprim], n);
@@ -77,7 +77,7 @@ oclConstoprim(cl_mem u, cl_mem q, cl_mem e, const long n, const long Hnxyt, cons
     OCLSETARG(ker[Loop2KcuConstoprim], q);
     OCLSETARG(ker[Loop2KcuConstoprim], Hnxyt);
     OCLSETARG(ker[Loop2KcuConstoprim], Hnvar);
-    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n, THREADSSZ);
+    oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, n, THREADSSZ, __FILE__, __LINE__);
   }
 }                               // constoprim
 

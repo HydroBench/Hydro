@@ -712,7 +712,9 @@ LoopKcuSlope(__global double *q, __global double *dq,
   if (n >= Hnvar)
     return;
 
-  i = i + ijmin;
+  i = i + ijmin + 1;
+  if (i >= ijmax - 1)
+    return;
 
   ihvwin = IHVW(i, n, Hnxyt);
   ihvwimn = IHVW(i - 1, n, Hnxyt);

@@ -66,11 +66,11 @@ oclCmpflx(cl_mem qgdnv, cl_mem flux, const long narray, const long Hnxyt, const 
 
   // Compute fluxes
   // Loop1KcuCmpflx <<< grid, block >>> (qgdnv, flux, narray, Hnxyt, Hgamma);
-  oclSetArg(ker[Loop1KcuCmpflx], 0, sizeof(cl_mem), &qgdnv);
-  oclSetArg(ker[Loop1KcuCmpflx], 1, sizeof(cl_mem), &flux);
-  oclSetArg(ker[Loop1KcuCmpflx], 2, sizeof(narray), &narray);
-  oclSetArg(ker[Loop1KcuCmpflx], 3, sizeof(Hnxyt), &Hnxyt);
-  oclSetArg(ker[Loop1KcuCmpflx], 4, sizeof(Hgamma), &Hgamma);
+  oclSetArg(ker[Loop1KcuCmpflx], 0, sizeof(cl_mem), &qgdnv, __FILE__, __LINE__);
+  oclSetArg(ker[Loop1KcuCmpflx], 1, sizeof(cl_mem), &flux, __FILE__, __LINE__);
+  oclSetArg(ker[Loop1KcuCmpflx], 2, sizeof(narray), &narray, __FILE__, __LINE__);
+  oclSetArg(ker[Loop1KcuCmpflx], 3, sizeof(Hnxyt), &Hnxyt, __FILE__, __LINE__);
+  oclSetArg(ker[Loop1KcuCmpflx], 4, sizeof(Hgamma), &Hgamma, __FILE__, __LINE__);
 
   err = clEnqueueNDRangeKernel(cqueue, ker[Loop1KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueNDRangeKernel Loop1KcuCmpflx");
@@ -83,11 +83,11 @@ oclCmpflx(cl_mem qgdnv, cl_mem flux, const long narray, const long Hnxyt, const 
   // Other advected quantities
   if (Hnvar > IP + 1) {
     // Loop2KcuCmpflx <<< grid, block >>> (qgdnv, flux, narray, Hnxyt, Hnvar);
-    oclSetArg(ker[Loop2KcuCmpflx], 0, sizeof(cl_mem), &qgdnv);
-    oclSetArg(ker[Loop2KcuCmpflx], 1, sizeof(cl_mem), &flux);
-    oclSetArg(ker[Loop2KcuCmpflx], 2, sizeof(narray), &narray);
-    oclSetArg(ker[Loop2KcuCmpflx], 3, sizeof(Hnxyt), &Hnxyt);
-    oclSetArg(ker[Loop2KcuCmpflx], 4, sizeof(Hnvar), &Hnvar);
+    oclSetArg(ker[Loop2KcuCmpflx], 0, sizeof(cl_mem), &qgdnv, __FILE__, __LINE__);
+    oclSetArg(ker[Loop2KcuCmpflx], 1, sizeof(cl_mem), &flux, __FILE__, __LINE__);
+    oclSetArg(ker[Loop2KcuCmpflx], 2, sizeof(narray), &narray, __FILE__, __LINE__);
+    oclSetArg(ker[Loop2KcuCmpflx], 3, sizeof(Hnxyt), &Hnxyt, __FILE__, __LINE__);
+    oclSetArg(ker[Loop2KcuCmpflx], 4, sizeof(Hnvar), &Hnvar, __FILE__, __LINE__);
     err = clEnqueueNDRangeKernel(cqueue, ker[Loop2KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
     oclCheckErr(err, "clEnqueueNDRangeKernel Loop1KcuCmpflx");
     err = clWaitForEvents(1, &event);

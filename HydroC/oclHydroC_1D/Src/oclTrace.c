@@ -100,7 +100,7 @@ oclTrace(cl_mem q, cl_mem dq, cl_mem c, cl_mem qxm, cl_mem qxp,
   OCLSETARG(ker[Loop1KcuTrace], zeror);
   OCLSETARG(ker[Loop1KcuTrace], zerol);
   OCLSETARG(ker[Loop1KcuTrace], project);
-  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, ((ijmax - 1) - (ijmin + 1)), THREADSSZ);
+  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, ((ijmax - 1) - (ijmin + 1)), THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLINITARG;
     OCLSETARG(ker[Loop2KcuTrace], q);
@@ -115,7 +115,7 @@ oclTrace(cl_mem q, cl_mem dq, cl_mem c, cl_mem qxm, cl_mem qxp,
     OCLSETARG(ker[Loop2KcuTrace], zeror);
     OCLSETARG(ker[Loop2KcuTrace], zerol);
     OCLSETARG(ker[Loop2KcuTrace], project);
-    oclLaunchKernel(ker[Loop2KcuTrace], cqueue, ((ijmax - 1) - (ijmin + 1)), THREADSSZ);
+    oclLaunchKernel(ker[Loop2KcuTrace], cqueue, ((ijmax - 1) - (ijmin + 1)), THREADSSZ, __FILE__, __LINE__);
   }
 }                               // trace
 

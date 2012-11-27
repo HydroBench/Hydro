@@ -68,9 +68,9 @@ int sizeLabel(double *tim, const int N) {
   for (i = 0; i < N; i++) 
     if (maxi < tim[i]) maxi = tim[i];
 
-  if (maxi < 100) return 6;
-  if (maxi < 1000) return 7;
-  if (maxi < 10000) return 8;
+  // if (maxi < 100) return 8;
+  // if (maxi < 1000) return 9;
+  // if (maxi < 10000) return 10;
   return 10;
 }
 void percentTimings(double *tim, const int N)
@@ -99,7 +99,7 @@ void printTimings(double *tim, const int N, const int sizeFmt)
   int i;
   char fmt[256];
 
-  sprintf(fmt, "%%-%d.3g ", sizeFmt);
+  sprintf(fmt, "%%-%dlf ", sizeFmt);
 
   for (i = 0; i < N; i++) 
     fprintf(stdout, fmt, tim[i]);
