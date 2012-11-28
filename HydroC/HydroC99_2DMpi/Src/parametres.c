@@ -346,9 +346,11 @@ process_args(int argc, char **argv, hydroparam_t * H) {
   // small summary of the run conditions
   if (H->mype == 0) {
     printf("+-------------------+\n");
+    printf("|GlobNx=%-7d     |\n", H->globnx);
+    printf("|GlobNy=%-7d     |\n", H->globny);
     printf("|nx=%-7d         |\n", H->nx);
     printf("|ny=%-7d         |\n", H->ny);
-    printf("|nxystep=%-2d         |\n", H->nxystep);
+    printf("|nxystep=%-7d    |\n", H->nxystep);
     printf("|tend=%-10.3f    |\n", H->tend);
     printf("|nstepmax=%-7d   |\n", H->nstepmax);
     printf("|noutput=%-7d    |\n", H->noutput);
