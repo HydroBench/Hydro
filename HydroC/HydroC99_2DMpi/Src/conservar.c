@@ -67,7 +67,7 @@ gatherConservativeVars(const int idim,
   WHERE("gatherConservativeVars");
   if (idim == 1) {
     // Gather conservative variables
-#pragma omp parallel for schedule(static), private(i, s), shared(u)
+#pragma omp parallel for schedule(auto) private(i, s), shared(u)
     for (s = 0; s < slices; s++) {
       for (i = Himin; i < Himax; i++) {
         int idxuoID = IHU(i, rowcol + s, ID);
@@ -96,7 +96,7 @@ gatherConservativeVars(const int idim,
     //
   } else {
     // Gather conservative variables
-#pragma omp parallel for schedule(static), private(j, s), shared(u)
+#pragma omp parallel for schedule(auto) private(j, s), shared(u)
     for (s = 0; s < slices; s++) {
       for (j = Hjmin; j < Hjmax; j++) {
         u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
@@ -142,7 +142,7 @@ updateConservativeVars(const int idim,
   if (idim == 1) {
 
     // Update conservative variables
-#pragma omp parallel for schedule(static), private(ivar, s,i), shared(uold) collapse(2)
+#pragma omp parallel for schedule(auto) private(ivar, s,i), shared(uold) collapse(2)
       for (s = 0; s < slices; s++) {
 	for (ivar = 0; ivar <= IP; ivar++) {
 	  for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
@@ -166,7 +166,7 @@ updateConservativeVars(const int idim,
     }
   } else {
     // Update conservative variables
-#pragma omp parallel for schedule(static), private(j, s), shared(uold)
+#pragma omp parallel for schedule(auto) private(j, s), shared(uold)
     for (s = 0; s < slices; s++) {
 #pragma simd
       for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
