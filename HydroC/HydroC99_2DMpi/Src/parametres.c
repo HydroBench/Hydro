@@ -242,27 +242,6 @@ process_input(char *datafile, hydroparam_t * H)
       continue;
     }
   }
-
-  if (H->nxystep == -1) {
-    // default = full slab
-    H->nxystep = (H->nx < H->ny) ? H->nx: H->ny;
-  } else {
-    if (H->nxystep > H->nx) H->nxystep = H->nx;
-    if (H->nxystep > H->ny) H->nxystep = H->ny;
-  }
-
-  // small summary of the run conditions
-  if (H->mype == 0) {
-    printf("+-------------------+\n");
-    printf("|nx=%-7d         |\n", H->nx);
-    printf("|ny=%-7d         |\n", H->ny);
-    printf("|nxystep=%-2d         |\n", H->nxystep);
-    printf("|tend=%-10.3f    |\n", H->tend);
-    printf("|nstepmax=%-7d   |\n", H->nstepmax);
-    printf("|noutput=%-7d    |\n", H->noutput);
-    printf("|dtoutput=%-10.3f|\n", H->dtoutput);
-    printf("+-------------------+\n");
-  }
   // exit(0);
 }
 
@@ -355,4 +334,25 @@ process_args(int argc, char **argv, hydroparam_t * H) {
   }
   fflush(stdout);
 #endif
+
+  if (H->nxystep == -1) {
+    // default = full slab
+    H->nxystep = (H->nx < H->ny) ? H->nx: H->ny;
+  } else {
+    if (H->nxystep > H->nx) H->nxystep = H->nx;
+    if (H->nxystep > H->ny) H->nxystep = H->ny;
+  }
+
+  // small summary of the run conditions
+  if (H->mype == 0) {
+    printf("+-------------------+\n");
+    printf("|nx=%-7d         |\n", H->nx);
+    printf("|ny=%-7d         |\n", H->ny);
+    printf("|nxystep=%-2d         |\n", H->nxystep);
+    printf("|tend=%-10.3f    |\n", H->tend);
+    printf("|nstepmax=%-7d   |\n", H->nstepmax);
+    printf("|noutput=%-7d    |\n", H->noutput);
+    printf("|dtoutput=%-10.3f|\n", H->dtoutput);
+    printf("+-------------------+\n");
+  }
 }
