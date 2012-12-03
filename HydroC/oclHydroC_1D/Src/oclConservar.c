@@ -75,7 +75,7 @@ oclGatherConservativeVars(const long idim, const long rowcol,
     OCLSETARG(ker[Loop1KcuGather], Himax);
     OCLSETARG(ker[Loop1KcuGather], Hnyt);
     OCLSETARG(ker[Loop1KcuGather], Hnxyt);
-    oclLaunchKernel(ker[Loop1KcuGather], cqueue, (Himax - Himin), THREADSSZ);
+    oclLaunchKernel(ker[Loop1KcuGather], cqueue, (Himax - Himin), THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
 //             Loop3KcuGather <<< grid, block >>> (uold, u, rowcol, Hnxt, Himin, Himax, Hnyt,
 //                                                 Hnxyt, Hnvar);
@@ -89,7 +89,7 @@ oclGatherConservativeVars(const long idim, const long rowcol,
       OCLSETARG(ker[Loop3KcuGather], Hnyt);
       OCLSETARG(ker[Loop3KcuGather], Hnxyt);
       OCLSETARG(ker[Loop3KcuGather], Hnvar);
-      oclLaunchKernel(ker[Loop3KcuGather], cqueue, (Himax - Himin), THREADSSZ);
+      oclLaunchKernel(ker[Loop3KcuGather], cqueue, (Himax - Himin), THREADSSZ, __FILE__, __LINE__);
     }
   } else {
     // Gather conservative variables
@@ -105,7 +105,7 @@ oclGatherConservativeVars(const long idim, const long rowcol,
     OCLSETARG(ker[Loop2KcuGather], Hjmax);
     OCLSETARG(ker[Loop2KcuGather], Hnyt);
     OCLSETARG(ker[Loop2KcuGather], Hnxyt);
-    oclLaunchKernel(ker[Loop2KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ);
+    oclLaunchKernel(ker[Loop2KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       //             Loop4KcuGather <<< grid, block >>> (uold, u, rowcol, Hnxt, Hjmin, Hjmax, Hnyt,
       //                                                 Hnxyt, Hnvar);
@@ -119,7 +119,7 @@ oclGatherConservativeVars(const long idim, const long rowcol,
       OCLSETARG(ker[Loop4KcuGather], Hnyt);
       OCLSETARG(ker[Loop4KcuGather], Hnxyt);
       OCLSETARG(ker[Loop4KcuGather], Hnvar);
-      oclLaunchKernel(ker[Loop4KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ);
+      oclLaunchKernel(ker[Loop4KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ, __FILE__, __LINE__);
     }
   }
 }
@@ -159,7 +159,7 @@ oclUpdateConservativeVars(const long idim, const long rowcol, const double dtdx,
     OCLSETARG(ker[Loop1KcuUpdate], Hnxt);
     OCLSETARG(ker[Loop1KcuUpdate], Hnyt);
     OCLSETARG(ker[Loop1KcuUpdate], Hnxyt);
-    oclLaunchKernel(ker[Loop1KcuUpdate], cqueue, (Himax - ExtraLayer) - (Himin + ExtraLayer), THREADSSZ);
+    oclLaunchKernel(ker[Loop1KcuUpdate], cqueue, (Himax - ExtraLayer) - (Himin + ExtraLayer), THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLINITARG;
       OCLSETARG(ker[Loop2KcuUpdate], rowcol);
@@ -173,7 +173,7 @@ oclUpdateConservativeVars(const long idim, const long rowcol, const double dtdx,
       OCLSETARG(ker[Loop2KcuUpdate], Hnxt);
       OCLSETARG(ker[Loop2KcuUpdate], Hnyt);
       OCLSETARG(ker[Loop2KcuUpdate], Hnxyt);
-      oclLaunchKernel(ker[Loop2KcuUpdate], cqueue, (Himax - ExtraLayer) - (Himin + ExtraLayer), THREADSSZ);
+      oclLaunchKernel(ker[Loop2KcuUpdate], cqueue, (Himax - ExtraLayer) - (Himin + ExtraLayer), THREADSSZ, __FILE__, __LINE__);
     }
   } else {
 //         // Update conservative variables
@@ -197,7 +197,7 @@ oclUpdateConservativeVars(const long idim, const long rowcol, const double dtdx,
     OCLSETARG(ker[Loop3KcuUpdate], Hnxt);
     OCLSETARG(ker[Loop3KcuUpdate], Hnyt);
     OCLSETARG(ker[Loop3KcuUpdate], Hnxyt);
-    oclLaunchKernel(ker[Loop3KcuUpdate], cqueue, (Hjmax - ExtraLayer) - (Hjmin + ExtraLayer), THREADSSZ);
+    oclLaunchKernel(ker[Loop3KcuUpdate], cqueue, (Hjmax - ExtraLayer) - (Hjmin + ExtraLayer), THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLINITARG;
       OCLSETARG(ker[Loop4KcuUpdate], rowcol);
@@ -211,7 +211,7 @@ oclUpdateConservativeVars(const long idim, const long rowcol, const double dtdx,
       OCLSETARG(ker[Loop4KcuUpdate], Hnxt);
       OCLSETARG(ker[Loop4KcuUpdate], Hnyt);
       OCLSETARG(ker[Loop4KcuUpdate], Hnxyt);
-      oclLaunchKernel(ker[Loop4KcuUpdate], cqueue, (Hjmax - ExtraLayer) - (Hjmin + ExtraLayer), THREADSSZ);
+      oclLaunchKernel(ker[Loop4KcuUpdate], cqueue, (Hjmax - ExtraLayer) - (Hjmin + ExtraLayer), THREADSSZ, __FILE__, __LINE__);
     }
   }
 }

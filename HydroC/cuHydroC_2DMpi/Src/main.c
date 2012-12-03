@@ -90,9 +90,9 @@ main(int argc, char **argv)
     time_output = 1;
     next_output_time = next_output_time + H.dtoutput;
   }
-  if (H.dtoutput || H.noutput)
+  if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
-  if (H.mype == 1)
+  if (H.mype == 0)
     fprintf(stdout, "Hydro starts main loop.\n");
 
   cuPutUoldOnDevice(H, &Hv);
@@ -156,14 +156,17 @@ main(int argc, char **argv)
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         cuGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     }
-    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+    if (H.mype == 0) {
+      fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+      fflush(stdout);
+    }
   }
   end_time = cclock();
 

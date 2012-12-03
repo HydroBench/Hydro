@@ -66,7 +66,7 @@ oclSlope(cl_mem q, cl_mem dq, const long narray, const long Hnvar, const long Hn
   OCLSETARG(ker[LoopKcuSlope], slope_type);
   OCLSETARG(ker[LoopKcuSlope], ijmin);
   OCLSETARG(ker[LoopKcuSlope], ijmax);
-  oclLaunchKernel(ker[LoopKcuSlope], cqueue, ((ijmax - 1) - (ijmin + 1)) * Hnvar, THREADSSZ);
+  oclLaunchKernel(ker[LoopKcuSlope], cqueue, ((ijmax - 1) - (ijmin + 1)) * Hnvar, THREADSSZ, __FILE__, __LINE__);
 }                               // slope
 
 #undef IHVW

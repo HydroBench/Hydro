@@ -58,21 +58,19 @@ oclReduceMax(cl_mem array, long nb) {
   int wrksiz, wrkgrp;
   size_t lgrlocal;
 
+  // fprintf(stdout, "Reduc: %d %d %ld\n", wrksiz, wrkgrp, nb);
   wrksiz = wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble], oclGetDeviceOfCQueue(cqueue));
-
-  // wrksiz = wrkgrp = 32;
+  wrksiz = wrkgrp = 16;
 
   lgrlocal = wrkgrp * sizeof(double);
-  // fprintf(stdout, "Reduc: %d %d %ld\n", wrksiz, wrkgrp, nb);
 
-  temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, wrkgrp * sizeof(double), NULL, &err);
+  temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrlocal, NULL, &err);
   oclCheckErr(err, "");
 
   lws[0] = wrkgrp;
   gws[0] = wrkgrp;
   OCLSETARG03(ker[LoopKredMaxDble], array, nb, temp1DEV);
-  oclSetArg(ker[LoopKredMaxDble], 3, lgrlocal, NULL);
-  // fprintf(stderr, "Kernel launch from %s %d\n", __FILE__, __LINE__);
+  oclSetArg(ker[LoopKredMaxDble], 3, lgrlocal, NULL, __FILE__, __LINE__);
   err = clEnqueueNDRangeKernel(cqueue, ker[LoopKredMaxDble], 1, NULL, gws, lws, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueNDRangeKernel");
   err = clWaitForEvents(1, &event);

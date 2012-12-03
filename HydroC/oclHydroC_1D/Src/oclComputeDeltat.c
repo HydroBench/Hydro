@@ -64,15 +64,15 @@ oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
   double elapsk;
 
   oclMkNDrange(Hnx, THREADSSZ, NDR_1D, gws, lws);
-  oclSetArg(ker[LoopKQEforRow], 0, sizeof(j), &j);
-  oclSetArg(ker[LoopKQEforRow], 1, sizeof(uold), &uold);
-  oclSetArg(ker[LoopKQEforRow], 2, sizeof(q), &q);
-  oclSetArg(ker[LoopKQEforRow], 3, sizeof(e), &e);
-  oclSetArg(ker[LoopKQEforRow], 4, sizeof(Hsmallr), &Hsmallr);
-  oclSetArg(ker[LoopKQEforRow], 5, sizeof(Hnxt), &Hnxt);
-  oclSetArg(ker[LoopKQEforRow], 6, sizeof(Hnyt), &Hnyt);
-  oclSetArg(ker[LoopKQEforRow], 7, sizeof(Hnxyt), &Hnxyt);
-  oclSetArg(ker[LoopKQEforRow], 8, sizeof(Hnx), &Hnx);
+  oclSetArg(ker[LoopKQEforRow], 0, sizeof(j), &j, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 1, sizeof(uold), &uold, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 2, sizeof(q), &q, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 3, sizeof(e), &e, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 4, sizeof(Hsmallr), &Hsmallr, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 5, sizeof(Hnxt), &Hnxt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 6, sizeof(Hnyt), &Hnyt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 7, sizeof(Hnxyt), &Hnxyt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 8, sizeof(Hnx), &Hnx, __FILE__, __LINE__);
 
   // LoopKQEforRow <<< grid, block >>> (j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx);
   err = clEnqueueNDRangeKernel(cqueue, ker[LoopKQEforRow], 1, NULL, gws, lws, 0, NULL, &event);
@@ -103,7 +103,7 @@ oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_me
   OCLSETARG(ker[LoopKcourant], Hnxyt);
   OCLSETARG(ker[LoopKcourant], Hnx);
 
-  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ);
+  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ, __FILE__, __LINE__);
 }
 
 void

@@ -65,7 +65,7 @@ oclEquationOfState(cl_mem qDEV, cl_mem eintDEV, cl_mem cDEV,
   OCLSETARG(ker[LoopEOS], imax);
   OCLSETARG(ker[LoopEOS], Hsmallc);
   OCLSETARG(ker[LoopEOS], Hgamma);
-  oclLaunchKernel(ker[LoopEOS], cqueue, (imax - imin), THREADSSZ);
+  oclLaunchKernel(ker[LoopEOS], cqueue, (imax - imin), THREADSSZ, __FILE__, __LINE__);
 }                               // equation_of_state
 
 

@@ -242,7 +242,7 @@ oclRiemann(cl_mem qleft, cl_mem qright,
   // fprintf(stderr, "Lancement de Loop1KcuRiemann\n");
   OCLSETARG10(ker[Loop1KcuRiemann], k.qleft, k.qright, k.sgnm, k.qgdnv, k.Hnxyt, k.narray, k.Hsmallc, k.Hgamma, k.Hsmallr,
               k.Hniter_riemann);
-  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, narray, THREADSSZ);
+  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, narray, THREADSSZ, __FILE__, __LINE__);
   // exit(123);
   if (Hnvar > IP + 1) {
     OCLRESETARG;
@@ -255,7 +255,7 @@ oclRiemann(cl_mem qleft, cl_mem qright,
     OCLSETARG(ker[Loop10KcuRiemann], k.Hnvar);
     OCLSETARG(ker[Loop10KcuRiemann], k.Hnxyt);
     // fprintf(stderr, "Lancement de Loop10KcuRiemann\n");
-    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, narray, THREADSSZ);
+    oclLaunchKernel(ker[Loop10KcuRiemann], cqueue, narray, THREADSSZ, __FILE__, __LINE__);
   }
   err = clReleaseMemObject(K);
   oclCheckErr(err, "clReleaseMemObject");

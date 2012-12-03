@@ -94,8 +94,8 @@ default_values(hydroparam_t * H)
   H->boundary_left = 1;
   H->boundary_up = 1;
   H->boundary_down = 1;
-  H->noutput = 1000000;
-  H->nstepmax = 1000000;
+  H->noutput = 0;
+  H->nstepmax = 0;
   H->dtoutput = 0.0;
 } static void
 keyval(char *buffer, char **pkey, char **pval)
