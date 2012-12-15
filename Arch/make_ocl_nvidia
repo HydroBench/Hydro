@@ -21,16 +21,16 @@ MPIF90 = mpif90
 # C compilation options
 #-----------------------------
 OCLINC=-I/opt/cuda/4.0/include
-CFLAGS = -O3 $(OCLINC)
+CFLAGS = -g $(OCLINC)
 
 # Fortran compilation options
 #-----------------------------
-FFLAGS = -O3
+FFLAGS = -g
 
 # Linker options
 #---------------
 OCLLIB=/usr/lib64/nvidia 
-LDFLAGS = -O3 -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
+LDFLAGS = -g -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
 
 # OpenMP C compilation options
 #---------------------------

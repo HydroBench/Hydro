@@ -68,7 +68,7 @@ oclMemset(cl_mem a, cl_int v, size_t lbyte)
   maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
   if (lgr < maxthr)
     maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
 }
 
 void
@@ -86,7 +86,7 @@ oclMemset4(cl_mem a, cl_int v, size_t lbyte)
   maxthr = oclGetMaxWorkSize(ker[KernelMemsetV4], oclGetDeviceOfCQueue(cqueue));
   if (lgr < maxthr)
     maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr);
+  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr, __FILE__, __LINE__);
 
   if ((lbyte - lgr * 4 * sizeof(cl_int)) > 0) {
     // traitement du reste
@@ -100,7 +100,7 @@ oclMemset4(cl_mem a, cl_int v, size_t lbyte)
     maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
     if (lgr < maxthr)
       maxthr = lgr;
-    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
+    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr, __FILE__, __LINE__);
   }
 }
 
@@ -153,6 +153,7 @@ oclInitCode()
   int nbplatf = 0;
   int nbgpu = 0;
   int nbcpu = 0;
+  int nbacc = 0;
   char srcdir[1024];
 
   nbplatf = oclGetNbPlatforms(verbose);
@@ -165,7 +166,6 @@ oclInitCode()
   for (platformselected = 0; platformselected < nbplatf; platformselected++) {
 
 #if defined(INTEL)
-    // The current Linux OpenCL by Intel is available for CPU only.
 #define CPUVERSION 1
 #else
 #define CPUVERSION 0
@@ -179,6 +179,15 @@ oclInitCode()
       break;
     }
 #else
+
+#warning "Try to use the accelerator first"
+    nbacc = oclGetNbOfAcc(platformselected);
+    if ((nbacc > 0)) {
+      fprintf(stderr, "Building an ACC version\n");
+      devselected = oclGetAccDev(platformselected, 0);
+      break;
+    }
+
     nbcpu = oclGetNbOfCpu(platformselected);
     if (nbcpu > 0) {
       fprintf(stderr, "Building a CPU version\n");

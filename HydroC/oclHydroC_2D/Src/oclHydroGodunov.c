@@ -7,31 +7,31 @@
 
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -41,6 +41,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
+#include <assert.h>
 #include <CL/cl.h>
 
 #include "parametres.h"
@@ -63,12 +64,7 @@ knowledge of the CeCILL license and that you accept its terms.
 // Variables DEVice 
 cl_mem uoldDEV = 0, uDEV = 0, eDEV = 0, qDEV = 0, dqDEV = 0, cDEV = 0, qxpDEV = 0, qxmDEV = 0;
 cl_mem qleftDEV = 0, qrightDEV = 0, qgdnvDEV = 0, fluxDEV = 0;
-cl_mem rlDEV = 0, ulDEV = 0, plDEV = 0, clDEV = 0, wlDEV = 0, rrDEV = 0, urDEV = 0;
-cl_mem prDEV = 0, crDEV = 0, wrDEV = 0, roDEV = 0, uoDEV = 0, poDEV = 0, coDEV = 0, woDEV = 0;
-cl_mem rstarDEV = 0, ustarDEV = 0, pstarDEV = 0, cstarDEV = 0;
 cl_mem sgnmDEV = 0;
-cl_mem spinDEV = 0, spoutDEV = 0, ushockDEV = 0, fracDEV = 0, scrDEV = 0, delpDEV = 0, poldDEV = 0;
-cl_mem indDEV = 0, ind2DEV = 0;
 
 void
 oclGetUoldQECDevicePtr(cl_mem * uoldDEV_p, cl_mem * qDEV_p, cl_mem * eDEV_p, cl_mem * cDEV_p)
@@ -82,9 +78,6 @@ oclGetUoldQECDevicePtr(cl_mem * uoldDEV_p, cl_mem * qDEV_p, cl_mem * eDEV_p, cl_
 void
 oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
-//   cudaError_t status;
-//   status = cudaMemcpy(uoldDEV, Hv->uold, H.arUoldSz * sizeof(double), cudaMemcpyHostToDevice);
-//   VERIF(status, "cmcpy H2D uoldDEV");
   cl_int err = 0;
   cl_event event;
   err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
@@ -98,9 +91,6 @@ oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 void
 oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
-//   cudaError_t status;
-//   status = cudaMemcpy(Hv->uold, uoldDEV, H.arUoldSz * sizeof(double), cudaMemcpyDeviceToHost);
-//   VERIF(status, "cmcpy D2H uoldDEV");
   cl_int err = 0;
   cl_event event;
   err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
@@ -111,313 +101,197 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clReleaseEvent");
 }
 
+static void ClearArrayDble(cl_mem array, size_t lgrBytes)
+{
+  int lzero = 0;
+  long ldble = lgrBytes / sizeof(double);
+  assert(array != NULL);
+  OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgrBytes, THREADSSZ, __FILE__, __LINE__);
+}
+
+cl_mem  AllocClear(size_t lgrBytes) {
+  cl_mem tab;
+  cl_int status;
+
+  tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
+  oclCheckErr(status, "");
+  ClearArrayDble(tab, lgrBytes);
+  return tab;
+}
+
 void
 oclAllocOnDevice(const hydroparam_t H)
 {
   cl_int status = 0;
-  uoldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arUoldSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  uDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  dqDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qxpDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qleftDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qrightDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qxmDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  qgdnvDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  fluxDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arVarSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  eDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  cDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
 
-  rlDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  ulDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  plDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  clDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  wlDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
+  size_t lSz = H.arSz * H.nxystep * sizeof(double);
+  size_t lSzL = H.arSz * H.nxystep * sizeof(long);
 
-  rrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  urDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  prDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  crDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  wrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
+  uoldDEV = AllocClear(H.arUoldSz * sizeof(double));
+  uDEV = AllocClear(lVarSz);
+  qDEV = AllocClear(lVarSz);
+  dqDEV = AllocClear(lVarSz);
+  qxpDEV = AllocClear(lVarSz);
+  qleftDEV = AllocClear(lVarSz);
+  qrightDEV = AllocClear(lVarSz);
+  qxmDEV = AllocClear(lVarSz);
+  qgdnvDEV = AllocClear(lVarSz);
+  fluxDEV = AllocClear(lVarSz);
 
-  roDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  uoDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  poDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  coDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  woDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-
-  rstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  ustarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  pstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  cstarDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-
-  sgnmDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(long), NULL, &status);
-  oclCheckErr(status, "");
-  spinDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  spoutDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-
-  ushockDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  fracDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  scrDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  delpDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-  poldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(double), NULL, &status);
-  oclCheckErr(status, "");
-
-  indDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(long), NULL, &status);
-  oclCheckErr(status, "");
-  ind2DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.arSz * sizeof(long), NULL, &status);
-  oclCheckErr(status, "");
+  eDEV = AllocClear(lSz);
+  cDEV = AllocClear(lSz);
+  sgnmDEV = AllocClear(lSzL);
 }
 
 void
 oclFreeOnDevice()
 {
-  cl_int status = 0;
-  // liberation de la memoire sur le device (en attendant de la remonter dans le main).
-  status = clReleaseMemObject(uoldDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(uDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(dqDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qxpDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qxmDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(eDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(cDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qleftDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qrightDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(qgdnvDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(fluxDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rlDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ulDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(plDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(clDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(wlDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rrDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(urDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(prDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(crDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(wrDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(roDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(uoDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(poDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(coDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(woDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(rstarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ustarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(pstarDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(cstarDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(sgnmDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(spinDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(spoutDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(ushockDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(fracDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(scrDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(delpDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(poldDEV);
-  oclCheckErr(status, "");
-
-  status = clReleaseMemObject(indDEV);
-  oclCheckErr(status, "");
-  status = clReleaseMemObject(ind2DEV);
-  oclCheckErr(status, "");
+  OCLFREE(uoldDEV);
+  OCLFREE(uDEV);
+  OCLFREE(qDEV);
+  OCLFREE(dqDEV);
+  OCLFREE(qxpDEV);
+  OCLFREE(qxmDEV);
+  OCLFREE(eDEV);
+  OCLFREE(cDEV);
+  OCLFREE(qleftDEV);
+  OCLFREE(qrightDEV);
+  OCLFREE(qgdnvDEV);
+  OCLFREE(fluxDEV);
+  OCLFREE(sgnmDEV);
 }
 
+#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+
 void
-oclHydroGodunov(long idim, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
+oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
-
+  cl_int status;
   // Local variables
-  long i, j;
+  int i, j, idim, idimIndex;
+  int Hmin, Hmax, Hstep, Hnxystep;
+  int Hdimsize;
+  int Hndim_1;
+  int slices, iend;
   double dtdx;
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
   long Hnxyt = H.nxyt;
+  static FILE *fic = NULL;
 
-  long offsetIP = IHVW(0, IP);
-  long offsetID = IHVW(0, ID);
+  if (fic == NULL && H.prt) {
+    char logname[256];
+    sprintf(logname, "TRACE.%04d_%04d.txt", H.nproc, H.mype);
+    fic = fopen(logname, "w");
+  }
 
   WHERE("hydro_godunov");
+  if (H.prt) fprintf(fic, "loop dt=%lg\n", dt);
 
-  // constant
-  dtdx = dt / H.dx;
+  for (idimIndex = 0; idimIndex < 2; idimIndex++) {
+    idim = (idimStart - 1 + idimIndex) % 2 + 1;
+    // constant
+    // constant
+    dtdx = dt / H.dx;
 
-  // Update boundary conditions
-  if (H.prt) {
-    fprintf(stdout, "godunov %ld\n", idim);
-    PRINTUOLD(stdout, H, Hv);
-  }
-  oclMakeBoundary(idim, H, Hv, uoldDEV);
+    // Update boundary conditions
+    if (H.prt) {
+      fprintf(fic, "godunov %d\n", idim);
+      PRINTUOLD(fic, H, Hv);
+    }
+#define GETUOLD oclGetUoldFromDevice(H, Hv)
+    oclMakeBoundary(idim, H, Hv, uoldDEV);
+    if (H.prt) {fprintf(fic, "MakeBoundary\n");}
+    if (H.prt) {GETUOLD; PRINTUOLD(fic, H, Hv);}
 
-  if (idim == 1) {
-    for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
+    if (idim == 1) {
+      Hmin = H.jmin + ExtraLayer;
+      Hmax = H.jmax - ExtraLayer;
+      Hdimsize = H.nxt;
+      Hndim_1 = H.nx + 1;
+      Hstep = H.nxystep;
+    } else {
+      Hmin = H.imin + ExtraLayer;
+      Hmax = H.imax - ExtraLayer;
+      Hdimsize = H.nyt;
+      Hndim_1 = H.ny + 1;
+      Hstep = H.nxystep;
+    }
+    Hnxystep = Hstep;
+    for (i = Hmin; i < Hmax; i += Hstep) {
+      long offsetIP = IHVWS(0, 0, IP);
+      long offsetID = IHVWS(0, 0, ID);
+      int Hnxyt = H.nxyt;
+      iend = i + Hstep;
+      if (iend >= Hmax) iend = Hmax;
+      slices = iend - i;
 
-      oclMemset(uDEV, 0, H.arVarSz * sizeof(double));
-      oclGatherConservativeVars(idim, j, uoldDEV, uDEV, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt);
+      oclMemset(uDEV, 0, lVarSz);
+      oclGatherConservativeVars(idim, i, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, uoldDEV, uDEV);
+      if (H.prt) {fprintf(fic, "ConservativeVars %ld %ld %ld %ld %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
+      if (H.prt) { GETARRV(uDEV, Hvw->u); }
+      PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
 
       // Convert to primitive variables
+      oclConstoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hnxystep, uDEV, qDEV, eDEV);
+      if (H.prt) { GETARR (eDEV, Hw->e); }
+      if (H.prt) { GETARRV(qDEV, Hvw->q); }
+      PRINTARRAY(fic, Hw->e, Hdimsize, "e", H);
+      PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
-      oclConstoprim(uDEV, qDEV, eDEV, H.nxt, H.nxyt, H.nvar, H.smallr);
+      oclEquationOfState(offsetIP, offsetID, 0, Hdimsize, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
+      if (H.prt) { GETARR (cDEV, Hw->c); }
+      PRINTARRAY(fic, Hw->c, Hdimsize, "c", H);
+      if (H.prt) { GETARRV (qDEV, Hvw->q); }
+      PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
-      oclEquationOfState(qDEV, eDEV, cDEV, offsetIP, offsetID, 0, H.nxt, H.smallc, H.gamma);
-
-      oclMemset(dqDEV, 0, H.arVarSz);
-
-
+      oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
       // Characteristic tracing
       if (H.iorder != 1) {
-        oclSlope(qDEV, dqDEV, H.nxt, H.nvar, H.nxyt, H.slope_type);
+	oclMemset(dqDEV, 0, H.arVarSz);
+        oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, qDEV, dqDEV);
+	if (H.prt) { GETARRV(dqDEV, Hvw->dq); }
+	PRINTARRAYV2(fic, Hvw->dq, Hdimsize, "dq", H);
       }
-      oclTrace(qDEV, dqDEV, cDEV, qxmDEV, qxpDEV, dtdx, H.nxt, H.scheme, H.nvar, H.nxyt);
-
-      oclQleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
+      oclTrace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, qDEV, dqDEV, cDEV, qxmDEV, qxpDEV);
+      if (H.prt) { GETARRV(qxmDEV, Hvw->qxm); }
+      if (H.prt) { GETARRV(qxpDEV, Hvw->qxp); }
+      PRINTARRAYV2(fic, Hvw->qxm, Hdimsize, "qxm", H);
+      PRINTARRAYV2(fic, Hvw->qxp, Hdimsize, "qxp", H);
+      oclQleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
+      if (H.prt) { GETARRV(qleftDEV, Hvw->qleft); }
+      if (H.prt) { GETARRV(qrightDEV, Hvw->qright); }
+      PRINTARRAYV2(fic, Hvw->qleft, Hdimsize, "qleft", H);
+      PRINTARRAYV2(fic, Hvw->qright, Hdimsize, "qright", H);
 
       // Solve Riemann problem at interfaces
-      oclRiemann(qleftDEV, qrightDEV, qgdnvDEV,
-                 rlDEV, ulDEV, plDEV, clDEV, wlDEV,
-                 rrDEV, urDEV, prDEV, crDEV, wrDEV,
-                 roDEV, uoDEV, poDEV, coDEV, woDEV,
-                 rstarDEV, ustarDEV, pstarDEV, cstarDEV,
-                 sgnmDEV, spinDEV, spoutDEV, ushockDEV, fracDEV,
-                 scrDEV, delpDEV, poldDEV, indDEV, ind2DEV,
-                 H.nx + 1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt);
-
+      oclRiemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep,
+		 qleftDEV, qrightDEV, qgdnvDEV,sgnmDEV);
+      if (H.prt) { GETARRV(qgdnvDEV, Hvw->qgdnv); }
+      PRINTARRAYV2(fic, Hvw->qgdnv, Hdimsize, "qgdnv", H);
       // Compute fluxes
       oclMemset(fluxDEV, 0, H.arVarSz);
-      oclCmpflx(qgdnvDEV, fluxDEV, H.nxyt, H.nxyt, H.nvar, H.gamma);
-
-      oclUpdateConservativeVars(idim, j, dtdx,
-                                uoldDEV, uDEV, fluxDEV, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt);
+      oclCmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hnxystep, qgdnvDEV, fluxDEV);
+      if (H.prt) { GETARRV(fluxDEV, Hvw->flux); }
+      PRINTARRAYV2(fic, Hvw->flux, Hdimsize, "flux", H);
+      if (H.prt) { GETARRV(uDEV, Hvw->u); }
+      PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
+      // if (H.prt) {
+      // 	GETUOLD; PRINTUOLD(fic, H, Hv);
+      // }
+      if (H.prt) fprintf(fic, "dxdt=%lg\n", dtdx);
+      oclUpdateConservativeVars(idim, i, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, 
+				uoldDEV, uDEV, fluxDEV);
+      if (H.prt) {
+	GETUOLD; PRINTUOLD(fic, H, Hv);
+      }
     }                           // for j
 
     if (H.prt) {
-      printf("After pass %ld\n", idim);
-      PRINTUOLD(stdout, H, Hv);
+      // printf("After pass %d\n", idim);
+      PRINTUOLD(fic, H, Hv);
     }
-  } else {
-    for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
-      oclMemset(uDEV, 0, H.arVarSz * sizeof(double));
-      oclGatherConservativeVars(idim, i, uoldDEV, uDEV, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt);
-
-      PRINTARRAYV(stdout, Hvw->u, H.nyt, "uY", H);
-
-      // Convert to primitive variables
-      oclConstoprim(uDEV, qDEV, eDEV, H.nyt, H.nxyt, H.nvar, H.smallr);
-
-      oclEquationOfState(qDEV, eDEV, cDEV, offsetIP, offsetID, 0, H.nyt, H.smallc, H.gamma);
-      PRINTARRAY(stdout, Hw->c, H.nyt, "cY", H);
-
-      // Characteristic tracing
-      // compute slopes
-      oclMemset(dqDEV, 0, H.arVarSz);
-
-
-      if (H.iorder != 1) {
-        oclSlope(qDEV, dqDEV, H.nyt, H.nvar, H.nxyt, H.slope_type);
-      }
-      PRINTARRAYV(stdout, Hvw->dq, H.nyt, "dqY", H);
-      oclTrace(qDEV, dqDEV, cDEV, qxmDEV, qxpDEV, dtdx, H.nyt, H.scheme, H.nvar, H.nxyt);
-      oclQleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
-      PRINTARRAYV(stdout, Hvw->qleft, H.ny + 1, "qleftY", H);
-      PRINTARRAYV(stdout, Hvw->qright, H.ny + 1, "qrightY", H);
-
-      // Solve Riemann problem at interfaces
-      oclRiemann(qleftDEV, qrightDEV, qgdnvDEV, rlDEV, ulDEV,
-                 plDEV, clDEV, wlDEV, rrDEV, urDEV, prDEV,
-                 crDEV, wrDEV, roDEV, uoDEV, poDEV, coDEV,
-                 woDEV, rstarDEV, ustarDEV, pstarDEV, cstarDEV,
-                 sgnmDEV, spinDEV, spoutDEV, ushockDEV, fracDEV,
-                 scrDEV, delpDEV, poldDEV, indDEV, ind2DEV,
-                 H.ny + 1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt);
-
-      // Compute fluxes
-      oclMemset(fluxDEV, 0, H.arVarSz);
-      oclCmpflx(qgdnvDEV, fluxDEV, H.nyt, H.nxyt, H.nvar, H.gamma);
-      PRINTARRAYV(stdout, Hvw->flux, H.ny + 1, "fluxY", H);
-
-      oclUpdateConservativeVars(idim, i, dtdx, uoldDEV, uDEV, fluxDEV, H.imin,
-                                H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt);
-    }                           // else
-    if (H.prt) {
-      printf("After pass %ld\n", idim);
-      PRINTUOLD(stdout, H, Hv);
-    }
-  }
+  } 
 }                               // hydro_godunov

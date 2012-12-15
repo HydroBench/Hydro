@@ -57,58 +57,24 @@ cl_kernel *ker = NULL;
 void
 oclMemset(cl_mem a, cl_int v, size_t lbyte)
 {
+  cl_int err = 0;
   int maxthr;
   size_t lgr;
+  cl_kernel kern = ker[KernelMemset]; 
 
-  lgr = lbyte / sizeof(cl_double);
-  OCLINITARG;
-  OCLSETARG(ker[KernelMemset], a);
-  OCLSETARG(ker[KernelMemset], v);
-  OCLSETARG(ker[KernelMemset], lgr);    // en objets de type int
-  maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
-  if (lgr < maxthr)
-    maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
-}
-
-void
-oclMemset4(cl_mem a, cl_int v, size_t lbyte)
-{
-  int maxthr;
-  size_t lgr;
-
-  // traitement vectoriel d'abord sous forme de int4
-  lgr = lbyte / sizeof(cl_int) / 4;
-  OCLINITARG;
-  OCLSETARG(ker[KernelMemsetV4], a);
-  OCLSETARG(ker[KernelMemsetV4], v);
-  OCLSETARG(ker[KernelMemsetV4], lgr);  // en objets de type int4
-  maxthr = oclGetMaxWorkSize(ker[KernelMemsetV4], oclGetDeviceOfCQueue(cqueue));
-  if (lgr < maxthr)
-    maxthr = lgr;
-  oclLaunchKernel(ker[KernelMemsetV4], cqueue, lgr, maxthr);
-
-  if ((lbyte - lgr * 4 * sizeof(cl_int)) > 0) {
-    // traitement du reste
-    lgr = lbyte - lgr * 4 * sizeof(cl_int);
-
-    OCLINITARG;
-    OCLSETARG(ker[KernelMemset], a);
-    OCLSETARG(ker[KernelMemset], v);
-    OCLSETARG(ker[KernelMemset], lgr);  // en byte
-    assert((lgr % sizeof(cl_int)) == 0);
-    maxthr = oclGetMaxWorkSize(ker[KernelMemset], oclGetDeviceOfCQueue(cqueue));
-    if (lgr < maxthr)
-      maxthr = lgr;
-    oclLaunchKernel(ker[KernelMemset], cqueue, lgr, maxthr);
-  }
+  lgr = lbyte;
+  lgr /= (size_t) sizeof(cl_double);
+  OCLSETARG03(kern, a, v, lgr); 
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, 1024, __FILE__, __LINE__);
 }
 
 void
 oclMakeHydroKernels()
 {
-  // on cree tous les kernels d'un coup pour gagner du temps
-  // en preprocesseur, #a transforma a en "a".
+  // All the kernels are created in one shot to save time.
+
+  // the preprocessor transforms #a in "a"
+
   assert(pgm != 0);
 
   ker = (cl_kernel *) calloc(LastEntryKernel, sizeof(cl_kernel));
@@ -132,10 +98,6 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[Loop1KcuMakeBoundary], Loop1KcuMakeBoundary);
   CREATEKER(pgm, ker[Loop2KcuMakeBoundary], Loop2KcuMakeBoundary);
   CREATEKER(pgm, ker[Loop1KcuQleftright], Loop1KcuQleftright);
-  CREATEKER(pgm, ker[Init1KcuRiemann], Init1KcuRiemann);
-  CREATEKER(pgm, ker[Init2KcuRiemann], Init2KcuRiemann);
-  CREATEKER(pgm, ker[Init3KcuRiemann], Init3KcuRiemann);
-  CREATEKER(pgm, ker[Init4KcuRiemann], Init4KcuRiemann);
   CREATEKER(pgm, ker[Loop1KcuRiemann], Loop1KcuRiemann);
   CREATEKER(pgm, ker[Loop10KcuRiemann], Loop10KcuRiemann);
   CREATEKER(pgm, ker[LoopKcuSlope], LoopKcuSlope);
@@ -144,17 +106,23 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[LoopKredMaxDble], reduceMaxDble);
   CREATEKER(pgm, ker[KernelMemset], KernelMemset);
   CREATEKER(pgm, ker[KernelMemsetV4], KernelMemsetV4);
+  CREATEKER(pgm, ker[kpack_arrayv], kpack_arrayv);
+  CREATEKER(pgm, ker[kunpack_arrayv], kunpack_arrayv);
+  CREATEKER(pgm, ker[kpack_arrayh], kpack_arrayh);
+  CREATEKER(pgm, ker[kunpack_arrayh], kunpack_arrayh);
 }
 
 void
-oclInitCode()
+oclInitCode(const int nproc, const int mype)
 {
   int verbose = 1;
   int nbplatf = 0;
   int nbgpu = 0;
   int nbcpu = 0;
+  int nbacc = 0;
   char srcdir[1024];
 
+  if (mype > 0) verbose = 0; // assumes a homogeneous machine :-(
   nbplatf = oclGetNbPlatforms(verbose);
   if (nbplatf == 0) {
     fprintf(stderr, "No OpenCL platform available\n");
@@ -164,32 +132,36 @@ oclInitCode()
   devselected = -1;
   for (platformselected = 0; platformselected < nbplatf; platformselected++) {
 
-#if defined(INTEL)
-    // The current Linux OpenCL by Intel is available for CPU only.
-#define CPUVERSION 1
-#else
-#define CPUVERSION 0
-#endif
-
-#if CPUVERSION == 0
     nbgpu = oclGetNbOfGpu(platformselected);
-    if (nbgpu > 0) {
-      fprintf(stderr, "Building a GPU version\n");
-      devselected = oclGetGpuDev(platformselected, 0);
+    if ((runUnit == RUN_GPU) && (nbgpu > 0)) {
+      if (mype == 0) fprintf(stderr, "Building a GPU version\n");
+      if (nproc == 1) {
+    	devselected = oclGetGpuDev(platformselected, 0);
+      } else {
+	    devselected = oclGetGpuDev(platformselected, (mype % nbgpu));
+      }
+      fprintf(stdout, "Hydro: %03d GPU %d\n", mype, (mype % nbgpu));
+      fflush(stdout);
       break;
     }
-#else
+
+    nbacc = oclGetNbOfAcc(platformselected);
+	if ((runUnit == RUN_ACC) && (nbacc > 0)) {
+       if (mype == 0) fprintf(stderr, "Building an ACC version\n");
+       devselected = oclGetAccDev(platformselected, 0);
+       break;
+	}
+
     nbcpu = oclGetNbOfCpu(platformselected);
-    if (nbcpu > 0) {
-      fprintf(stderr, "Building a CPU version\n");
+    if ((runUnit == RUN_CPU) && (nbcpu > 0)) {
+      if (mype == 0) fprintf(stderr, "Building a CPU version\n");
       devselected = oclGetCpuDev(platformselected, 0);
       break;
     }
-#endif
   }
 
   ctx = oclCreateCtxForPlatform(platformselected, verbose);
-  cqueue = oclCreateCommandQueueForDev(platformselected, devselected, ctx, 1);
+  cqueue = oclCreateCommandQueueForDev(platformselected, devselected, ctx, 0);
   getcwd(srcdir, 1023);
   pgm = oclCreatePgmFromCtx("hydro_kernels.cl", srcdir, ctx, platformselected, devselected, verbose);
   // exit(2);

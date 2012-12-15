@@ -40,6 +40,8 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <CL/cl.h>
 #include "utils.h"
 
-void oclConstoprim(cl_mem uDEV, cl_mem qDEV, cl_mem eDEV, const long n, const long Hnxyt, const long Hnvar, const double Hsmallr);
+void oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsmallr,
+		   const int slices, const int Hnxystep,
+		   cl_mem uDEV, cl_mem qDEV, cl_mem eDEV);
 
 #endif // CUCONSTOPRIM_H_INCLUDED

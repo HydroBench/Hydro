@@ -38,6 +38,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <values.h>
 #ifdef MPI
 #include <mpi.h>
 #endif
@@ -46,10 +47,10 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "SplitSurface.h"
 static void
 usage(void) {
-  fprintf(stderr, "options possibles du programme hydro");
+  fprintf(stderr, "options of hydro");
   fprintf(stderr, "--help");
   fprintf(stderr, "-i input");
-  fprintf(stderr, "-v :: pour avoir les impressions internes");
+  fprintf(stderr, "-v :: to increase verbosity");
   fprintf(stderr, "------------------------------------");
   exit(1);
 }
@@ -95,8 +96,8 @@ default_values(hydroparam_t * H) {
   H->boundary_left = 1;
   H->boundary_up = 1;
   H->boundary_down = 1;
-  H->noutput = 1000000;
-  H->nstepmax = 1000000;
+  H->noutput = 0;
+  H->nstepmax = INT_MAX;
   H->dtoutput = 0.0;
   H->testCase = 0;
 }
@@ -113,7 +114,7 @@ keyval(char *buffer, char **pkey, char **pval) {
   if (*pval)
     **pval = 0;
 
-  // suppress lead whites or tabs
+  // suppress leading whites or tabs
   while ((**pkey == ' ') || (**pkey == '\t'))
     (*pkey)++;
   *pval = strchr(buffer, '=');
@@ -131,7 +132,8 @@ keyval(char *buffer, char **pkey, char **pval) {
 }
 
 static void
-process_input(char *datafile, hydroparam_t * H) {
+process_input(char *datafile, hydroparam_t * H) 
+{
   FILE *fd = NULL;
   char buffer[1024];
   char *pval, *pkey;
@@ -234,7 +236,7 @@ process_input(char *datafile, hydroparam_t * H) {
       } else if (strcmp(pval, "collela") == 0) {
         H->scheme = HSCHEME_COLLELA;
       } else {
-        fprintf(stderr, "Nom de schema <%s> inconnu, devrait etre l'un de [muscl,plmde,collela]\n", pval);
+        fprintf(stderr, "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n", pval);
         exit(1);
       }
       continue;
@@ -243,13 +245,13 @@ process_input(char *datafile, hydroparam_t * H) {
 
   if (H->nxystep == -1) {
     // default = full slab
-    H->nxystep = (H->nx > H->ny)? H->nx: H->ny;
+    H->nxystep = (H->nx < H->ny) ? H->nx: H->ny;
   } else {
     if (H->nxystep > H->nx) H->nxystep = H->nx;
     if (H->nxystep > H->ny) H->nxystep = H->ny;
   }
 
-  // petit resume de la situation
+  // small summary of the run conditions
   if (H->mype == 0) {
     printf("+-------------------+\n");
     printf("|nx=%-7d         |\n", H->nx);
@@ -296,13 +298,13 @@ process_args(int argc, char **argv, hydroparam_t * H) {
       n++;
       continue;
     }
-    fprintf(stderr, "Clef %s inconnue\n", argv[n]);
+    fprintf(stderr, "Key %s is unkown\n", argv[n]);
     n++;
   }
   if (donnees != NULL) {
     process_input(donnees, H);
   } else {
-    fprintf(stderr, "Option -f donnees manquantes\n");
+    fprintf(stderr, "Option -i is missing\n");
     exit(1);
   }
 
@@ -351,5 +353,6 @@ process_args(int argc, char **argv, hydroparam_t * H) {
       H->boundary_up = 0;
     }
   }
+  fflush(stdout);
 #endif
 }

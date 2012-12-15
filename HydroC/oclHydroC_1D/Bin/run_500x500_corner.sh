@@ -13,6 +13,8 @@ cp ${EXEDIR}/hydro_kernels.cl ${RUNDIR}
 cp ${EXEDIR}/oclparam.h ${RUNDIR}
 
 cd ${RUNDIR}
-${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
 
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-.}:/usr/lib64/openmpi/lib
+${RUNCMD} ${EXEDIR}/hydro -i ${INPDIR}/input_500x500_corner.nml 
+exit 0
 #EOF

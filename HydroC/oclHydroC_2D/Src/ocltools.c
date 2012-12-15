@@ -11,31 +11,31 @@
 
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -73,6 +73,7 @@ cbrt(double x)
 #endif
 
 typedef struct _DeviceDesc {
+  int    maxcu;                 // CL_DEVICE_MAX_COMPUTE_UNITS
   size_t mwid;                  // CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
   size_t mwis[3];               // CL_DEVICE_MAX_WORK_ITEM_SIZES
   size_t mwgs;                  // CL_DEVICE_MAX_WORK_GROUP_SIZE
@@ -85,7 +86,7 @@ typedef struct _DeviceDesc {
   int vecfloat;                 // CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT
   int vecdouble;                // CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE
   int fpdp;                     // Has Double Float support 
-  char *nature;                 // CPU GPU
+  char *nature;                 // CPU GPU ACC
 } DeviceDesc_t;
 
 typedef struct _PlatformDesc {
@@ -136,9 +137,10 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
 
   if (form == NDR_1D) {
     sizec = nb;
-    lws[0] = nbthreads;
+    lws[0] = ((nbthreads + 1) % 32) * 32;
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
+    // fprintf(stderr, "gws[0] %ld lws[0] %ld\n", gws[0], lws[0]);
   }
 
   if (form == NDR_2D) {
@@ -151,10 +153,10 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
       if ((lws[0] * lws[1]) < nbthreads)
         lws[1] *= 2;
     }
-    // pour ne pas depasser le nombre de threads demandes
+    // 
     if ((lws[0] * lws[1]) > nbthreads)
       lws[1]--;
-    // normalisation des dimensions pour faire plaisir a OpenCL
+    // normalisation of dimensions to please OpenCL
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
     gws[1] = (sizec + lws[1] - 1) / lws[1];
@@ -177,14 +179,14 @@ oclMkNDrange(const size_t nb, const size_t nbthreads, const MkNDrange_t form, si
       if ((lws[0] * lws[1] * lws[2]) < nbthreads)
         lws[2] *= 2;
     }
-    // pour ne pas depasser le nombre de threads demandes
+    // 
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[2] > 1))
       lws[2]--;
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[1] > 1))
       lws[1]--;
     if ((lws[0] * lws[1] * lws[2]) > nbthreads && (lws[0] > 1))
       lws[0]--;
-    // normalisation des dimensions pour faire plaisir a OpenCL
+    // normalisation of dimensions to please OpenCL
     gws[0] = (sizec + lws[0] - 1) / lws[0];
     gws[0] *= lws[0];
     gws[1] = (sizec + lws[1] - 1) / lws[1];
@@ -268,25 +270,25 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   size_t msgl = 0;
   char options[1000];
 
-  // creation d'un programme
+  // create a programme
   // printf("CreateProgramString\n");
-  // -- on va lire le programme depuis le disque pour le mettre dans un tableau de strings
+  // -- we put the whole file in a string
   err = oclCreateProgramString(srcFile, &pgmt, &pgml);
   // printf("CreateProgramString. (%d)\n", pgml);
 
-  // Sortie du programme pour le voir ;-)
+  // Output the program
   if (verbose == 2) {
     for (i = 0; i < pgml; i++) {
       printf("%s", pgmt[i]);
     }
   }
-  // creation du programme OpenCL a partir des strings
+  // create the OpenCL program from the string
   // printf("clCreateProgramWithSource\n");
   pgm = clCreateProgramWithSource(ctx, pgml, (const char **) pgmt, NULL, &err);
   // printf("clCreateProgramWithSource.\n");
   oclCheckErr(err, "Creation du program");
 
-  // compilation du programme
+  // compilation
   //err = clBuildProgram(pgm, 0, NULL, "", NULL, NULL);
   // ,-cl-nv-opt-level 3
   strcpy(options, "");
@@ -303,8 +305,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
 #endif
 #if INTEL==1
   strcat(options, "-DINTEL ");
-  // strcat(options, "-cl-nv-opt-level 3 ");
-  strcat(options, "-g ");
+  // strcat(options, "-g "); // -g has a huge perf impact on a SNB quad core.
 #endif
   if (pdesc[theplatform].devdesc[thedev].fpdp) {
     strcat(options, "-DHASFP64 ");
@@ -319,7 +320,7 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
   err = clBuildProgram(pgm, 1, &pdesc[theplatform].devices[thedev], options, NULL, NULL);
   // printf("clBuildProgram.\n");
 
-  // Seul moyen de recuperer les infos de compilation : les demander a l'objet programme
+  // The only way to retrieve compilation information is to ask for them
   // CheckErr(err, "clGetProgramBuildInfo");
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Build OpenCL (opts=\"%s\") has error(s).\n", options);
@@ -341,9 +342,9 @@ oclCreatePgmFromCtx(const char *srcFile, const char *srcDir,
     oclCheckErr(err, "clGetProgramBuildInfo");
     abort();
   } else {
-    fprintf(stderr, "Build OpenCL (opts=\"%s\") OK.\n", options);
+    if (verbose) fprintf(stderr, "Build OpenCL (opts=\"%s\") OK.\n", options);
   }
-  // menage du texte du programme
+  // cleanup
   for (i = 0; i < pgml; i++) {
     if (pgmt[i])
       free(pgmt[i]);
@@ -366,13 +367,14 @@ oclGetNbPlatforms(const int verbose)
   size_t maxwgs;
   size_t maxwgss = 0;
   size_t maxclkmhz = 0;
+  cl_uint maxcu = 0;
   cl_ulong maxmemallocsz = 0;
   int i, j, theplatform;
   cl_int err = 0;
   cl_uint nbdevices = 0;
   cl_uint devmaxcu = 0;
 
-  // informations sur la platform
+  // informations on the platform
   err = 0;
   err = clGetPlatformIDs(0, NULL, &nbplatforms);
   oclCheckErr(err, "GetPlatformIDs -- 1");
@@ -444,10 +446,15 @@ oclGetNbPlatforms(const int verbose)
 
     theplatform=i;
     for (j = 0; j < nbdevices; j++) {
+      err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxcu), &maxcu, NULL);
+      oclCheckErr(err, "deviceInfo maxcu");
+      pdesc[theplatform].devdesc[j].maxcu = maxcu;
+      if (verbose)
+	printf("(%d) :: device maxcu %d", j, maxcu);
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(maxwid), &maxwid, NULL);
       oclCheckErr(err, "deviceInfo maxwid");
       if (verbose)
-	printf("(%d) :: device mxwkitdim %d", j, maxwid);
+	printf(" mxwkitdim %d", maxwid);
       pdesc[theplatform].devdesc[j].mwid = maxwid;
 
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(maxwis[0]) * 3, &maxwis, &maxwiss);
@@ -502,10 +509,6 @@ oclGetNbPlatforms(const int verbose)
       if (verbose)
 	printf(" [%s]\n", message);
       free(message);
-      err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &devmaxcu, NULL);
-      if (verbose)
-	printf(" maxcu=%u \n", devmaxcu);
-      oclCheckErr(err, "deviceInfo");
 
       err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_EXTENSIONS, 0, NULL, &msgl);
       oclCheckErr(err, "deviceInfo");
@@ -571,8 +574,7 @@ oclCreateCtxForPlatform(const int theplatform, const int verbose)
     printf("[%d] : nbdevices = %d\n", theplatform, nbdevices);
   if (verbose)
     fflush(stdout);
-  // Creation d'un contexte sur la platform[0] 
-  // que veut dire la notion de multiplateforme ?
+  // Create a contexte for the platform
 
   proplist[0] = CL_CONTEXT_PLATFORM;
   proplist[1] = (cl_context_properties) platform[theplatform];
@@ -592,14 +594,14 @@ oclCreateCommandQueueForDev(const int theplatform, const int devselected, const 
   assert(pdesc != NULL);
   assert(pdesc[theplatform].devices != NULL);
 
-  // creation de la command queue
+  // create a command queue
   if (profiling) {
     cqueue = clCreateCommandQueue(ctx, pdesc[theplatform].devices[devselected], CL_QUEUE_PROFILING_ENABLE, &err);
     _profiling = 1;
   } else {
     cqueue = clCreateCommandQueue(ctx, pdesc[theplatform].devices[devselected], 0, &err);
   }
-  // peut etre CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
+  // could be CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
   oclCheckErr(err, "Creation queue");
   return cqueue;
 }
@@ -610,6 +612,28 @@ oclGetNumberOfDev(const int theplatform)
   assert(pdesc != NULL);
 
   return pdesc[theplatform].nbdevices;
+}
+
+int
+oclGetNbOfAcc(const int theplatform)
+{
+  int j, nbAcc = 0;
+  cl_int err = 0;
+  cl_device_type devtype;
+
+  assert(pdesc != NULL);
+  assert(pdesc[theplatform].devices != NULL);
+
+  for (j = 0; j < pdesc[theplatform].nbdevices; j++) {
+    err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_TYPE, sizeof(devtype), &devtype, NULL);
+    oclCheckErr(err, "deviceInfo");
+    switch (devtype) {
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      nbAcc++;
+      break;
+    }
+  }
+  return nbAcc;
 }
 
 int
@@ -655,6 +679,31 @@ oclGetNbOfCpu(const int theplatform)
     }
   }
   return nbcpu;
+}
+
+int
+oclGetAccDev(const int theplatform, const int accnum)
+{
+  int j, nbacc = 0, numdev = -1;
+  cl_int err = 0;
+  cl_device_type devtype;
+
+  assert(pdesc != NULL);
+  assert(pdesc[theplatform].devices != NULL);
+
+  for (j = 0; j < pdesc[theplatform].nbdevices; j++) {
+    err = clGetDeviceInfo(pdesc[theplatform].devices[j], CL_DEVICE_TYPE, sizeof(devtype), &devtype, NULL);
+    oclCheckErr(err, "deviceInfo");
+    switch (devtype) {
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      if (accnum == nbacc) {
+	numdev = j;
+      }
+      nbacc++;
+      break;
+    }
+  }
+  return numdev;
 }
 
 int
@@ -746,10 +795,18 @@ oclGetMaxWorkSize(cl_kernel k, cl_device_id d)
   cl_int err = 0;
   size_t lres = 0;
   size_t res;
+  int maxcu = 0;
+  size_t maxth = 0;
 
-  err = clGetKernelWorkGroupInfo(k, d, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &res, &lres);
-  oclCheckErr(err, "clGetCommandQueueInfo qCtx");
-  return res;
+  // #ifndef CONSERVATIVE
+   err = clGetDeviceInfo(d, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(size_t), &res, NULL);
+   oclCheckErr(err, "oclGetMaxWorkSize maxcu");
+  // err = clGetKernelWorkGroupInfo(k, d, CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxth), &maxth, NULL);
+  // oclCheckErr(err, "clGetCommandQueueInfo qCtx");
+  // maxcu = res;
+  // fprintf(stderr, "oclGetMaxWorkSize %d (%ld)\n", maxcu, maxth);
+   return res;
+   // return 1;
 }
 
 
@@ -763,19 +820,27 @@ oclGetMaxMemAllocSize(int theplatform, int thedev)
 }
 
 void
-oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg)
+oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg, const char * file, const int line)
 {
   cl_int err = 0;
   err = clSetKernelArg(k, narg, l, arg);
-  oclCheckErr(err, "clSetKernelArg");
+  if (err != CL_SUCCESS) {
+    char msg[2048];
+    sprintf(msg, "clSetKernelArg [%s, l=%d] arg=%d", file, line, narg);
+    oclCheckErr(err, msg);
+  }
 }
 
 void
-oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l)
+oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l, const char * file, const int line)
 {
   cl_int err = 0;
   err = clSetKernelArg(k, narg, l, NULL);
-  oclCheckErr(err, "clSetKernelArgLocal");
+  if (err != CL_SUCCESS) {
+    char msg[2048];
+    sprintf(msg, "clSetKernelArgLocal [%s, l=%d] arg=%d", file, line, narg);
+    oclCheckErr(err, msg);
+  }
 }
 
 void
@@ -793,7 +858,7 @@ oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *m
 }
 
 double
-oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
+oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char *fname, const int line)
 {
   cl_int err = 0;
   dim3 gws, lws;
@@ -801,23 +866,32 @@ oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread)
   double elapsk;
   int maxThreads = 0;
   cl_uint one = 1;
+  cl_device_id dId = oclGetDeviceOfCQueue(q);
+  size_t prefsz = 32;
 
-  maxThreads = oclGetMaxWorkSize(k, oclGetDeviceOfCQueue(q));
+  maxThreads = oclGetMaxWorkSize(k, dId);
   maxThreads = MIN(maxThreads, nbthread);
+
+  // Get the proper size for the hardware
+  err = clGetKernelWorkGroupInfo(k, dId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(prefsz), &prefsz, NULL);
+  oclCheckErr(err, "clGetKernelWorkGroupInfo CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+ 
+  // make sure we have the proper multiple: AMD 7970 crashes is not met.
+  maxThreads = oclMultiple(maxThreads, prefsz);
 
   oclMkNDrange(nbobj, maxThreads, NDR_1D, gws, lws);
   // printf("Launch: %ld G:%ld %ld %ld L:%ld %ld %ld\n", nbobj, gws[0], gws[1], gws[2], lws[0], lws[1], lws[2]);
 
   err = clEnqueueNDRangeKernel(q, k, NDR_1D, NULL, gws, lws, 0, NULL, &event);
-  oclCheckErr(err, "clEnqueueNDRangeKernel");
+  oclCheckErrF(err, "clEnqueueNDRangeKernel", fname, line);
 
   err = clWaitForEvents(one, &event);
-  oclCheckErr(err, "clWaitForEvents");
+  oclCheckErrF(err, "clWaitForEvents", fname, line);
 
   elapsk = oclChronoElaps(event);
 
   err = clReleaseEvent(event);
-  oclCheckErr(err, "clReleaseEvent");
+  oclCheckErrF(err, "clReleaseEvent", fname, line);
 
   return elapsk;
 }

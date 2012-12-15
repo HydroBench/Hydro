@@ -6,31 +6,31 @@
 */
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -45,6 +45,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "parametres.h"
 #include "hydro_godunov.h"
 #include "hydro_funcs.h"
+#include "cclock.h"
 #include "utils.h"
 #include "make_boundary.h"
 
@@ -62,6 +63,7 @@ knowledge of the CeCILL license and that you accept its terms.
 void
 hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   // Local variables
+  struct timespec start, end;
   int j;
   double dtdx;
   int clear=0;
@@ -92,8 +94,6 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
 
   // int hmppGuard = 1;
   int idimIndex = 0;
-  // Allocate work space for 1D sweeps
-  allocate_work_space(H.nxyt, H, Hw, Hvw);
 
   for (idimIndex = 0; idimIndex < 2; idimIndex++) {
     int idim = (idimStart - 1 + idimIndex) % 2 + 1;
@@ -106,7 +106,11 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       PRINTUOLD(fic, H, Hv);
     }
     // if (H.mype == 1) fprintf(fic, "Hydro makes boundary.\n");
+    start = cclock();
     make_boundary(idim, H, Hv);
+    end = cclock();
+    functim[TIM_MAKBOU] += ccelaps(start, end);
+
     if (H.prt) {fprintf(fic, "MakeBoundary\n");}
     PRINTUOLD(fic, H, Hv);
 
@@ -155,52 +159,78 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       // fprintf(stderr, "Godunov idim=%d, j=%d %d \n", idim, j, slices);
 
       if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
+      start = cclock();
       gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep, uold,
                              u);
+      end = cclock();
+      functim[TIM_GATCON] += ccelaps(start, end);
       if (H.prt) {fprintf(fic, "ConservativeVars %d %d %d %d %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
       PRINTARRAYV2(fic, u, Hdimsize, "u", H);
 
       if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
 
       // Convert to primitive variables
+      start = cclock();
       constoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hstep, u, q, e);
+      end = cclock();
+      functim[TIM_CONPRI] += ccelaps(start, end);
       PRINTARRAY(fic, e, Hdimsize, "e", H);
       PRINTARRAYV2(fic, q, Hdimsize, "q", H);
 
+      start = cclock();
       equation_of_state(0, Hdimsize, H.nxyt, H.nvar, H.smallc, H.gamma, slices, Hstep, e, q, c);
+      end = cclock();
+      functim[TIM_EOS] += ccelaps(start, end);
       PRINTARRAY(fic, c, Hdimsize, "c", H);
       PRINTARRAYV2(fic, q, Hdimsize, "q", H);
 
       // Characteristic tracing
       if (H.iorder != 1) {
+	start = cclock();
         slope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, q, dq);
+	end = cclock();
+	functim[TIM_SLOPE] += ccelaps(start, end);
         PRINTARRAYV2(fic, dq, Hdimsize, "dq", H);
       }
 
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qxm, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qxp, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qleft, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qright, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) flux, 0);
-      if (clear) Dmemset((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qgdnv, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxm, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxp, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qleft, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qright, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) flux, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qgdnv, 0);
+      start = cclock();
       trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, q, dq, c, qxm, qxp);
+      end = cclock();
+      functim[TIM_TRACE] += ccelaps(start, end);
       PRINTARRAYV2(fic, qxm, Hdimsize, "qxm", H);
       PRINTARRAYV2(fic, qxp, Hdimsize, "qxp", H);
 
+      start = cclock();
       qleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxm, qxp, qleft, qright);
+      end = cclock();
+      functim[TIM_QLEFTR] += ccelaps(start, end);
       PRINTARRAYV2(fic, qleft, Hdimsize, "qleft", H);
       PRINTARRAYV2(fic, qright, Hdimsize, "qright", H);
 
-      riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep, qleft, qright,
-              qgdnv, sgnm);
+      start = cclock();
+      riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv, sgnm, Hw);
+      end = cclock();
+      functim[TIM_RIEMAN] += ccelaps(start, end);
       PRINTARRAYV2(fic, qgdnv, Hdimsize, "qgdnv", H);
 
+      start = cclock();
       cmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hstep, qgdnv, flux);
+      end = cclock();
+      functim[TIM_CMPFLX] += ccelaps(start, end);
       PRINTARRAYV2(fic, flux, Hdimsize, "flux", H);
       PRINTARRAYV2(fic, u, Hdimsize, "u", H);
 
+      start = cclock();
       updateConservativeVars(idim, j, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep,
                              uold, u, flux);
+      end = cclock();
+      functim[TIM_UPDCON] += ccelaps(start, end);
       PRINTUOLD(fic, H, Hv);
     }                           // for j
 
@@ -209,8 +239,7 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       PRINTUOLD(fic, H, Hv);
     }
   }
-  // Deallocate work space
-  deallocate_work_space(H, Hw, Hvw);
+
   if ((H.t + dt >= H.tend) || (H.nstep + 1 >= H.nstepmax)) {
     /* LM -- HERE a more secure implementation should be used: a new parameter ? */
   }

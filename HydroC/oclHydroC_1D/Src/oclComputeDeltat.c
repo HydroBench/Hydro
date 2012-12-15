@@ -64,15 +64,15 @@ oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
   double elapsk;
 
   oclMkNDrange(Hnx, THREADSSZ, NDR_1D, gws, lws);
-  oclSetArg(ker[LoopKQEforRow], 0, sizeof(j), &j);
-  oclSetArg(ker[LoopKQEforRow], 1, sizeof(uold), &uold);
-  oclSetArg(ker[LoopKQEforRow], 2, sizeof(q), &q);
-  oclSetArg(ker[LoopKQEforRow], 3, sizeof(e), &e);
-  oclSetArg(ker[LoopKQEforRow], 4, sizeof(Hsmallr), &Hsmallr);
-  oclSetArg(ker[LoopKQEforRow], 5, sizeof(Hnxt), &Hnxt);
-  oclSetArg(ker[LoopKQEforRow], 6, sizeof(Hnyt), &Hnyt);
-  oclSetArg(ker[LoopKQEforRow], 7, sizeof(Hnxyt), &Hnxyt);
-  oclSetArg(ker[LoopKQEforRow], 8, sizeof(Hnx), &Hnx);
+  oclSetArg(ker[LoopKQEforRow], 0, sizeof(j), &j, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 1, sizeof(uold), &uold, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 2, sizeof(q), &q, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 3, sizeof(e), &e, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 4, sizeof(Hsmallr), &Hsmallr, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 5, sizeof(Hnxt), &Hnxt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 6, sizeof(Hnyt), &Hnyt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 7, sizeof(Hnxyt), &Hnxyt, __FILE__, __LINE__);
+  oclSetArg(ker[LoopKQEforRow], 8, sizeof(Hnx), &Hnx, __FILE__, __LINE__);
 
   // LoopKQEforRow <<< grid, block >>> (j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx);
   err = clEnqueueNDRangeKernel(cqueue, ker[LoopKQEforRow], 1, NULL, gws, lws, 0, NULL, &event);
@@ -103,7 +103,7 @@ oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_me
   OCLSETARG(ker[LoopKcourant], Hnxyt);
   OCLSETARG(ker[LoopKcourant], Hnx);
 
-  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ);
+  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnx, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
@@ -141,17 +141,22 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
     oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc);
   }
 
-  // err = clEnqueueReadBuffer(cqueue, courantDEV, CL_TRUE, 0, H.nx * sizeof(double), lcourant, 0, NULL, NULL);
+  err = clEnqueueReadBuffer(cqueue, courantDEV, CL_TRUE, 0, H.nx * sizeof(double), lcourant, 0, NULL, NULL);
 
+  int ic;
+  double lmax = 0.;
+  for (ic = 0; ic < H.nx; ic++) {
+    lmax = fmax(lmax, lcourant[ic]);
+  }
 
   // on cherche le max global des max locaux
   maxCourant = oclReduceMax(courantDEV, H.nx);
-
+  // fprintf(stderr, "Courant=%lg (%lg)\n", maxCourant, lmax);
   *dt = H.courant_factor * H.dx / maxCourant;
   err = clReleaseMemObject(courantDEV);
-  free(lcourant);
   oclCheckErr(err, "clReleaseMemObject");
-
+  free(lcourant);
+  // exit(0);
   // fprintf(stdout, "%g %g %g %g\n", cournox, cournoy, H.smallc, H.courant_factor);
 }                               // compute_deltat
 

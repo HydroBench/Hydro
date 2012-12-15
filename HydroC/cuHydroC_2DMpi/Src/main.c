@@ -73,7 +73,6 @@ main(int argc, char **argv)
   
   DeviceSet();
 
-  start_time = cclock();
   if (H.mype == 1) fprintf(stdout, "Hydro starts.\n");
 
   process_args(argc, argv, &H);
@@ -91,12 +90,13 @@ main(int argc, char **argv)
     time_output = 1;
     next_output_time = next_output_time + H.dtoutput;
   }
-  if (H.dtoutput || H.noutput)
+  if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
-  if (H.mype == 1)
+  if (H.mype == 0)
     fprintf(stdout, "Hydro starts main loop.\n");
 
   cuPutUoldOnDevice(H, &Hv);
+  start_time = cclock();
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
     start_iter = cclock();
@@ -156,22 +156,25 @@ main(int argc, char **argv)
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         cuGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     }
-    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+    if (H.mype == 0) {
+      fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+      fflush(stdout);
+    }
   }
+  end_time = cclock();
 
   hydro_finish(H, &Hv);
   cuFreeOnDevice();
   // Deallocate work space
   deallocate_work_space(H, &Hw, &Hvw);
 
-  end_time = cclock();
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);
   if (H.mype == 0)

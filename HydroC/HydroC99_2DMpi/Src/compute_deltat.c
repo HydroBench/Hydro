@@ -35,7 +35,7 @@ knowledge of the CeCILL license and that you accept its terms.
 */
 
 #include <stdio.h>
-// #include <stdlib.h>
+#include <string.h>
 #include <malloc.h>
 // #include <unistd.h>
 #include <math.h>
@@ -92,21 +92,22 @@ ComputeQEforRow(const int j,
 #undef IHVW
 }
 
+// to force a parallel reduction with OpenMP
+#define WOMP
+
 static void
 courantOnXY(double *cournox,
             double *cournoy,
             const int Hnx,
             const int Hnxyt,
-            const int Hnvar, const int slices, const int Hstep, double c[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt]
+            const int Hnvar, const int slices, const int Hstep, double c[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt],
+	    double *tmpm1,
+	    double *tmpm2
 	    ) 
 {
 #ifdef WOMP
   int s;
   // double maxValC = zero;
-  double *tmpm1, *tmpm2;
-
-  tmpm1 = (double *) malloc(slices * sizeof(double));
-  tmpm2 = (double *) malloc(slices * sizeof(double));
 
 #pragma omp parallel for shared(tmpm1, tmpm2) private(s)
   for (s = 0; s < slices; s++) {
@@ -126,7 +127,7 @@ courantOnXY(double *cournox,
     FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
   }
 
-#pragma ivdep
+  // #pragma simd
   for (s = 0; s < slices; s++) {
     *cournox = MAX(*cournox, tmpm1[s]);
     *cournoy = MAX(*cournoy, tmpm2[s]);
@@ -136,8 +137,6 @@ courantOnXY(double *cournox,
     FLOPS(0, 0 * nops, 2 * nops, 0 * nops);
   }
 
-  free(tmpm1);
-  free(tmpm2);
 #else
   int i, s;
   double tmp1, tmp2;
@@ -156,6 +155,26 @@ courantOnXY(double *cournox,
 #endif
 #undef IHVW
 }
+
+void compute_deltat_init_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
+{
+  Hvw->q = (double (*)) DMalloc(H.nvar * H.nxyt * H.nxystep);
+  Hw->e = (double (*))  DMalloc(         H.nxyt * H.nxystep);
+  Hw->c = (double (*))  DMalloc(         H.nxyt * H.nxystep);
+  Hw->tmpm1 = (double *) malloc(H.nxystep * sizeof(double));
+  Hw->tmpm2 = (double *) malloc(H.nxystep * sizeof(double));
+
+}
+
+void compute_deltat_clean_mem(hydrowork_t * Hw, hydrovarwork_t * Hvw)
+{
+  Free(Hvw->q);
+  Free(Hw->e);
+  Free(Hw->c);
+  Free(Hw->tmpm1);
+  Free(Hw->tmpm2);
+}
+
 void
 compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
   double cournox, cournoy;
@@ -168,9 +187,6 @@ compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * 
   //   compute time step on grid interior
   cournox = zero;
   cournoy = zero;
-  Hvw->q = (double (*)) calloc(H.nvar * H.nxyt * H.nxystep, sizeof(double));
-  Hw->e = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
-  Hw->c = (double (*))  calloc(         H.nxyt * H.nxystep, sizeof(double));
 
   c = (double (*)[H.nxystep]) Hw->c;
   e = (double (*)[H.nxystep]) Hw->e;
@@ -186,12 +202,10 @@ compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * 
     slices = jend - j;          // numbre of slices to compute
     ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar, slices, Hstep, Hv->uold, q, e);
     equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma, slices, Hstep, e, q, c);
-    courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c, q);
+    courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c, q, Hw->tmpm1, Hw->tmpm2);
     // fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);
   }
-  Free(Hvw->q);
-  Free(Hw->e);
-  Free(Hw->c);
+
   *dt = H.courant_factor * H.dx / MAX(cournox, MAX(cournoy, H.smallc));
   FLOPS(1, 1, 2, 0);
   // fprintf(stdout, "[%2d]\t%g %g %g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor, H.dx, *dt);

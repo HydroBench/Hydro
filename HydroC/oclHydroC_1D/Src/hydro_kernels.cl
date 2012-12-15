@@ -712,7 +712,9 @@ LoopKcuSlope(__global double *q, __global double *dq,
   if (n >= Hnvar)
     return;
 
-  i = i + ijmin;
+  i = i + ijmin + 1;
+  if (i >= ijmax - 1)
+    return;
 
   ihvwin = IHVW(i, n, Hnxyt);
   ihvwimn = IHVW(i - 1, n, Hnxyt);
@@ -861,107 +863,39 @@ Loop2KcuTrace(__global double *q, __global double *dq,
   }
 }
 
-__kernel void reduceMaxDble(__global double* buffer,
-			    __const long length,
-			    __global double* result
-			    ) 
+__kernel void
+reduceMaxDble(__global double *buffer, 
+	      __const long length, 
+	      __global double *result, 
+	      __local double *scratch) 
 {
   int global_index = get_global_id(0);
-  double accumulator = buffer[0];
+  int local_index  = get_local_id(0);
+  double accumulator = -DBL_MAX;
   // Pass 1
   // Loop sequentially over chunks of input vector
+
+  // if (global_index >= length) return;
   while (global_index < length) {
     double element = buffer[global_index];
-    accumulator = (accumulator > element) ? accumulator : element;
-    global_index += get_local_size(0); // to favor coalescing
+    accumulator = fmax(accumulator, element);
+    global_index += get_local_size(0);  // to favor coalescing
   }
-  
+
   // Pass 2
   // Perform parallel reduction
-  __local double scratch[512];  
-  int local_index = get_local_id(0);
   scratch[local_index] = accumulator;
   barrier(CLK_LOCAL_MEM_FENCE);
-  for(int offset = get_local_size(0) / 2; offset > 0; offset = offset / 2) {
+  for (int offset = get_local_size(0) / 2; offset > 0; offset = offset / 2) {
     if (local_index < offset) {
       double other = scratch[local_index + offset];
       double mine = scratch[local_index];
-      scratch[local_index] = (mine > other) ? mine: other;
+      scratch[local_index] = fmax(mine, other);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
   }
   if (local_index == 0) {
     result[get_group_id(0)] = scratch[0];
-  }
-}
-
-__kernel void
-LoopKredMaxDble(__global double *src, __global double *res, const long nb)
-{
-  __local double sdata[512];
-  long blockSize = get_local_size(0);
-  long tidL = get_local_id(0);
-  long myblock = get_group_id(0);
-  long i = get_global_id(0);
-
-  // protection pour les cas ou on n'est pas multiple du block
-  // par defaut le max est le premier element
-  sdata[tidL] = src[0];
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  if (i < nb) {
-    sdata[tidL] = src[i];
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  // do the reduction in parallel
-  if (blockSize >= 512) {
-    if (tidL < 256) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 256]);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-  }
-  if (blockSize >= 256) {
-    if (tidL < 128) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 128]);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-  }
-  if (blockSize >= 128) {
-    if (tidL < 64) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 64]);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-  }
-  if (tidL < 32) {
-    if (blockSize >= 64) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 32]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    if (blockSize >= 32) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 16]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    if (blockSize >= 16) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 8]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    if (blockSize >= 8) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 4]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    if (blockSize >= 4) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 2]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    if (blockSize >= 2) {
-      sdata[tidL] = Max(sdata[tidL], sdata[tidL + 1]);
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-  }
-  // get the partial result from this block
-  if (tidL == 0) {
-    res[myblock] = sdata[0];
   }
 }
 

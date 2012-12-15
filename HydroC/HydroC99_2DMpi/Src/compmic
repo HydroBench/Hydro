@@ -1,0 +1,28 @@
+#!/bin/sh
+
+if [ `uname -n` = 'inti9000' ]; then
+    rm make.inc ; ln -s make_icc13_mpi make.inc
+else
+    rm make.inc ; ln -s make_icc_mpi make.inc
+fi
+make clean hydro 1> compileCPU.log 2>&1
+if [ $? -eq 0 ]; then
+    echo "Version CPU"
+    OMP_NUM_THREADS=12 OMP_PROC_BIND=true ./hydro -i input.nml
+else
+    exit 1
+fi
+
+if [ `uname -n` = 'inti9000' ]; then
+    rm make.inc ; ln -s make_mic_mpi make.inc
+    make clean hydro 1> compileMIC.log 2>&1
+    if [ $? -eq 0 ]; then
+	echo "Version MIC"
+	env OMP_PROC_BIND=true ssh mic0 Github/Hydro/HydroC/HydroC99_2DMpi/Src/hydro -i input.nml
+    else
+	exit 1
+    fi
+fi
+
+
+#EOF

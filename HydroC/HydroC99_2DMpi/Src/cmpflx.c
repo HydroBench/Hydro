@@ -52,7 +52,10 @@ cmpflx(const int narray,
        const int Hnxyt,
        const int Hnvar,
        const double Hgamma,
-       const int slices, const int Hstep, double qgdnv[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]) {
+       const int slices, 
+       const int Hstep, 
+       double qgdnv[Hnvar][Hstep][Hnxyt], 
+       double flux[Hnvar][Hstep][Hnxyt]) {
   int nface, i, IN;
   double entho, ekin, etot;
   WHERE("cmpflx");

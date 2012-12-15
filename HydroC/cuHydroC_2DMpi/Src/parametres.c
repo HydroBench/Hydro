@@ -94,8 +94,8 @@ default_values(hydroparam_t * H)
   H->boundary_left = 1;
   H->boundary_up = 1;
   H->boundary_down = 1;
-  H->noutput = 1000000;
-  H->nstepmax = 1000000;
+  H->noutput = 0;
+  H->nstepmax = 0;
   H->dtoutput = 0.0;
 } static void
 keyval(char *buffer, char **pkey, char **pval)
@@ -324,8 +324,8 @@ process_args(long argc, char **argv, hydroparam_t * H)
   // petit resume de la situation
   if (H->mype == 0) {
     printf("+-------------------+\n");
-    printf("|nx=%-7ld         |\n", H->nx);
-    printf("|ny=%-7ld         |\n", H->ny);
+    printf("|nx=%-7ld         |\n", H->globnx);
+    printf("|ny=%-7ld         |\n", H->globny);
     printf("|nxystep=%-2d         |\n", H->nxystep);
     printf("|tend=%-10.3f    |\n", H->tend);
     printf("|nstepmax=%-7ld   |\n", H->nstepmax);

@@ -142,11 +142,11 @@ updateConservativeVars(const int idim,
   if (idim == 1) {
 
     // Update conservative variables
-    for (ivar = 0; ivar <= IP; ivar++) {
-#pragma omp parallel for schedule(static), private(s,i), shared(uold)
+#pragma omp parallel for schedule(static), private(ivar, s,i), shared(uold) collapse(2)
       for (s = 0; s < slices; s++) {
-        for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
-          uold[IHU(i, rowcol + s, ivar)] = u[ivar][s][i] + (flux[ivar][s][i - 2] - flux[ivar][s][i - 1]) * dtdx;
+	for (ivar = 0; ivar <= IP; ivar++) {
+	  for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
+	    uold[IHU(i, rowcol + s, ivar)] = u[ivar][s][i] + (flux[ivar][s][i - 2] - flux[ivar][s][i - 1]) * dtdx;
         }
       }
     }
@@ -168,7 +168,7 @@ updateConservativeVars(const int idim,
     // Update conservative variables
 #pragma omp parallel for schedule(static), private(j, s), shared(uold)
     for (s = 0; s < slices; s++) {
-#pragma ivdep
+#pragma simd
       for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
         uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;

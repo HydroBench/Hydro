@@ -38,7 +38,9 @@ knowledge of the CeCILL license and that you accept its terms.
 // #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
-
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #ifndef HMPP
 #include "equation_of_state.h"
 #include "parametres.h"
@@ -55,6 +57,7 @@ equation_of_state(int imin,
                   const int slices, const int Hstep,
                   double eint[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt]) {
   int k, s;
+	int inpar = 0;
   double smallp;
 
   WHERE("equation_of_state");
@@ -62,8 +65,10 @@ equation_of_state(int imin,
    FLOPS(1, 1, 0, 0);
 
   // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
-
-#pragma omp parallel for schedule(static), private(s,k), shared(c,q)
+#ifdef _OPENMP
+	inpar = omp_in_parallel();
+#pragma omp parallel for if (!inpar) schedule(static), private(s,k), shared(c,q)
+#endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {
       double rhok = q[ID][s][k];

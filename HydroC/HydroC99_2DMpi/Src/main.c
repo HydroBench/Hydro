@@ -6,35 +6,36 @@
 */
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 #include <stdio.h>
 #include <time.h>
+#include <string.h>
 #ifdef MPI
 #include <mpi.h>
 #endif
@@ -48,11 +49,87 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "compute_deltat.h"
 #include "hydro_godunov.h"
 #include "perfcnt.h"
+#include "cclock.h"
 #include "utils.h"
+
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
-hydrovarwork_t Hvw;             // nvar
-hydrowork_t Hw;
+//for compute_delta
+hydrovarwork_t Hvw_deltat;      // nvar
+hydrowork_t Hw_deltat;
+hydrovarwork_t Hvw_godunov;     // nvar
+hydrowork_t Hw_godunov;
+double functim[TIM_END];
+
+int sizeLabel(double *tim, const int N) {
+  double maxi = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    if (maxi < tim[i]) maxi = tim[i];
+
+  // if (maxi < 100) return 8;
+  // if (maxi < 1000) return 9;
+  // if (maxi < 10000) return 10;
+  return 10;
+}
+void percentTimings(double *tim, const int N)
+{
+  double sum = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    sum += tim[i];
+
+  for (i = 0; i < N; i++)
+    tim[i] = 100.0 * tim[i] / sum;
+}
+
+void avgTimings(double *tim, const int N, const int nbr)
+{
+  int i;
+
+  for (i = 0; i < N; i++)
+    tim[i] = tim[i] / nbr;
+}
+
+void printTimings(double *tim, const int N, const int sizeFmt)
+{
+  double sum = 0;
+  int i;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%dlf ", sizeFmt);
+
+  for (i = 0; i < N; i++) 
+    fprintf(stdout, fmt, tim[i]);
+}
+void printTimingsLabel(const int N, const int fmtSize)
+{
+  int i;
+  char *txt;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%ds ", fmtSize);
+  for (i = 0; i < N; i++) {
+    switch(i) {
+    case TIM_COMPDT: txt = "COMPDT"; break;
+    case TIM_MAKBOU: txt = "MAKBOU"; break;
+    case TIM_GATCON: txt = "GATCON"; break;
+    case TIM_CONPRI: txt = "CONPRI"; break;
+    case TIM_EOS: txt = "EOS"; break;
+    case TIM_SLOPE: txt = "SLOPE"; break;
+    case TIM_TRACE: txt = "TRACE"; break;
+    case TIM_QLEFTR: txt = "QLEFTR"; break;
+    case TIM_RIEMAN: txt = "RIEMAN"; break;
+    case TIM_CMPFLX: txt = "CMPFLX"; break;
+    case TIM_UPDCON: txt = "UPDCON"; break;
+    case TIM_ALLRED: txt = "ALLRED"; break;
+    default:;
+    }
+    fprintf(stdout, fmt, txt);
+  }
+}
 
 int
 main(int argc, char **argv) {
@@ -67,12 +144,15 @@ main(int argc, char **argv) {
   double start_time = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
+  struct timespec start, end;
+
+  // array of timers to profile the code
+  memset(functim, 0, TIM_END * sizeof(functim[0]));
 
 #ifdef MPI
   MPI_Init(&argc, &argv);
 #endif
 
-  start_time = cclock();
   process_args(argc, argv, &H);
   hydro_init(&H, &Hv);
 
@@ -111,24 +191,39 @@ main(int argc, char **argv) {
   if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
 
-  if (H.mype == 1)
+  if (H.mype == 0)
     fprintf(stdout, "Hydro starts main loop.\n");
+
+  //pre-allocate memory before entering in loop
+  //For godunov scheme
+  start = cclock();
+  start = cclock();
+  allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
+  compute_deltat_init_mem(H, &Hw_deltat, &Hvw_deltat);
+  end = cclock();
+  if (H.mype == 0) fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
+  // we start timings here to avoid the cost of initial memory allocation
+  start_time = dcclock();
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     // reset perf counter for this iteration
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
-    start_iter = cclock();
+    start_iter = dcclock();
     outnum[0] = 0;
     if ((H.nstep % 2) == 0) {
-      dt=0;
-      // if (H.mype == 1) fprintf(stdout, "Hydro computes deltat.\n");
-      compute_deltat(&dt, H, &Hw, &Hv, &Hvw);
+      dt = 0;
+      // if (H.mype == 0) fprintf(stdout, "Hydro computes deltat.\n");
+      start = cclock();
+      compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
+      end = cclock();
+      functim[TIM_COMPDT] += ccelaps(start, end);
       if (H.nstep == 0) {
         dt = dt / 2.0;
       }
 #ifdef MPI
       if (H.nproc > 1) {
         double dtmin;
-	// printf("pe=%4d\tdt=%lg\n",H.mype, dt);
+        // printf("pe=%4d\tdt=%lg\n",H.mype, dt);
         MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
         dt = dtmin;
       }
@@ -136,19 +231,20 @@ main(int argc, char **argv) {
     }
     // if (H.mype == 1) fprintf(stdout, "Hydro starts godunov.\n");
     if ((H.nstep % 2) == 0) {
-      hydro_godunov(1, dt, H, &Hv, &Hw, &Hvw);
+      hydro_godunov(1, dt, H, &Hv, &Hw_godunov, &Hvw_godunov);
       //            hydro_godunov(2, dt, H, &Hv, &Hw, &Hvw);
     } else {
-      hydro_godunov(2, dt, H, &Hv, &Hw, &Hvw);
+      hydro_godunov(2, dt, H, &Hv, &Hw_godunov, &Hvw_godunov);
       //            hydro_godunov(1, dt, H, &Hv, &Hw, &Hvw);
     }
-    end_iter = cclock();
+    end_iter = dcclock();
     H.nstep++;
     H.t += dt;
     {
       double iter_time = (double) (end_iter - start_iter);
 #ifdef MPI
       long flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t;
+      start = cclock();
       MPI_Allreduce(&flopsAri, &flopsAri_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(&flopsSqr, &flopsSqr_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(&flopsMin, &flopsMin_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -156,6 +252,8 @@ main(int argc, char **argv) {
       //       if (H.mype == 1)
       //        printf("%ld %ld %ld %ld %ld %ld %ld %ld \n", flopsAri, flopsSqr, flopsMin, flopsTra, flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t);
       flops = flopsAri_t * FLOPSARI + flopsSqr_t * FLOPSSQR + flopsMin_t * FLOPSMIN + flopsTra_t * FLOPSTRA;
+      end = cclock();
+      functim[TIM_ALLRED] += ccelaps(start, end);
 #else
       flops = flopsAri * FLOPSARI + flopsSqr * FLOPSSQR + flopsMin * FLOPSMIN + flopsTra * FLOPSTRA;
 #endif
@@ -164,7 +262,7 @@ main(int argc, char **argv) {
       if (flops > 0) {
         if (iter_time > 1.e-9) {
           double mflops = (double) flops / (double) 1.e+6 / iter_time;
-	  MflopsSUM += mflops;
+          MflopsSUM += mflops;
           sprintf(outnum, "%s {%.2f Mflops %ld Ops} (%.3fs)", outnum, mflops, flops, iter_time);
         }
       } else {
@@ -177,7 +275,7 @@ main(int argc, char **argv) {
         sprintf(outnum, "%s [%04d]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;
         sprintf(outnum, "%s [%04d]", outnum, nvtk);
@@ -188,12 +286,56 @@ main(int argc, char **argv) {
       fflush(stdout);
     }
   }
+
+  // Deallocate work spaces
+  deallocate_work_space(H, &Hw_godunov, &Hvw_godunov);
+  compute_deltat_clean_mem(&Hw_deltat, &Hvw_deltat);
+
   hydro_finish(H, &Hv);
-  end_time = cclock();
+  end_time = dcclock();
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);
-  if (H.mype == 0)
+  if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
+    fprintf(stdout, "    ");
+  }
+  if (H.nproc == 1) {
+    int sizeFmt = sizeLabel(functim, TIM_END);
+    printTimingsLabel(TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "PE0 ");
+    printTimings(functim, TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "%%   ");
+    percentTimings(functim, TIM_END);
+    printTimings(functim, TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+  }
+#ifdef MPI
+  if (H.nproc > 1) {
+    double timMAX[TIM_END];
+    double timMIN[TIM_END];
+    double timSUM[TIM_END];
+    MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    if (H.mype == 0) {
+      int sizeFmt = sizeLabel(timMAX, TIM_END);
+      printTimingsLabel(TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "MIN ");
+      printTimings(timMIN, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "MAX ");
+      printTimings(timMAX, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "AVG ");
+      avgTimings(timSUM, TIM_END, H.nproc);
+      printTimings(timSUM, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+    }
+  }
+#endif
 
 #ifdef MPI
   MPI_Finalize();

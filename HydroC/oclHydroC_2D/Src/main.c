@@ -37,6 +37,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <stdio.h>
 #include <time.h>
+#include <mpi.h>
 
 #include "parametres.h"
 #include "hydro_funcs.h"
@@ -46,11 +47,17 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "oclInit.h"
 
+#ifdef NVIDIA
+OclUnit_t runUnit = RUN_GPU;
+#else
+OclUnit_t runUnit = RUN_CPU;
+#endif
 hydroparam_t H;
 hydrovar_t Hv;                  // nvar
 hydrovarwork_t Hvw;             // nvar
 hydrowork_t Hw;
 unsigned long flops = 0;
+
 int
 main(int argc, char **argv)
 {
@@ -64,18 +71,27 @@ main(int argc, char **argv)
   double start_time = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
+  char cdt;
   start_time = cclock();
-  fprintf(stdout, "Hydro starts.\n");
-  process_args(argc, argv, &H);
 
-  oclInitCode();
+  MPI_Init(&argc, &argv);
+  process_args(argc, argv, &H);
+  if (H.mype == 0) {
+    fprintf(stdout, "Hydro starts.\n");
+    fflush(stdout);
+  }
+  
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  oclInitCode(H.nproc, H.mype);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   hydro_init(&H, &Hv);
-  PRINTUOLD(stdout, H, &Hv);
+  // PRINTUOLD(stdout, H, &Hv);
 
-  oclAllocOnDevice(H);
   // Allocate work space for 1D sweeps
   allocate_work_space(H, &Hw, &Hvw);
+  oclAllocOnDevice(H);
 
   // vtkfile(nvtk, H, &Hv);
   if (H.dtoutput > 0) {
@@ -85,26 +101,36 @@ main(int argc, char **argv)
     next_output_time = next_output_time + H.dtoutput;
   }
   oclPutUoldOnDevice(H, &Hv);
-  //   {
-  //     printf("version demarrage\n");
-  //     printuold(H, &Hv);
-  //   }
+
+  if (H.dtoutput > 0 || H.noutput > 0)
+    vtkfile(++nvtk, H, &Hv);
+
+  if (H.mype == 1)
+    fprintf(stdout, "Hydro starts main loop.\n");
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     start_iter = cclock();
     outnum[0] = 0;
     flops = 0;
+    cdt = ' ';
     if ((H.nstep % 2) == 0) {
       oclComputeDeltat(&dt, H, &Hw, &Hv, &Hvw);
+      cdt = '*';
+      // fprintf(stdout, "dt=%lg\n", dt);
       if (H.nstep == 0) {
         dt = dt / 2.0;
+      }
+      if (H.nproc > 1) {
+	double dtmin;
+	int uno = 1;
+	MPI_Allreduce(&dt, &dtmin, uno, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	dt = dtmin;
       }
     }
     if ((H.nstep % 2) == 0) {
       oclHydroGodunov(1, dt, H, &Hv, &Hw, &Hvw);
-      oclHydroGodunov(2, dt, H, &Hv, &Hw, &Hvw);
     } else {
       oclHydroGodunov(2, dt, H, &Hv, &Hw, &Hvw);
-      oclHydroGodunov(1, dt, H, &Hv, &Hw, &Hvw);
     }
     end_iter = cclock();
     H.nstep++;
@@ -119,21 +145,21 @@ main(int argc, char **argv)
       double iter_time = (double) (end_iter - start_iter);
       sprintf(outnum, "%s (%.3fs)", outnum, iter_time);
     }
-    if (time_output == 0) {
+    if (time_output == 0 && H.noutput > 0) {
       if ((H.nstep % H.noutput) == 0) {
         oclGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     } else {
-      if (H.t >= next_output_time) {
+      if (time_output == 1 && H.t >= next_output_time) {
         oclGetUoldFromDevice(H, &Hv);
         vtkfile(++nvtk, H, &Hv);
         next_output_time = next_output_time + H.dtoutput;
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     }
-    fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s %c\n", H.nstep, H.t, dt, outnum, cdt);
   }
 
   hydro_finish(H, &Hv);
@@ -144,6 +170,6 @@ main(int argc, char **argv)
   end_time = cclock();
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);
-  fprintf(stdout, "Hydro ends in %ss (%.3lf).\n", outnum, elaps);
+  if (H.mype == 0) fprintf(stdout, "Hydro ends in %ss (%.3lf).\n", outnum, elaps);
   return 0;
 }

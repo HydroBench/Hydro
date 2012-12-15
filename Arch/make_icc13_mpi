@@ -1,0 +1,66 @@
+# C compiler
+#------------------
+CC = icc -mmic
+CC = icc
+
+# Cuda compiler
+#------------------
+NVCC = 
+
+# Fortran compilers
+#------------------
+F90 = ifort
+
+# MPI C compiler
+#------------------
+MPICC = mpicc
+
+# MPI Fortran compilers
+#------------------
+MPIF90 = mpif90
+
+# C compilation options
+#-----------------------------
+# PROF=-pg
+CFLAGS = -O3 $(PROF)
+# -no-vec 
+
+# Fortran compilation options
+#-----------------------------
+FFLAGS = -O3
+
+# Linker options
+#---------------
+LDFLAGS = -O3 $(PROF)
+
+# OpenMP C compilation options
+#---------------------------
+CFLAGS_OMP = -openmp -openmp-report1
+
+# Cuda compilation options
+#---------------------------
+NVCFLAGS_OMP = 
+
+# OpenMP Fortran compilation options
+#---------------------------
+FFLAGS_OMP = -openmp
+
+# MPI C compilation options
+#---------------------------
+MPIROOT=/opt/intel/impi/4.1.0.018/mic
+MPIROOT=/opt/intel/impi/4.1.0.018/intel64
+CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
+NVCFLAGS_MPI = -I$(MPIROOT)/include
+
+
+# MPI Fortran compilation options
+#---------------------------
+FFLAGS_MPI =
+
+# OpenMP link options
+#--------------------
+LDFLAGS_OMP = -openmp
+
+# MPI link options
+#--------------------
+LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi

@@ -1,6 +1,6 @@
 # C compiler
 #------------------
-CC = gcc -DINTEL 
+CC = /usr/lib64/openmpi/bin/mpicc -DINTEL 
 
 # Cuda compiler
 #------------------
@@ -12,7 +12,7 @@ F90 = ifort
 
 # MPI C compiler
 #------------------
-MPICC = mpcc
+MPICC = mpicc
 
 # MPI Fortran compilers
 #------------------
@@ -21,16 +21,16 @@ MPIF90 = mpif90
 # C compilation options
 #-----------------------------
 OCLINC=
-CFLAGS = -g $(OCLINC)
+CFLAGS = $(OCLINC)
 
 # Fortran compilation options
 #-----------------------------
-FFLAGS = -O3
+FFLAGS = 
 
 # Linker options
 #---------------
 OCLLIB=/usr/lib64
-LDFLAGS = -g -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
+LDFLAGS = -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
 
 # OpenMP C compilation options
 #---------------------------
@@ -62,3 +62,7 @@ LDFLAGS_OMP = -openmp
 # MPI link options
 #--------------------
 #LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+
+
+# OPTFLAGS is left to the Makefile to specify the optimization level
+OPTFLAGS=

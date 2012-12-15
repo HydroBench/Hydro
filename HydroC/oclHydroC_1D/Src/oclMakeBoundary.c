@@ -89,7 +89,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       OCLSETARG(ker[Loop1KcuMakeBoundary], H.nyt);
       OCLSETARG(ker[Loop1KcuMakeBoundary], H.nvar);
       OCLSETARG(ker[Loop1KcuMakeBoundary], uoldDEV);
-      oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+      oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       //       Loop1KcuMakeBoundary <<< grid, block >>> (i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
       //       CheckErr("Loop1KcuMakeBoundary");
       //       cudaThreadSynchronize();
@@ -118,7 +118,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       OCLSETARG(ker[Loop1KcuMakeBoundary], H.nyt);
       OCLSETARG(ker[Loop1KcuMakeBoundary], H.nvar);
       OCLSETARG(ker[Loop1KcuMakeBoundary], uoldDEV);
-      oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+      oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       //       Loop1KcuMakeBoundary <<< grid, block >>> (i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
       //       CheckErr("Loop1KcuMakeBoundary 2");
       //       cudaThreadSynchronize();
@@ -151,7 +151,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       OCLSETARG(ker[Loop2KcuMakeBoundary], H.nyt);
       OCLSETARG(ker[Loop2KcuMakeBoundary], H.nvar);
       OCLSETARG(ker[Loop2KcuMakeBoundary], uoldDEV);
-      oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+      oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       //       Loop2KcuMakeBoundary <<< grid, block >>> (j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
       //       CheckErr("Loop2KcuMakeBoundary ");
       //       cudaThreadSynchronize();
@@ -180,7 +180,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       OCLSETARG(ker[Loop2KcuMakeBoundary], H.nyt);
       OCLSETARG(ker[Loop2KcuMakeBoundary], H.nvar);
       OCLSETARG(ker[Loop2KcuMakeBoundary], uoldDEV);
-      oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ);
+      oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
       //       Loop2KcuMakeBoundary <<< grid, block >>> (j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
       //       CheckErr("Loop2KcuMakeBoundary 2");
       //       cudaThreadSynchronize();

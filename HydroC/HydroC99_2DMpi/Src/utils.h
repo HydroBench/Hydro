@@ -55,8 +55,8 @@ knowledge of the CeCILL license and that you accept its terms.
 #define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
 #endif /*  */
 double **allocate(int imin, int imax, int nvar);
-double *DMalloc(long n);
-int *IMalloc(long n);
+double *DMalloc(size_t n);
+int *IMalloc(size_t n);
 
 // 0 means perfect memory management from the code ;-)
 // static const int MallocGuard = 0;
@@ -67,7 +67,6 @@ void printarrayi(FILE * fic, int *a, int n, const char *nom);
 void printarrayv(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
 void printarrayv2(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
 void timeToString(char *buf, const double timeInS);
-double cclock(void);
 
 #ifndef PRINTUOLD
 #ifndef HMPP

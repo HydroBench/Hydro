@@ -48,7 +48,9 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void
 oclQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt,
-              const long Hnvar, cl_mem qxm, cl_mem qxp, cl_mem qleft, cl_mem qright)
+                const long Hnvar, 
+		const int slices, const int Hstep,
+		cl_mem qxm, cl_mem qxp, cl_mem qleft, cl_mem qright)
 {
   long bmax;
 
@@ -58,19 +60,8 @@ oclQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt,
   } else {
     bmax = Hny + 1;
   }
-//   SetBlockDims(bmax, THREADSSZ, block, grid);
-//   Loop1KcuQleftright <<< grid, block >>> (bmax, Hnvar, Hnxyt, qxm, qxp, qleft, qright);
-//   CheckErr("Loop1KcuQleftright");
-//   cudaThreadSynchronize();
-  OCLINITARG;
-  OCLSETARG(ker[Loop1KcuQleftright], bmax);
-  OCLSETARG(ker[Loop1KcuQleftright], Hnvar);
-  OCLSETARG(ker[Loop1KcuQleftright], Hnxyt);
-  OCLSETARG(ker[Loop1KcuQleftright], qxm);
-  OCLSETARG(ker[Loop1KcuQleftright], qxp);
-  OCLSETARG(ker[Loop1KcuQleftright], qleft);
-  OCLSETARG(ker[Loop1KcuQleftright], qright);
-  oclLaunchKernel(ker[Loop1KcuQleftright], cqueue, bmax, THREADSSZ);
+  OCLSETARG09(ker[Loop1KcuQleftright], bmax, Hnvar, Hnxyt, slices, Hstep, qxm, qxp, qleft, qright);
+  oclLaunchKernel(ker[Loop1KcuQleftright], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 // EOF

@@ -75,7 +75,7 @@ constoprim (const int n,
       #pragma acc loop independent
       for (int IN = IP + 1; IN < Hnvar; IN++)
 	    {
-        #pragma acc loop independent private (i)
+        #pragma acc loop independent 
 	      for (int s = 0; s < slices; s++)
 	      {
 	        for (int i = ijmin; i < ijmax; i++)

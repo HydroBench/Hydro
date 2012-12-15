@@ -87,6 +87,7 @@ char *
 ToBase64(unsigned char *data, int length) {
   int padding = length % 3;
   int blocks = (length - 1) / 3 + 1;
+  size_t lalloc;
   char *s;
   int i;
 
@@ -96,7 +97,15 @@ ToBase64(unsigned char *data, int length) {
   if (padding > 0)
     padding = 3 - padding;
 
-  s = malloc(blocks * 4 + 1 + 16);
+  // lalloc = (blocks * 4 + 1 + 16);
+  lalloc = blocks;
+  lalloc *= 4;
+  lalloc += 17;
+
+  s = malloc(lalloc);
+  if (s == NULL) {
+    fprintf(stderr, "Length=%d, blocks=%d lalloc=%ld\n", length, blocks, lalloc);
+  }
   assert(s != NULL);
 
   for (i = 0; i < blocks; i++) {
@@ -266,7 +275,7 @@ vtkfile(int step, const hydroparam_t H, hydrovar_t * Hv) {
       // float tuold[H.nxt * H.nyt];
       float *tuold = NULL;
       char *r64;
-      int p = 0, lst;
+      size_t p = 0, lst;
 
       assert((H.nxt * H.nyt) > 0);
       tuold = (float *) calloc(H.nxt * H.nyt + 16, sizeof(float));

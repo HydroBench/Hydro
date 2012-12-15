@@ -38,6 +38,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "utils.h"
 #include "hydro_utils.h"
@@ -55,11 +56,19 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
   H->jmax = H->ny + ExtraLayerTot;
   H->nxt = H->imax - H->imin;   // column size in the array
   H->nyt = H->jmax - H->jmin;   // row size in the array
+
   // maximum direction size
   H->nxyt = (H->nxt > H->nyt) ? H->nxt : H->nyt;
+  // To make sure that slices are properly aligned, we make the array a
+  // multiple of NDBLE double
+#define NDBLE 16
+  // printf("avant %d ", H->nxyt);
+  // H->nxyt = (H->nxyt + NDBLE - 1) / NDBLE;
+  // H->nxyt *= NDBLE;
+  // printf("apres %d \n", H->nxyt);
 
   // allocate uold for each conservative variable
-  Hv->uold = (double *) calloc(H->nvar * H->nxt * H->nyt, sizeof(double));
+  Hv->uold = (double *) DMalloc(H->nvar * H->nxt * H->nyt);
 
   // wind tunnel with point explosion
   for (j = H->jmin + ExtraLayer; j < H->jmax - ExtraLayer; j++) {
@@ -104,6 +113,31 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
       }
     }
   }
+  if (H->testCase == 2) {
+    if (H->nproc == 1) {
+      x = ExtraLayer;
+      y = ExtraLayer;
+      for (j = y; j < H->jmax; j++) {
+        Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
+      }
+      printf("SOD tube test case\n");
+    } else {
+      x = ExtraLayer;
+      y = ExtraLayer;
+      for (j = 0; j < H->globny; j++) {
+        if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
+          y = j - H->box[YMIN_BOX] + ExtraLayer;
+          Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+        }
+      }
+      printf("SOD tube test case in //\n");
+    }
+  }
+  if (H->testCase > 2) {
+    printf("Test case not implemented -- aborting !\n");
+    abort();
+  }
+  fflush(stdout);
 }                               // hydro_init
 
 void
@@ -113,34 +147,44 @@ hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
 
 void
 allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
+  int domain = ngrid * H.nxystep;
+  int domainVar = domain * H.nvar;
+  int domainD = domain * sizeof(double);
+  int domainI = domain * sizeof(int);
+  int domainVarD = domainVar * sizeof(double);
+
   WHERE("allocate_work_space");
-  Hvw->u = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->q = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->dq = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qxm = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qxp = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qleft = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qright = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->qgdnv = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hvw->flux = DMalloc((ngrid + 2) * H.nxystep * H.nvar);
-  Hw->e = DMalloc((ngrid + 1) * H.nxystep);
-  Hw->c = DMalloc((ngrid + 1) * H.nxystep);
-  Hw->sgnm = IMalloc((ngrid + 0) * H.nxystep);
-  //   Hw->rl = DMalloc(ngrid);
-  //   Hw->ul = DMalloc(ngrid);
-  //   Hw->pl = DMalloc(ngrid);
-  //   Hw->cl = DMalloc(ngrid);
-  //   Hw->rr = DMalloc(ngrid);
-  //   Hw->ur = DMalloc(ngrid);
-  //   Hw->pr = DMalloc(ngrid);
-  //   Hw->cr = DMalloc(ngrid);
-  //   Hw->ro = DMalloc(ngrid);
+  Hvw->u      = DMalloc(domainVar);
+  Hvw->q      = DMalloc(domainVar);
+  Hvw->dq     = DMalloc(domainVar);
+  Hvw->qxm    = DMalloc(domainVar);
+  Hvw->qxp    = DMalloc(domainVar);
+  Hvw->qleft  = DMalloc(domainVar);
+  Hvw->qright = DMalloc(domainVar);
+  Hvw->qgdnv  = DMalloc(domainVar);
+  Hvw->flux   = DMalloc(domainVar);
+  Hw->e       = DMalloc(domain);
+  Hw->c       = DMalloc(domain);
+
+  Hw->sgnm = IMalloc(domain);
+
+  Hw->pstar = DMalloc(domain);
+  Hw->rl    = DMalloc(domain);
+  Hw->ul    = DMalloc(domain);
+  Hw->pl    = DMalloc(domain);
+  Hw->cl    = DMalloc(domain);
+  Hw->rr    = DMalloc(domain);
+  Hw->ur    = DMalloc(domain);
+  Hw->pr    = DMalloc(domain);
+  Hw->cr    = DMalloc(domain);
+  Hw->ro    = DMalloc(domain);
+  Hw->goon  = IMalloc(domain);
+
   //   Hw->uo = DMalloc(ngrid);
   //   Hw->po = DMalloc(ngrid);
   //   Hw->co = DMalloc(ngrid);
   //   Hw->rstar = DMalloc(ngrid);
   //   Hw->ustar = DMalloc(ngrid);
-  //   Hw->pstar = DMalloc(ngrid);
   //   Hw->cstar = DMalloc(ngrid);
   //   Hw->wl = DMalloc(ngrid);
   //   Hw->wr = DMalloc(ngrid);
@@ -176,21 +220,22 @@ deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * H
   Free(Hw->sgnm);
 
   //
-  //   Free(Hw->rl);
-  //   Free(Hw->ul);
-  //   Free(Hw->pl);
-  //   Free(Hw->cl);
-  //   Free(Hw->rr);
-  //   Free(Hw->ur);
-  //   Free(Hw->pr);
-  //   Free(Hw->cr);
-  //   Free(Hw->ro);
+  Free(Hw->pstar);
+  Free(Hw->rl);
+  Free(Hw->ul);
+  Free(Hw->pl);
+  Free(Hw->cl);
+  Free(Hw->rr);
+  Free(Hw->ur);
+  Free(Hw->pr);
+  Free(Hw->cr);
+  Free(Hw->ro);
+  Free(Hw->goon);
   //   Free(Hw->uo);
   //   Free(Hw->po);
   //   Free(Hw->co);
   //   Free(Hw->rstar);
   //   Free(Hw->ustar);
-  //   Free(Hw->pstar);
   //   Free(Hw->cstar);
   //   Free(Hw->wl);
   //   Free(Hw->wr);
