@@ -37,6 +37,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
