@@ -48,12 +48,12 @@
 static void
 usage(void)
 {
-  fprintf(stderr, "options of hydro");
-  fprintf(stderr, "--help");
-  fprintf(stderr, "-i input");
-  fprintf(stderr, "-v :: to increase verbosity");
-  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC ");
-  fprintf(stderr, "------------------------------------");
+  fprintf(stderr, "options of hydro\n");
+  fprintf(stderr, "--help\n");
+  fprintf(stderr, "-i input\n");
+  fprintf(stderr, "-v :: to increase verbosity\n");
+  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC \n");
+  fprintf(stderr, "------------------------------------\n");
   exit(1);
 } 
 
