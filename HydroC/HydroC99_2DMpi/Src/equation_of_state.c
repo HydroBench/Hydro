@@ -67,7 +67,7 @@ equation_of_state(int imin,
   // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
 #ifdef _OPENMP
 	inpar = omp_in_parallel();
-#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q)
+#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q), collapse(2)
 #endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {

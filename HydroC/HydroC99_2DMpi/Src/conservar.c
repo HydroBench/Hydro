@@ -67,7 +67,7 @@ gatherConservativeVars(const int idim,
   WHERE("gatherConservativeVars");
   if (idim == 1) {
     // Gather conservative variables
-#pragma omp parallel for schedule(auto) private(i, s), shared(u)
+#pragma omp parallel for schedule(auto) private(i, s), shared(u), collapse(2)
     for (s = 0; s < slices; s++) {
       for (i = Himin; i < Himax; i++) {
         int idxuoID = IHU(i, rowcol + s, ID);
@@ -96,7 +96,7 @@ gatherConservativeVars(const int idim,
     //
   } else {
     // Gather conservative variables
-#pragma omp parallel for schedule(auto) private(j, s), shared(u)
+#pragma omp parallel for schedule(auto) private(j, s), shared(u), collapse(2)
     for (s = 0; s < slices; s++) {
       for (j = Hjmin; j < Hjmax; j++) {
         u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];

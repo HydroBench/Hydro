@@ -68,7 +68,7 @@ ComputeQEforRow(const int j,
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#pragma omp parallel for shared(q, e) private(s, i)
+#pragma omp parallel for shared(q, e) private(s, i), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = 0; i < Hnx; i++) {
       double eken;

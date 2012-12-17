@@ -84,7 +84,7 @@ trace(const double dtdx,
     project = zero;
   }
 
-#pragma omp parallel for schedule(auto) private(s,i), shared(qxp, qxm)
+#pragma omp parallel for schedule(auto) private(s,i), shared(qxp, qxm), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = ijmin + 1; i < ijmax - 1; i++) {
       double cc, csq, r, u, v, p;
