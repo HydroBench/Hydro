@@ -220,24 +220,26 @@ timeToString(char *buf, const double timeInS)
   float tenth = timeInS - hour * 3600 - minute * 60 - second;
   sprintf(ctenth, "%.3f", tenth);
   sprintf(buf, "%02ld:%02ld:%02ld%s", hour, minute, second, &ctenth[1]);
-} double
-cclock(void)
-{
-  const double micro = 1.0e-06; /* Conversion constant */
-  static long start = 0L, startu;
-  struct timeval tp;            /* Structure used by gettimeofday */
-  double wall_time;             /* To hold the result */
-  if (gettimeofday(&tp, NULL) == -1)
-    wall_time = -1.0e0;
+} 
 
-  else if (!start) {
-    start = tp.tv_sec;
-    startu = tp.tv_usec;
-    wall_time = 0.0e0;
-  } else
-    wall_time = (double) (tp.tv_sec - start) + micro * (tp.tv_usec - startu);
-  return wall_time;
-}
+// double
+// cclock(void)
+// {
+//   const double micro = 1.0e-06; /* Conversion constant */
+//   static long start = 0L, startu;
+//   struct timeval tp;            /* Structure used by gettimeofday */
+//   double wall_time;             /* To hold the result */
+//   if (gettimeofday(&tp, NULL) == -1)
+//     wall_time = -1.0e0;
+
+//   else if (!start) {
+//     start = tp.tv_sec;
+//     startu = tp.tv_usec;
+//     wall_time = 0.0e0;
+//   } else
+//     wall_time = (double) (tp.tv_sec - start) + micro * (tp.tv_usec - startu);
+//   return wall_time;
+// }
 
 
 //EOF

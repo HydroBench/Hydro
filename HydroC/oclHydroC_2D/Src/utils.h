@@ -70,7 +70,6 @@ void printarrayi(FILE * fic, long *a, long n, const char *nom);
 void printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H);
 void printarrayv2(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H);
 void timeToString(char *buf, const double timeInS);
-double cclock(void);
 #ifdef __cplusplus
 };
 #endif
