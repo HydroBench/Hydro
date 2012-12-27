@@ -62,4 +62,7 @@ include alldeps.d
 run: hydro
 	./hydro -i input.nml -u c
 
+mic: hydro
+	./hydro -i input.nml -u a
+
 #EOF
