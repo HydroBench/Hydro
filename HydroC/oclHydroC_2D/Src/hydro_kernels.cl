@@ -84,9 +84,13 @@ Square(const double x) {
 #define CPUVERSION 0
 #endif
 
+#ifdef INTEL
+#define CPUVERSION 0
+#endif
+
 #if CPUVERSION == 0
-#define Max max
-#define Min min
+#define Max fmax
+#define Min fmin
 #define Fabs fabs
 #define Sqrt sqrt
 #else
