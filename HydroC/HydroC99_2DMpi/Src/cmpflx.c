@@ -66,7 +66,7 @@ cmpflx(const int narray,
   FLOPS(1, 1, 0, 0);
 
   // Compute fluxes
-#pragma omp parallel for schedule(static), private(s, i), shared(flux)
+#pragma omp parallel for schedule(auto) private(s, i), shared(flux), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = 0; i < nface; i++) {
       double qgdnvID = qgdnv[ID][s][i];

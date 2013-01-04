@@ -48,12 +48,12 @@
 static void
 usage(void)
 {
-  fprintf(stderr, "options of hydro");
-  fprintf(stderr, "--help");
-  fprintf(stderr, "-i input");
-  fprintf(stderr, "-v :: to increase verbosity");
-  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC ");
-  fprintf(stderr, "------------------------------------");
+  fprintf(stderr, "options of hydro\n");
+  fprintf(stderr, "--help | -h: this help\n");
+  fprintf(stderr, "-i input\n");
+  fprintf(stderr, "-v :: to increase verbosity\n");
+  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC \n");
+  fprintf(stderr, "------------------------------------\n");
   exit(1);
 } 
 
@@ -267,7 +267,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
   MPI_Comm_size(MPI_COMM_WORLD, &H->nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &H->mype);
   while (n < argc) {
-    if (strcmp(argv[n], "--help") == 0) {
+    if (strcmp(argv[n], "--help") == 0 || strcmp(argv[n], "-h") == 0) {
       usage();
       n++;
       continue;

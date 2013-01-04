@@ -37,9 +37,11 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
+#include <numa.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -57,19 +59,45 @@ allocate(int imin, int imax, int nvar) {
   return r;
 }
 
+// #define MEMSET 1
+
 double *
 DMalloc(size_t n) {
+  size_t i;
+#if NUMA_ALLOC == 1
+  double *r = (double *) numa_alloc_interleaved((n + MallocGuard) * sizeof(double));
+#else
   double *r = (double *) calloc((n + MallocGuard), sizeof(double));
-  memset(r, 1, n * sizeof(double));
+#endif
   assert(r != NULL);
+  
+#if MEMSET == 1
+  memset(r, 1, n * sizeof(double));
+#else
+#pragma omp parallel for schedule(auto) private(i)
+  for (i = 0; i < n; i++)
+    r[i] = 1.0;
+#endif
   return r;
 }
 
 int *
 IMalloc(size_t n) {
+  size_t i;
+#if NUMA_ALLOC == 1
+  int *r = (int *) numa_alloc((n + MallocGuard) * sizeof(int));
+#else
   int *r = (int *) calloc((n + MallocGuard), sizeof(int));
-  memset(r, 1, n * sizeof(int));
+#endif
   assert(r != NULL);
+
+#if MEMSET == 1
+  memset(r, 1, n * sizeof(int));
+#else
+#pragma omp parallel for schedule(auto) private(i) 
+  for (i = 0; i < n; i++)
+    r[i] = 1;
+#endif
   return r;
 }
 

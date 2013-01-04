@@ -52,7 +52,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #define DABS(x) (double) fabs((x))
 
-static void
+inline void
 ComputeQEforRow(const int j,
                 const double Hsmallr,
                 const int Hnx,
@@ -60,13 +60,15 @@ ComputeQEforRow(const int j,
                 const int Hnyt,
                 const int Hnxyt,
                 const int Hnvar,
-                const int slices, const int Hstep, double *uold, double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]
+                const int slices, const int Hstep, 
+		double * uold, 
+		double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]
 		) {
   int i, s;
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#pragma omp parallel for shared(q, e) private(s, i)
+#pragma omp parallel for shared(q, e) private(s, i), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = 0; i < Hnx; i++) {
       double eken;
@@ -95,7 +97,7 @@ ComputeQEforRow(const int j,
 // to force a parallel reduction with OpenMP
 #define WOMP
 
-static void
+inline void
 courantOnXY(double *cournox,
             double *cournoy,
             const int Hnx,

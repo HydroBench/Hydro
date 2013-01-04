@@ -59,7 +59,7 @@ constoprim(const int n,
   ijmin = 0;
   ijmax = n;
 
-#pragma omp parallel for schedule(static), private(i, s), shared(q,e)
+#pragma omp parallel for private(i, s), shared(q,e), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = ijmin; i < ijmax; i++) {
       double qid = MAX(u[ID][s][i], Hsmallr);
