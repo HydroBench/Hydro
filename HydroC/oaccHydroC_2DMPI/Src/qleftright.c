@@ -59,6 +59,9 @@ qleftright (const int idim,
 #endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
 	    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int i = 0; i < bmax; i++)
         {
           qleft[IDX (nvar, s, i)] = qxm[IDX (nvar, s, i + 1)];

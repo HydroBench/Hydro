@@ -56,6 +56,9 @@ slope (const int n,
 #endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
       {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
         for (int i = ijmin + 1; i < ijmax - 1; i++)
         {
 double dlft, drgt, dcen, dsgn, slop, dlim;

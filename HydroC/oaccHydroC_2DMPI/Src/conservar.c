@@ -197,6 +197,9 @@ updateConservativeVars (const int idim,
 #endif /* !GRIDIFY */
 	    for (int s = 0; s < slices; s++)
 	    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++)
 		    {
 		      uold[IHU (i, rowcol + s, ivar)] =
@@ -220,6 +223,9 @@ updateConservativeVars (const int idim,
 #pragma acc loop independent
 #endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++){
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 		      for (int i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++){
 		        uold[IHU (i, rowcol + s, ivar)] =
 			            u[IDX (ivar, s, i)] + (flux[IDX (ivar, s, i - 2)] -
@@ -279,6 +285,9 @@ updateConservativeVars (const int idim,
 #pragma acc loop independent
 #endif /* !GRIDIFY */
         for (int s = 0; s < slices; s++){
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	        for (int j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++){
 	            uold[IHU (rowcol + s, j, ivar)] =
 		            u[IDX (ivar, s, j)] + (flux[IDX (ivar, s, j - 2)] -
