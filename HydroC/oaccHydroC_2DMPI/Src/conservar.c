@@ -29,7 +29,7 @@ gatherConservativeVars (const int idim,
 			const int Hnyt,
 			const int Hnxyt,
 			const int slices, const int Hstep,
-			double uold[Hnvar * Hnxt * Hnyt], double *u
+			double *uold, double *u
 			//double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt]
   )
 {

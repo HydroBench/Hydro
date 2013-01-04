@@ -31,7 +31,7 @@ ComputeQEforRow (const int j,
 		 const int Hnxyt,
 		 const int Hnvar,
 		 const int slices, const int Hstep, double *uold,
-		 double *q, double e[Hstep][Hnxyt])
+		 double *q, double *e)
 {
   int i, s;
   //  double eken;
@@ -39,7 +39,7 @@ ComputeQEforRow (const int j,
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 #define IDX(i,j,k)    ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 #define IDXE(i,j)     ( (i*Hnxyt) + j )
-#pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], uold[0:Hnvar*Hnxt*Hnyt])
+#pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], uold[0:Hnvar*Hnxt*Hnyt],e[0:Hstep*Hnxyt])
   {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s,i)
@@ -64,7 +64,7 @@ double eken;
 	  q[IDX(IV,s,i)] = uold[idxuIV] / q[IDX(ID,s,i)];
 	  eken = half * (Square (q[IDX(IU,s,i)]) + Square (q[IDX(IV,s,i)]));
 	  q[IDX(IP,s,i)] = uold[idxuIP] / q[IDX(ID,s,i)] - eken;
-	  e[s][i] = q[IDX(IP,s,i)];
+	  e[IDXE(s,i)] = q[IDX(IP,s,i)];
 	}
     }
   }

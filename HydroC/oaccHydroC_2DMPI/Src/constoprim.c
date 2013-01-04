@@ -40,8 +40,7 @@ constoprim (const int n,
 
 #pragma acc kernels present(u[0:Hnvar*Hstep*Hnxyt]) present(q[0:Hnvar*Hstep*Hnxyt], e[0:Hstep*Hnxyt])
 {
-  int ijmin=0, ijmax=n;
-  double eken;
+  const int ijmin=0, ijmax=n;
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s,i)
 #endif /* GRIDIFY */
@@ -63,7 +62,7 @@ constoprim (const int n,
 	      q[IDX (IU, s, i)] = qiu;
 	      q[IDX (IV, s, i)] = qiv;
 
-	      eken = half * (Square (qiu) + Square (qiv));
+	      double eken = half * (Square (qiu) + Square (qiv));
 
 	      double qip = u[IDX (IP, s, i)] / qid - eken;
 	      q[IDX (IP, s, i)] = qip;
@@ -78,7 +77,7 @@ constoprim (const int n,
   {
     #pragma acc kernels present(u[0:Hnvar*Hstep*Hnxyt]) present(q[0:Hnvar*Hstep*Hnxyt])
     {
-      int ijmin=0, ijmax=n;
+      const int ijmin=0, ijmax=n;
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s*IN,i)
 #endif /* GRIDIFY */
