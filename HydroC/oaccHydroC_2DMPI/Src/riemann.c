@@ -79,10 +79,17 @@ riemann (const int narray,
   // Pressure, density and velocity
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) 
     {
-      #pragma acc loop independent
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
       {
-          #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
           for (int i = 0; i < narray; i++)
 	        {
 	          double smallp = smallp_;
@@ -257,10 +264,17 @@ riemann (const int narray,
     //int invar;
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt])
     {
-      #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*invar,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int invar = IP + 1; invar < Hnvar; invar++)
       {
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
         for (int s = 0; s < slices; s++)
         {
           for (int i = 0; i < narray; i++)
