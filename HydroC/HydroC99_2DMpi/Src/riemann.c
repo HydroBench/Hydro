@@ -119,7 +119,7 @@ riemann(int narray, const double Hsmallr,
   // #define SIMD novector
 
   // Pressure, density and velocity
-#pragma omp parallel for  schedule(static), private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
+#pragma omp parallel for  schedule(auto) private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
   for (s = 0; s < slices; s++) {
     int ii, iimx;
     int *goon;

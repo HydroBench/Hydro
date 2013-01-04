@@ -235,7 +235,7 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
       /* LM -- HERE a more secure implementation should be used: a new parameter ? */
     }
 
-    #pragma acc update host (uold[0:H.nvar*H.nxt*H.nyt])
+//#pragma acc update host (uold[0:H.nvar*H.nxt*H.nyt])
 
 }				// hydro_godunov
 

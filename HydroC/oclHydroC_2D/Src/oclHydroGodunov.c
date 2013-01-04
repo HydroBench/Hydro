@@ -47,6 +47,7 @@
 #include "parametres.h"
 #include "hydro_funcs.h"
 #include "utils.h"
+#include "cclock.h"
 
 #include "oclInit.h"
 #include "ocltools.h"
@@ -171,6 +172,7 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
 {
   cl_int status;
   // Local variables
+  struct timespec start, end;
   int i, j, idim, idimIndex;
   int Hmin, Hmax, Hstep, Hnxystep;
   int Hdimsize;
@@ -179,6 +181,7 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
   double dtdx;
   size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
   long Hnxyt = H.nxyt;
+  int clear = 0;
   static FILE *fic = NULL;
 
   if (fic == NULL && H.prt) {
@@ -202,7 +205,10 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       PRINTUOLD(fic, H, Hv);
     }
 #define GETUOLD oclGetUoldFromDevice(H, Hv)
+    start = cclock();
     oclMakeBoundary(idim, H, Hv, uoldDEV);
+    end = cclock();
+    functim[TIM_MAKBOU] += ccelaps(start, end);
     if (H.prt) {fprintf(fic, "MakeBoundary\n");}
     if (H.prt) {GETUOLD; PRINTUOLD(fic, H, Hv);}
 
@@ -228,52 +234,76 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       if (iend >= Hmax) iend = Hmax;
       slices = iend - i;
 
-      oclMemset(uDEV, 0, lVarSz);
+      if (clear) oclMemset(uDEV, 0, lVarSz);
+      start = cclock();
       oclGatherConservativeVars(idim, i, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, uoldDEV, uDEV);
+      end = cclock();
+      functim[TIM_GATCON] += ccelaps(start, end);
       if (H.prt) {fprintf(fic, "ConservativeVars %ld %ld %ld %ld %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
       PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
 
       // Convert to primitive variables
+      start = cclock();
       oclConstoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hnxystep, uDEV, qDEV, eDEV);
+      end = cclock();
+      functim[TIM_CONPRI] += ccelaps(start, end);
       if (H.prt) { GETARR (eDEV, Hw->e); }
       if (H.prt) { GETARRV(qDEV, Hvw->q); }
       PRINTARRAY(fic, Hw->e, Hdimsize, "e", H);
       PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
+      start = cclock();
       oclEquationOfState(offsetIP, offsetID, 0, Hdimsize, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
+      end = cclock();
+      functim[TIM_EOS] += ccelaps(start, end);
       if (H.prt) { GETARR (cDEV, Hw->c); }
       PRINTARRAY(fic, Hw->c, Hdimsize, "c", H);
       if (H.prt) { GETARRV (qDEV, Hvw->q); }
       PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
-      oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
+      if (clear) oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
       // Characteristic tracing
       if (H.iorder != 1) {
-	oclMemset(dqDEV, 0, H.arVarSz);
+	if (clear) oclMemset(dqDEV, 0, H.arVarSz);
+	start = cclock();
         oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, qDEV, dqDEV);
+	end = cclock();
+	functim[TIM_SLOPE] += ccelaps(start, end);
 	if (H.prt) { GETARRV(dqDEV, Hvw->dq); }
 	PRINTARRAYV2(fic, Hvw->dq, Hdimsize, "dq", H);
       }
+      start = cclock();
       oclTrace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, qDEV, dqDEV, cDEV, qxmDEV, qxpDEV);
+      end = cclock();
+      functim[TIM_TRACE] += ccelaps(start, end);
       if (H.prt) { GETARRV(qxmDEV, Hvw->qxm); }
       if (H.prt) { GETARRV(qxpDEV, Hvw->qxp); }
       PRINTARRAYV2(fic, Hvw->qxm, Hdimsize, "qxm", H);
       PRINTARRAYV2(fic, Hvw->qxp, Hdimsize, "qxp", H);
+      start = cclock();
       oclQleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
+      end = cclock();
+      functim[TIM_QLEFTR] += ccelaps(start, end);
       if (H.prt) { GETARRV(qleftDEV, Hvw->qleft); }
       if (H.prt) { GETARRV(qrightDEV, Hvw->qright); }
       PRINTARRAYV2(fic, Hvw->qleft, Hdimsize, "qleft", H);
       PRINTARRAYV2(fic, Hvw->qright, Hdimsize, "qright", H);
 
       // Solve Riemann problem at interfaces
+      start = cclock();
       oclRiemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep,
 		 qleftDEV, qrightDEV, qgdnvDEV,sgnmDEV);
+      end = cclock();
+      functim[TIM_RIEMAN] += ccelaps(start, end);
       if (H.prt) { GETARRV(qgdnvDEV, Hvw->qgdnv); }
       PRINTARRAYV2(fic, Hvw->qgdnv, Hdimsize, "qgdnv", H);
       // Compute fluxes
-      oclMemset(fluxDEV, 0, H.arVarSz);
+      if (clear) oclMemset(fluxDEV, 0, H.arVarSz);
+      start = cclock();
       oclCmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hnxystep, qgdnvDEV, fluxDEV);
+      end = cclock();
+      functim[TIM_CMPFLX] += ccelaps(start, end);
       if (H.prt) { GETARRV(fluxDEV, Hvw->flux); }
       PRINTARRAYV2(fic, Hvw->flux, Hdimsize, "flux", H);
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
@@ -282,8 +312,11 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       // 	GETUOLD; PRINTUOLD(fic, H, Hv);
       // }
       if (H.prt) fprintf(fic, "dxdt=%lg\n", dtdx);
+      start = cclock();
       oclUpdateConservativeVars(idim, i, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, 
 				uoldDEV, uDEV, fluxDEV);
+      end = cclock();
+      functim[TIM_UPDCON] += ccelaps(start, end);
       if (H.prt) {
 	GETUOLD; PRINTUOLD(fic, H, Hv);
       }

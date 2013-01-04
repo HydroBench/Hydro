@@ -175,5 +175,23 @@ void process_args(long argc, char **argv, hydroparam_t * H);
 #define IHU(i,j,v)   ( (i) + Hnxt  * (j) + Hnxt  * Hnyt     * (v) )
 
 
+typedef enum {
+  TIM_GATCON,
+  TIM_CONPRI,
+  TIM_EOS,
+  TIM_SLOPE,
+  TIM_TRACE,
+  TIM_QLEFTR,
+  TIM_RIEMAN,
+  TIM_CMPFLX,
+  TIM_UPDCON,
+  TIM_COMPDT,
+  TIM_MAKBOU,
+  TIM_ALLRED,
+  TIM_END
+} Timers_t;
+
+extern double functim[TIM_END];
+
 #endif // PARAMETRES_H_INCLUDED
 //EOF

@@ -50,9 +50,15 @@ knowledge of the CeCILL license and that you accept its terms.
 #define MIN(x, y) ((x) < (y)? (x): (y))
 #endif /*  */
 
+#define NUMA_ALLOC 1
+
 #ifndef Free
 // Make sure that the pointer is unusable afterwards.
+#if NUMA_ALLOC == 1
+#define Free(x) do { if ((x)) { numa_free((x)); }; (x) = NULL; } while (0)
+#else
 #define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
+#endif
 #endif /*  */
 double **allocate(int imin, int imax, int nvar);
 double *DMalloc(size_t n);

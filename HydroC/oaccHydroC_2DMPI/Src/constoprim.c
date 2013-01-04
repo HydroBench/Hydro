@@ -42,10 +42,17 @@ constoprim (const int n,
 {
   int ijmin=0, ijmax=n;
   double eken;
-  #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
   for (int s = 0; s < slices; s++)
     {
-      #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int i = ijmin; i < ijmax; i++)
 	    {
 	      double qid = MAX (u[IDX (ID, s, i)], Hsmallr);
@@ -72,10 +79,17 @@ constoprim (const int n,
     #pragma acc kernels present(u[0:Hnvar*Hstep*Hnxyt]) present(q[0:Hnvar*Hstep*Hnxyt])
     {
       int ijmin=0, ijmax=n;
-      #pragma acc loop independent
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*IN,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int IN = IP + 1; IN < Hnvar; IN++)
 	    {
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++)
 	      {
 	        for (int i = ijmin; i < ijmax; i++)
