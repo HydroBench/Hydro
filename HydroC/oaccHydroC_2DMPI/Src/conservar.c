@@ -104,7 +104,7 @@ gatherConservativeVars (const int idim,
     {
       // Gather conservative variables
 #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
-
+      {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s,j)
 #endif /* GRIDIFY */
@@ -124,10 +124,11 @@ gatherConservativeVars (const int idim,
 	      u[IDX (IP, s, j)] = uold[IHU (rowcol + s, j, IP)];
 	    }
 	}
-  
+      }
   if (Hnvar > IP)
 	{
     #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
+	  {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s*ivar,j)
 #endif /* GRIDIFY */
@@ -146,7 +147,8 @@ gatherConservativeVars (const int idim,
 	       u[IDX (ivar, s, j)] = uold[IHU (rowcol + s, j, ivar)];
 	      }
 	    }
-    }
+	  }
+	  }
 	}
     }
 }
@@ -183,7 +185,7 @@ updateConservativeVars (const int idim,
 
       // Update conservative variables
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
-
+      {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s*ivar,i)
 #endif /* GRIDIFY */
@@ -209,9 +211,10 @@ updateConservativeVars (const int idim,
 		    }
 	    }
 	  }
+      }
     if (Hnvar > IP){
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
-
+      {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s*ivar,i)
 #endif /* GRIDIFY */
@@ -234,10 +237,12 @@ updateConservativeVars (const int idim,
 		      }
 		    }
 	    }
-	  }
+      }
+    }
   }else{
       // Update conservative variables
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+    {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s,j)
 #endif /* GRIDIFY */
@@ -270,10 +275,11 @@ updateConservativeVars (const int idim,
         CFLOPS (3);
 	    }
 	  }
-
+    }
     if (Hnvar > IP){
     
       #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+      {
 #ifdef GRIDIFY
 #pragma hmppcg gridify(s*ivar,j)
 #endif /* GRIDIFY */
@@ -296,6 +302,7 @@ updateConservativeVars (const int idim,
 	        }
 	      }
 	    }
+      }
     }
   }
 }
