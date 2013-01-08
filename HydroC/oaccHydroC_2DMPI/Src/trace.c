@@ -71,21 +71,36 @@ trace (const double dtdx,
 
   #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], dq[0:Hnvar*Hstep*Hnxyt], c[0:Hstep*Hnxyt]) present(qxm[0:Hnvar*Hstep*Hnxyt], qxp[0:Hnvar*Hstep*Hnxyt]) 
   {
+/*    double cc, csq,r, u, v, p;
+    double dr, du, dv, dp;
+    double alpham, alphap, alpha0r, alpha0v;
+    double spminus, spplus, spzero;
+    double apright, amright, azrright, azv1right;
+    double apleft, amleft, azrleft, azv1left;
+*/
+    int ijmin=0, ijmax=n;
+
+
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
+    for (int s = 0; s < slices; s++)
+    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
+      for (int i = ijmin + 1; i < ijmax - 1; i++)
+	    {
     double cc, csq,r, u, v, p;
     double dr, du, dv, dp;
     double alpham, alphap, alpha0r, alpha0v;
     double spminus, spplus, spzero;
     double apright, amright, azrright, azv1right;
     double apleft, amleft, azrleft, azv1left;
-    int ijmin=0, ijmax=n;
 
-
-    #pragma acc loop independent
-    for (int s = 0; s < slices; s++)
-    {
-      #pragma acc loop independent private(  r, u, v, p, dr, du, dv, dp, alpham, alphap, alpha0r, alpha0v, spminus, spplus, spzero, apright, amright, azrright, azv1right, apleft, amleft, azrleft, azv1left, cc ,csq)
-      for (int i = ijmin + 1; i < ijmax - 1; i++)
-	    {
         cc = c[IDXE (s, i)];
         csq = Square (cc);
         r = q[IDX (ID, s, i)];
@@ -159,17 +174,26 @@ trace (const double dtdx,
   {
     #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], dq[0:Hnvar*Hstep*Hnxyt]) present(qxp[0:Hnvar*Hstep*Hnxyt], qxm[0:Hnvar*Hstep*Hnxyt])
     {
-      double  u, a, acmpleft;
-      double  da, acmpright, spzero;
+///      double  u, a, acmpleft;
+///      double  da, acmpright, spzero;
       int ijmin=0, ijmax=n;
-      #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*IN,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int IN = IP + 1; IN < Hnvar; IN++)
 	    {
-        #pragma acc loop independent private (u,a,da,spzero,acmpright,acmpleft)
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++)
 	      {
 	        for (int i = ijmin + 1; i < ijmax - 1; i++)
 		      {
+double  u, a, acmpleft;
+double  da, acmpright, spzero;
 		        u = q[IDX (IU, s, i)];
 		        a = q[IDX (IN, s, i)];
 		        da = dq[IDX (IN, s, i)];

@@ -108,37 +108,23 @@ courantOnXY(double *cournox,
 	    ) 
 {
 #ifdef WOMP
-  int s;
+  int s, i;
   // double maxValC = zero;
+  double tmp1 = *cournox, tmp2 = *cournoy;
 
-#pragma omp parallel for shared(tmpm1, tmpm2) private(s)
+#pragma omp parallel for shared(tmpm1, tmpm2) private(s,i) reduction(max:tmp1) reduction(max:tmp2)
   for (s = 0; s < slices; s++) {
-    int i;
-    tmpm1[s] = *cournox;
-    tmpm2[s] = *cournoy;
     for (i = 0; i < Hnx; i++) {
-      double tmp1, tmp2;
-      tmp1 = c[s][i] + DABS(q[IU][s][i]);
-      tmp2 = c[s][i] + DABS(q[IV][s][i]);
-      tmpm1[s] = MAX(tmp1, tmpm1[s]);
-      tmpm2[s] = MAX(tmp2, tmpm2[s]);
+      tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
+      tmp2 = MAX(tmp2, c[s][i] + DABS(q[IV][s][i]));
     }
   }
+  *cournox = tmp1;
+  *cournoy = tmp2;
   { 
     int nops = (slices) * Hnx;
     FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
   }
-
-  // #pragma simd
-  for (s = 0; s < slices; s++) {
-    *cournox = MAX(*cournox, tmpm1[s]);
-    *cournoy = MAX(*cournoy, tmpm2[s]);
-  }
-  { 
-    int nops = (slices) * Hnx;
-    FLOPS(0, 0 * nops, 2 * nops, 0 * nops);
-  }
-
 #else
   int i, s;
   double tmp1, tmp2;

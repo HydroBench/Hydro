@@ -38,19 +38,30 @@ slope (const int n,
   #pragma acc kernels present(q[0: Hnvar * Hstep * Hnxyt], dq[0:Hnvar * Hstep * Hnxyt])
   {
 
-    double dlft, drgt, dcen, dsgn, slop, dlim;
+///    double dlft, drgt, dcen, dsgn, slop, dlim;
     int  ijmin, ijmax;
     ijmin = 0;
     ijmax = n;
     //#pragma hmppcg unroll i:4
-    #pragma acc  loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*nbv,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int nbv = 0; nbv < Hnvar; nbv++)
     {
-      #pragma acc loop independent private (dlft, drgt, dcen, dsgn, slop, dlim)
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
       {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
         for (int i = ijmin + 1; i < ijmax - 1; i++)
         {
+double dlft, drgt, dcen, dsgn, slop, dlim;
             dlft = Hslope_type * (q[IDX (nbv, s, i)]      - q[IDX (nbv, s, i - 1)]);
             drgt = Hslope_type * (q[IDX (nbv, s, i + 1)]  - q[IDX (nbv, s, i)]);
             dcen = half * (dlft + drgt) / Hslope_type;

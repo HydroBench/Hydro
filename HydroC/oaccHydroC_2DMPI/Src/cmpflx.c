@@ -45,10 +45,17 @@ cmpflx (const int narray,
   nface = narray;
   entho = one / (Hgamma - one);
 
-  #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
   for (int s = 0; s < slices; s++)
     {
-      #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int i = 0; i < nface; i++)
 	      {
 	        double qgdnvID = qgdnv[IDX (ID, s, i)];
@@ -84,10 +91,17 @@ cmpflx (const int narray,
       int nface;
       nface = narray;
 
-      #pragma acc loop independent
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*IN,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
 	    {
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int IN = IP + 1; IN < Hnvar; IN++)
 	      {
 	        for (int i = 0; i < nface; i++)

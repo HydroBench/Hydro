@@ -46,12 +46,22 @@ qleftright (const int idim,
   #pragma acc kernels present(qxm[0:Hnvar*Hstep*Hnxyt], qxp[0:Hnvar*Hstep*Hnxyt]) present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) 
   {
 
-    #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s*nvar,i)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int nvar = 0; nvar < Hnvar; nvar++)
     {
-      #pragma acc loop independent
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
 	    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int i = 0; i < bmax; i++)
         {
           qleft[IDX (nvar, s, i)] = qxm[IDX (nvar, s, i + 1)];

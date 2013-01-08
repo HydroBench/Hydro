@@ -41,10 +41,17 @@ equation_of_state (const int imin,
   {
     double smallp = Square (Hsmallc) / Hgamma;
     CFLOPS (1);
-    #pragma acc loop independent 
+#ifdef GRIDIFY
+#pragma hmppcg gridify(s,k)
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int s = 0; s < slices; s++)
     {
-      #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int k = imin; k < imax; k++)
 	    {
 	      double rhok = q[IDX (ID, s, k)];
