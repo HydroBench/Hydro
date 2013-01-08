@@ -68,7 +68,7 @@ ComputeQEforRow(const int j,
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#pragma omp parallel for shared(q, e) private(s, i), collapse(2)
+#pragma omp parallel for shared(q, e) private(s, i) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (i = 0; i < Hnx; i++) {
       double eken;
@@ -163,18 +163,18 @@ void compute_deltat_init_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwor
   Hvw->q = (double (*)) DMalloc(H.nvar * H.nxyt * H.nxystep);
   Hw->e = (double (*))  DMalloc(         H.nxyt * H.nxystep);
   Hw->c = (double (*))  DMalloc(         H.nxyt * H.nxystep);
-  Hw->tmpm1 = (double *) malloc(H.nxystep * sizeof(double));
-  Hw->tmpm2 = (double *) malloc(H.nxystep * sizeof(double));
+  Hw->tmpm1 = (double *) DMalloc(H.nxystep);
+  Hw->tmpm2 = (double *) DMalloc(H.nxystep);
 
 }
 
-void compute_deltat_clean_mem(hydrowork_t * Hw, hydrovarwork_t * Hvw)
+void compute_deltat_clean_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
-  Free(Hvw->q);
-  Free(Hw->e);
-  Free(Hw->c);
-  Free(Hw->tmpm1);
-  Free(Hw->tmpm2);
+  DFree(&Hvw->q, H.nvar * H.nxyt * H.nxystep);
+  DFree(&Hw->e, H.nxyt * H.nxystep);
+  DFree(&Hw->c, H.nxyt * H.nxystep);
+  DFree(&Hw->tmpm1, H.nxystep);
+  DFree(&Hw->tmpm2, H.nxystep);
 }
 
 void
