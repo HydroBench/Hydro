@@ -71,7 +71,7 @@ int sizeLabel(double *tim, const int N) {
   // if (maxi < 100) return 8;
   // if (maxi < 1000) return 9;
   // if (maxi < 10000) return 10;
-  return 10;
+  return 9;
 }
 void percentTimings(double *tim, const int N)
 {
@@ -288,8 +288,8 @@ main(int argc, char **argv) {
   }
 
   // Deallocate work spaces
-  deallocate_work_space(H, &Hw_godunov, &Hvw_godunov);
-  compute_deltat_clean_mem(&Hw_deltat, &Hvw_deltat);
+  deallocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
+  compute_deltat_clean_mem(H, &Hw_deltat, &Hvw_deltat);
 
   hydro_finish(H, &Hv);
   end_time = dcclock();

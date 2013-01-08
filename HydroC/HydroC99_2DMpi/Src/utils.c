@@ -59,7 +59,34 @@ allocate(int imin, int imax, int nvar) {
   return r;
 }
 
-// #define MEMSET 1
+#ifndef __MIC__
+#define NUMA_ALLOC 0
+#endif
+
+#ifdef __MIC__
+#define MEMSET 1
+#else
+#define MEMSET 0
+#endif
+
+void DFree(double ** adr, size_t n)
+{
+#if NUMA_ALLOC == 1
+  numa_free(*adr, sizeof(double) * (n + MallocGuard));
+#else
+  free(*adr); 
+#endif
+*adr = NULL;
+}
+void IFree(int ** adr, size_t n)
+{
+#if NUMA_ALLOC == 1
+  numa_free(*adr, sizeof(int) * (n + MallocGuard));
+#else
+  free(*adr); 
+#endif
+*adr = NULL;
+}
 
 double *
 DMalloc(size_t n) {
@@ -76,7 +103,7 @@ DMalloc(size_t n) {
 #else
 #pragma omp parallel for schedule(auto) private(i)
   for (i = 0; i < n; i++)
-    r[i] = 1.0;
+    r[i] = 0.0;
 #endif
   return r;
 }
@@ -96,7 +123,7 @@ IMalloc(size_t n) {
 #else
 #pragma omp parallel for schedule(auto) private(i) 
   for (i = 0; i < n; i++)
-    r[i] = 1;
+    r[i] = 0;
 #endif
   return r;
 }

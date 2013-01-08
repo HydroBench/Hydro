@@ -142,7 +142,7 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
 
 void
 hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
-  Free(Hv->uold);
+  DFree(&Hv->uold, H.nvar * H.nxt * H.nyt);
 }                               // hydro_finish
 
 void
@@ -163,6 +163,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   Hvw->qright = DMalloc(domainVar);
   Hvw->qgdnv  = DMalloc(domainVar);
   Hvw->flux   = DMalloc(domainVar);
+  //
   Hw->e       = DMalloc(domain);
   Hw->c       = DMalloc(domain);
 
@@ -178,6 +179,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   Hw->pr    = DMalloc(domain);
   Hw->cr    = DMalloc(domain);
   Hw->ro    = DMalloc(domain);
+
   Hw->goon  = IMalloc(domain);
 
   //   Hw->uo = DMalloc(ngrid);
@@ -201,36 +203,43 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 }                               // allocate_work_space
 
 void
-deallocate_work_space(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
+deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
+  int domain = ngrid * H.nxystep;
+  int domainVar = domain * H.nvar;
+  int domainD = domain * sizeof(double);
+  int domainI = domain * sizeof(int);
+  int domainVarD = domainVar * sizeof(double);
+
   WHERE("deallocate_work_space");
 
   //
-  Free(Hw->e);
-  Free(Hw->c);
+  DFree(&Hvw->u, domainVar);
+  DFree(&Hvw->q, domainVar);
+  DFree(&Hvw->dq, domainVar);
+  DFree(&Hvw->qxm, domainVar);
+  DFree(&Hvw->qxp, domainVar);
+  DFree(&Hvw->qleft, domainVar);
+  DFree(&Hvw->qright, domainVar);
+  DFree(&Hvw->qgdnv, domainVar);
+  DFree(&Hvw->flux, domainVar);
   //
-  Free(Hvw->u);
-  Free(Hvw->q);
-  Free(Hvw->dq);
-  Free(Hvw->qxm);
-  Free(Hvw->qxp);
-  Free(Hvw->qleft);
-  Free(Hvw->qright);
-  Free(Hvw->qgdnv);
-  Free(Hvw->flux);
-  Free(Hw->sgnm);
+  DFree(&Hw->e, domain);
+  DFree(&Hw->c, domain);
 
-  //
-  Free(Hw->pstar);
-  Free(Hw->rl);
-  Free(Hw->ul);
-  Free(Hw->pl);
-  Free(Hw->cl);
-  Free(Hw->rr);
-  Free(Hw->ur);
-  Free(Hw->pr);
-  Free(Hw->cr);
-  Free(Hw->ro);
-  Free(Hw->goon);
+  IFree(&Hw->sgnm, domainVar);
+
+  DFree(&Hw->pstar, domain);
+  DFree(&Hw->rl, domain);
+  DFree(&Hw->ul, domain);
+  DFree(&Hw->pl, domain);
+  DFree(&Hw->cl, domain);
+  DFree(&Hw->rr, domain);
+  DFree(&Hw->ur, domain);
+  DFree(&Hw->pr, domain);
+  DFree(&Hw->cr, domain);
+  DFree(&Hw->ro, domain);
+
+  IFree(&Hw->goon, domain);
   //   Free(Hw->uo);
   //   Free(Hw->po);
   //   Free(Hw->co);

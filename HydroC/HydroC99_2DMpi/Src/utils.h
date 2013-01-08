@@ -50,19 +50,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #define MIN(x, y) ((x) < (y)? (x): (y))
 #endif /*  */
 
-#define NUMA_ALLOC 1
-
-#ifndef Free
-// Make sure that the pointer is unusable afterwards.
-#if NUMA_ALLOC == 1
-#define Free(x) do { if ((x)) { numa_free((x)); }; (x) = NULL; } while (0)
-#else
-#define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
-#endif
-#endif /*  */
 double **allocate(int imin, int imax, int nvar);
 double *DMalloc(size_t n);
 int *IMalloc(size_t n);
+void  DFree(double ** adr, size_t n);
+void  IFree(int ** adr, size_t n);
 
 // 0 means perfect memory management from the code ;-)
 // static const int MallocGuard = 0;
@@ -104,5 +96,12 @@ void timeToString(char *buf, const double timeInS);
 #else /*  */
 #define RESTRICT __restrict
 #endif /*  */
+
+#ifdef __MIC__
+#define COLLAPSE 
+//  collapse(2)
+#else
+#define COLLAPSE 
+#endif
 
 #endif // UTILS_H_INCLUDED
