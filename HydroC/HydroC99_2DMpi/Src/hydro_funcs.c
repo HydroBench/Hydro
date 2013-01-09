@@ -43,6 +43,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "hydro_utils.h"
 #include "hydro_funcs.h"
+
+#include "hydro_numa.h"
+
 void
 hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
   int i, j;
@@ -155,6 +158,10 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 
   WHERE("allocate_work_space");
   Hvw->u      = DMalloc(domainVar);
+  /*
+    force_move_pages(Hvw->u, domainVar, sizeof(double),
+    HYDRO_NUMA_SIZED_BLOCK_RR, 1024*1024);
+  */
   Hvw->q      = DMalloc(domainVar);
   Hvw->dq     = DMalloc(domainVar);
   Hvw->qxm    = DMalloc(domainVar);
