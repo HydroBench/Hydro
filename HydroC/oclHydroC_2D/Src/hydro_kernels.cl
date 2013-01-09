@@ -188,9 +188,9 @@ __kernel void
 Loop1KcuCmpflx(__global double *qgdnv, __global double *flux, const long narray,
                const long Hnxyt, const double Hgamma, const int slices, const int Hnxystep) {
   double entho = 0, ekin = 0, etot = 0;
-  long s, i = get_global_id(0);
+  int s = get_global_id(1);
+  int i = get_global_id(0);
 
-  idx2d(&i, &s, Hnxyt);
   if (s >= slices)
     return;
   if (i >= narray)
@@ -237,24 +237,25 @@ LoopKQEforRow(const long j, __global double *uold, __global double *q, __global 
               const double Hsmallr,
               const long Hnxt, const long Hnyt, const long Hnxyt, const long n, const int slices, const int Hnxystep) {
   double eken;
-  long i, s;
-  idx2d(&i, &s, Hnxyt);
+  int i, s;
+  i = get_global_id(0);
+  s = get_global_id(1);
   if (s >= slices)
     return;
 
   if (i >= n)
     return;
 
-  long idxuID = IHV(i + ExtraLayer, j + s, ID, Hnxt, Hnyt);
-  long idxuIU = IHV(i + ExtraLayer, j + s, IU, Hnxt, Hnyt);
-  long idxuIV = IHV(i + ExtraLayer, j + s, IV, Hnxt, Hnyt);
-  long idxuIP = IHV(i + ExtraLayer, j + s, IP, Hnxt, Hnyt);
+  int idxuID = IHV(i + ExtraLayer, j + s, ID, Hnxt, Hnyt);
+  int idxuIU = IHV(i + ExtraLayer, j + s, IU, Hnxt, Hnyt);
+  int idxuIV = IHV(i + ExtraLayer, j + s, IV, Hnxt, Hnyt);
+  int idxuIP = IHV(i + ExtraLayer, j + s, IP, Hnxt, Hnyt);
 
-  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
-  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
-  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
-  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
-  size_t is = IHS(i, s, Hnxyt);
+  int idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  int idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  int idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  int idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
+  int is = IHS(i, s, Hnxyt);
 
   q[idxID] = Max(uold[idxuID], Hsmallr);
   q[idxIU] = uold[idxuIU] / q[idxID];
@@ -272,19 +273,21 @@ LoopKcourant(__global double *q,
              const long Hnxyt, const long n, 
 	     const int slices, const int Hnxystep) {
   double cournox, cournoy, courantl;
-  long i, s;
-  idx2d(&i, &s, Hnxyt);
+  int i, s;
+  // idx2d(&i, &s, Hnxyt);
+  i = get_global_id(0);
+  s = get_global_id(1);
   if (s >= slices)
     return;
 
   if (i >= n)
     return;
 
-  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
-  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
-  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
-  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
-  size_t is = IHS(i, s, Hnxyt);
+  int idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  int idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  int idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  int idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
+  int is = IHS(i, s, Hnxyt);
 
   cournox = cournoy = 0.;
 
@@ -301,8 +304,11 @@ Loop1KcuGather(__global double *uold,
                const long rowcol,
                const long Hnxt, const long Himin, const long Himax, const long Hnyt,
                const long Hnxyt, const int slices, const int Hnxystep) {
-  long i = get_global_id(0);
-  long s;
+  int i;
+  int s;
+
+  i = get_global_id(0);
+  // s = get_global_id(1);
 
   if (i < Himin)
     return;
@@ -348,8 +354,8 @@ Loop3KcuGather(__global double *uold,
                const long rowcol,
                const long Hnxt, const long Himin, const long Himax, const long Hnyt, const long Hnxyt, const long Hnvar,
                const int slices, const int Hnxystep) {
-  long i = get_global_id(0);
-  long ivar;
+  int i = get_global_id(0);
+  int ivar;
   int s;
 
   if (i < Himin)
@@ -392,8 +398,10 @@ Loop1KcuUpdate(const long rowcol, const double dtdx,
                __global double *u,
                __global double *flux, const long Himin, const long Himax, const long Hnxt, const long Hnyt,
                const long Hnxyt, const int slices, const int Hnxystep) {
-  long i, s;
-  idx2d(&i, &s, Hnxyt);
+  int i, s;
+  // idx2d(&i, &s, Hnxyt);
+  i = get_global_id(0);
+  s = get_global_id(1);
 
   if (s >= slices)
     return;
@@ -451,9 +459,11 @@ Loop3KcuUpdate(const long rowcol, const double dtdx,
                __global double *u,
                __global double *flux, const long Hjmin, const long Hjmax, const long Hnxt, const long Hnyt,
                const long Hnxyt, const int slices, const int Hnxystep) {
-  long ivar;
-  long s, j;
-  idx2d(&j, &s, Hnxyt);
+  int ivar;
+  int s, j;
+  // idx2d(&j, &s, Hnxyt);
+  j = get_global_id(0);
+  s = get_global_id(1);
   if (s >= slices)
     return;
 
@@ -507,13 +517,9 @@ Loop1KcuConstoprim(const long n,
                    __global double *u, __global double *q, __global double *e,
                    const long Hnxyt, const double Hsmallr, const int slices, const int Hnxystep) {
   double eken;
-  int idx = get_global_id(0);
-  long i, s;
-
-  s = idx / Hnxyt;
-  i = idx % Hnxyt;
-
-  idx2d(&i, &s, Hnxyt);
+  int i, s;
+  i = get_global_id(0);
+  s = get_global_id(1);
 
   if (s >= slices)
     return;
@@ -537,8 +543,8 @@ Loop1KcuConstoprim(const long n,
 __kernel void
 Loop2KcuConstoprim(const long n, __global double *u, __global double *q,
                    const long Hnxyt, const long Hnvar, const int slices, const int Hnxystep) {
-  long IN;
-  long i, idx = get_global_id(0);
+  int IN;
+  int i, idx = get_global_id(0);
   int s;
 
   s = idx / Hnxyt;
@@ -565,9 +571,10 @@ LoopEOS(__global double *q,
   double smallp;
   __global double *p = &q[offsetIP];
   __global double *rho = &q[offsetID];
-  long s, k;
+  int s, k;
+  k = get_global_id(0);
+  s = get_global_id(1);
 
-  idx2d(&k, &s, Hnxyt);
   if (s >= slices)
     return;
   if (k < imin)
@@ -620,9 +627,10 @@ Loop2KcuMakeBoundary(const int j, const int j0, const double sign, const long Hi
 __kernel void
 Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt, const int slices, const int Hstep,
                    __global double *qxm, __global double *qxp, __global double *qleft, __global double *qright) {
-  long nvar;
-  long i, s;
-  idx2d(&i, &s, Hnxyt);
+  int nvar;
+  int i, s;
+  i = get_global_id(0);
+  s = get_global_id(1);
   if (s >= slices)
     return;
 
@@ -641,10 +649,11 @@ LoopKcuSlope(__global double *q, __global double *dq,
              const double slope_type, const long ijmin, const long ijmax, const int slices, const int Hnxystep) {
   int n;
   double dlft, drgt, dcen, dsgn, slop, dlim;
-  long ihvwin, ihvwimn, ihvwipn;
+  int ihvwin, ihvwimn, ihvwipn;
 
-  long i, s;
-  idx2d(&i, &s, Hnxyt);
+  int i, s;
+  i = get_global_id(0);
+  s = get_global_id(1);
 
   if (s >= slices)
     return;
@@ -682,19 +691,17 @@ Loop1KcuTrace(__global double *q, __global double *dq, __global double *c,
   double spminus, spplus, spzero;
   double apright, amright, azrright, azv1right;
   double apleft, amleft, azrleft, azv1left;
-
-  long idx = get_global_id(0);
   int i, s;
 
-  s = idx / Hnxyt;
-  i = idx % Hnxyt;
-
+  // long idx = get_global_id(0);
+  // s = idx / Hnxyt;
+  // i = idx % Hnxyt;
+  i = get_global_id(0);
+  s = get_global_id(1);
   if (s >= slices)
     return;
 
-  if (i < imin)
-    return;
-  if (i >= imax)
+  if (i < imin || i >= imax)
     return;
 
   size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
@@ -834,7 +841,7 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
                 long Hnxyt, long Knarray, double Hsmallc,
                 double Hgamma, double Hsmallr, long Hniter_riemann, const int slices, const int HStep) {
   double smallp, gamma6, ql, qr, usr, usl, wwl, wwr, smallpp;
-  long iter;
+  int iter;
   double ulS = 0.0;
   double plS = 0.0;
   double clS = 0.0;
@@ -850,9 +857,9 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
   double Kwoi = 0.0;
   double Kdelpi = 0.0;
 
-  int s, i, j, idx = get_global_id(0);
-  s = idx / Hnxyt;
-  i = idx % Hnxyt;
+  int s, i, j;
+  i = get_global_id(0);
+  s = get_global_id(1);
 
   if (s >= slices)
     return;
@@ -885,7 +892,7 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
   Kpstari = Max(Kpstari, 0.0);
   double Kpoldi = Kpstari;
   // indi is a mask for the newton
-  long Kindi = 1;               // should we go on processing the cell 
+  int Kindi = 1;               // should we go on processing the cell 
 
   ulS = Kuli;
   plS = Kpli;
@@ -901,7 +908,7 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
   smallpp = Hsmallr * smallp;
   gamma6 = (Hgamma + one) / (two * Hgamma);
 
-  long indi = Kindi;
+  int indi = Kindi;
 
   for (iter = 0; iter < Hniter_riemann; iter++) {
     double precision = 1.e-6;

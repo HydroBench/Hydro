@@ -79,7 +79,8 @@ oclTrace(const double dtdx, const long n, const long Hscheme,
     project = zero;
   }
   OCLSETARG14(ker[Loop1KcuTrace], q, dq, c, qxm, qxp, dtdx, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
-  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuTrace], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
+  // oclLaunchKernel(ker[Loop1KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLSETARG14(ker[Loop2KcuTrace], q, dq, qxm, qxp, dtdx, Hnvar, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
     oclLaunchKernel(ker[Loop2KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);

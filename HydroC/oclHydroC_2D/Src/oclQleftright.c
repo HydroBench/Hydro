@@ -61,7 +61,7 @@ oclQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt,
     bmax = Hny + 1;
   }
   OCLSETARG09(ker[Loop1KcuQleftright], bmax, Hnvar, Hnxyt, slices, Hstep, qxm, qxp, qleft, qright);
-  oclLaunchKernel(ker[Loop1KcuQleftright], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuQleftright], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 // EOF

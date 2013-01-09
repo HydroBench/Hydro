@@ -70,7 +70,7 @@ oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
   double elapsk;
 
   OCLSETARG11(ker[LoopKQEforRow], j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx, slices, Hstep);
-  elapsk = oclLaunchKernel(ker[LoopKQEforRow], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  elapsk = oclLaunchKernel2D(ker[LoopKQEforRow], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
@@ -78,7 +78,7 @@ oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_me
                double Hsmallc, const int slices, const int Hstep) {
   double elapsk;
   OCLSETARG08(ker[LoopKcourant], q, courant, Hsmallc, c, Hnxyt, Hnx, slices, Hstep);
-  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  elapsk = oclLaunchKernel2D(ker[LoopKcourant], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 #define GETARRV(vdev, v) do { cl_event event;   cl_int status; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);

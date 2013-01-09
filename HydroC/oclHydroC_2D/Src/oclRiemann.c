@@ -59,7 +59,7 @@ oclRiemann(const long narray,
 
   OCLSETARG12(ker[Loop1KcuRiemann], qleft, qright, sgnm, qgdnv, Hnxyt, narray, Hsmallc, Hgamma, Hsmallr, Hniter_riemann,
               slices, Hstep);
-  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuRiemann], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 
   if (Hnvar > IP + 1) {
     OCLSETARG09(ker[Loop10KcuRiemann], qleft, qright, sgnm, qgdnv, narray, Hnvar, Hnxyt, slices, Hstep);

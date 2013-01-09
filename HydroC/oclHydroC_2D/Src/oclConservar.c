@@ -106,14 +106,14 @@ oclUpdateConservativeVars(const long idim,
 
   if (idim == 1) {
     OCLSETARG12(ker[Loop1KcuUpdate], rowcol, dtdx, uold, u, flux, Himin, Himax, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop1KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop1KcuUpdate], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG13(ker[Loop2KcuUpdate], rowcol, dtdx, uold, u, flux, Himin, Himax, Hnvar, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
       oclLaunchKernel(ker[Loop2KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
     }
   } else {
     OCLSETARG12(ker[Loop3KcuUpdate], rowcol, dtdx, uold, u, flux, Hjmin, Hjmax, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop3KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop3KcuUpdate], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG13(ker[Loop4KcuUpdate], rowcol, dtdx, uold, u, flux, Hjmin, Hjmax, Hnvar, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
       oclLaunchKernel(ker[Loop4KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);

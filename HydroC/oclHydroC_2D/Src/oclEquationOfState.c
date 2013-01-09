@@ -53,7 +53,7 @@ oclEquationOfState(long offsetIP, long offsetID, long imin, long imax,
 {
   WHERE("equation_of_state");
   OCLSETARG11(ker[LoopEOS], qDEV, eintDEV, cDEV, offsetIP, offsetID, imin, imax, Hsmallc, Hgamma, slices, Hnxyt);
-  oclLaunchKernel(ker[LoopEOS], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[LoopEOS], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }                               // equation_of_state
 
 

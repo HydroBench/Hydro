@@ -146,6 +146,7 @@ extern "C" {
   void oclSetArg(cl_kernel k, cl_uint narg, size_t l, const void *arg, const char * file, const int line);
   void oclSetArgLocal(cl_kernel k, cl_uint narg, size_t l, const char * file, const int line);
   double oclLaunchKernel(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, const char *fname, const int line);
+  double oclLaunchKernel2D(cl_kernel k, cl_command_queue q, size_t nbobjx, size_t nbobjy, int nbthread, const char *fname, const int line);
   void oclNbBlocks(cl_kernel k, cl_command_queue q, size_t nbobj, int nbthread, long *maxth, long *nbblocks);
 #ifdef __cplusplus
 };
