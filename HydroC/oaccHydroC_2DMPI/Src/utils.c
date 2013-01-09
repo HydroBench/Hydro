@@ -210,9 +210,10 @@ timeToString (char *buf, const double timeInS)
   float tenth = (float) (timeInS - hour * 3600 - minute * 60 - second);
   sprintf (ctenth, "%.3f", tenth);
   sprintf (buf, "%02d:%02d:%02d%s", hour, minute, second, &ctenth[1]);
-} double
+} 
 
-cclock (void)
+double
+Dcclock (void)
 {
   const double micro = 1.0e-06;	/* Conversion constant */
   static long start = 0L, startu;

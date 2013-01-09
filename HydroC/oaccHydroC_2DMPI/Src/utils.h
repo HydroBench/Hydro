@@ -34,7 +34,7 @@ void printarrayv (FILE * fic, double *a, int n, const char *nom,
 void printarrayv2 (FILE * fic, double *a, int n, const char *nom,
 		   const hydroparam_t H);
 void timeToString (char *buf, const double timeInS);
-double cclock (void);
+double Dcclock (void);
 
 #ifndef PRINTUOLD
 #ifndef HMPP

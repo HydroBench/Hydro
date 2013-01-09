@@ -17,6 +17,7 @@
 #include "hydro_godunov.h"
 #include "hydro_funcs.h"
 #include "utils.h"
+#include "cclock.h"
 #include "make_boundary.h"
 
 #include "riemann.h"
@@ -35,6 +36,7 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
 	       hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   // Local variables
+  struct timespec start, end;
   int j;
   double dtdx;
   int clear = 0;
@@ -82,7 +84,10 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
 	  PRINTUOLD (fic, H, Hv);
 	}
       // if (H.mype == 1) fprintf(fic, "Hydro makes boundary.\n");
+      start = cclock();
       make_boundary (idim, H, Hv);
+      end = cclock();
+      functim[TIM_MAKBOU] += ccelaps(start, end);
       if (H.prt)
 	{
 	  fprintf (fic, "MakeBoundary\n");
@@ -147,9 +152,12 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
 
 	  if (clear)
 	    Dmemset ((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
+	  start = cclock();
 	  gatherConservativeVars (idim, j, H.imin, H.imax, H.jmin, H.jmax,
 				  H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep,
 				  uold, u);
+	  end = cclock();
+	  functim[TIM_GATCON] += ccelaps(start, end);
 	  if (H.prt)
 	    {
 	      fprintf (fic, "ConservativeVars %d %d %d %d %d %d\n", H.nvar,
@@ -161,21 +169,30 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
 	    Dmemset ((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
 
 	  // Convert to primitive variables
+	  start = cclock();
 	  constoprim (Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hstep, u, q,
 		      e);
+	  end = cclock();
+	  functim[TIM_CONPRI] += ccelaps(start, end);
 	  PRINTARRAY (fic, e, Hdimsize, "e", H);
 	  PRINTARRAYV2 (fic, q, Hdimsize, "q", H);
 
+	  start = cclock();
 	  equation_of_state (0, Hdimsize, H.nxyt, H.nvar, H.smallc, H.gamma,
 			     slices, Hstep, e, q, c);
+	  end = cclock();
+	  functim[TIM_EOS] += ccelaps(start, end);
 	  PRINTARRAY (fic, c, Hdimsize, "c", H);
 	  PRINTARRAYV2 (fic, q, Hdimsize, "q", H);
 
 	  // Characteristic tracing
 	  if (H.iorder != 1)
 	    {
+	      start = cclock();
 	      slope (Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, q,
 		     dq);
+	      end = cclock();
+	      functim[TIM_SLOPE] += ccelaps(start, end);
 	      PRINTARRAYV2 (fic, dq, Hdimsize, "dq", H);
 	    }
 
@@ -192,29 +209,43 @@ hydro_godunov (int idimStart, double dt, const hydroparam_t H,
 	    Dmemset ((H.nxyt + 2) * H.nxystep * H.nvar, (double *) flux, 0);
 	  if (clear)
 	    Dmemset ((H.nxyt + 2) * H.nxystep * H.nvar, (double *) qgdnv, 0);
+	  start = cclock();
 	  trace (dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, q,
 		 dq, c, qxm, qxp);
+	  end = cclock();
+	  functim[TIM_TRACE] += ccelaps(start, end);
 	  PRINTARRAYV2 (fic, qxm, Hdimsize, "qxm", H);
 	  PRINTARRAYV2 (fic, qxp, Hdimsize, "qxp", H);
 
+	  start = cclock();
 	  qleftright (idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxm,
 		      qxp, qleft, qright);
+	  end = cclock();
+	  functim[TIM_QLEFTR] += ccelaps(start, end);
 	  PRINTARRAYV2 (fic, qleft, Hdimsize, "qleft", H);
 	  PRINTARRAYV2 (fic, qright, Hdimsize, "qright", H);
 
+	  start = cclock();
 	  riemann (Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann,
 		   H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv, sgnm);
+	  end = cclock();
+	  functim[TIM_RIEMAN] += ccelaps(start, end);
 	  PRINTARRAYV2 (fic, qgdnv, Hdimsize, "qgdnv", H);
 
+	  start = cclock();
 	  cmpflx (Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hstep, qgdnv,
 		  flux);
+	  end = cclock();
+	  functim[TIM_CMPFLX] += ccelaps(start, end);
 	  PRINTARRAYV2 (fic, flux, Hdimsize, "flux", H);
 	  PRINTARRAYV2 (fic, u, Hdimsize, "u", H);
 
+	  start = cclock();
 	  updateConservativeVars (idim, j, dtdx, H.imin, H.imax, H.jmin,
 				  H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt,
 				  slices, Hstep, uold, u, flux);
-
+	  end = cclock();
+	  functim[TIM_UPDCON] += ccelaps(start, end);
 
 	  PRINTUOLD (fic, H, Hv);
 	  }			// for j
