@@ -90,6 +90,9 @@ gatherConservativeVars (const int idim,
 #endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++)
 		    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 		      for (int i = Himin; i < Himax; i++)
 		      {
 		        u[IDX (ivar, s, i)] = uold[IHU (i, rowcol + s, ivar)];
