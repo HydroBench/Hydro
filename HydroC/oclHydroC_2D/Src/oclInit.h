@@ -39,7 +39,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #define OCLINIT_H
 #include <CL/cl.h>
 
-#define THREADSSZ 32
+#define THREADSSZ 2048
 
 // This enum list all the possible kernels that are created in one shot.
 
