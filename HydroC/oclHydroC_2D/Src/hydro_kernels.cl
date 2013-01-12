@@ -568,7 +568,7 @@ LoopEOS(__global double *q,
         __global double *c,
         const long offsetIP, const long offsetID, const long imin, const long imax,
         const double Hsmallc, const double Hgamma, const int slices, const int Hnxyt) {
-  double smallp;
+  double smallp, pis, rhois, eintis;
   __global double *p = &q[offsetIP];
   __global double *rho = &q[offsetID];
   int s, k;
@@ -584,9 +584,12 @@ LoopEOS(__global double *q,
 
   smallp = Square(Hsmallc) / Hgamma;
   int is = IHS(k, s, Hnxyt);
-  p[is] = (Hgamma - one) * rho[is] * eint[is];
-  p[is] = Max(p[is], (double) (rho[is] * smallp));
-  c[is] = Sqrt(Hgamma * p[is] / rho[is]);
+  rhois = rho[is];
+  eintis = eint[is];
+  pis = (Hgamma - one) * rhois * eintis;
+  pis = Max(pis, (double) (rhois * smallp));
+  c[is] = Sqrt(Hgamma * pis / rhois);
+  p[is] = pis;
 }
 
 __kernel void
@@ -631,16 +634,17 @@ Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt, const in
   int i, s;
   i = get_global_id(0);
   s = get_global_id(1);
+  nvar = get_global_id(2);
   if (s >= slices)
     return;
 
   if (i >= bmax)
     return;
 
-  for (nvar = 0; nvar < Hnvar; nvar++) {
+  //for (nvar = 0; nvar < Hnvar; nvar++) {
     qleft[IHVWS(i, s, nvar, Hnxyt, Hstep)] = qxm[IHVWS(i + 1, s, nvar, Hnxyt, Hstep)];
     qright[IHVWS(i, s, nvar, Hnxyt, Hstep)] = qxp[IHVWS(i + 2, s, nvar, Hnxyt, Hstep)];
-  }
+  //}
 }
 
 __kernel void
@@ -654,6 +658,7 @@ LoopKcuSlope(__global double *q, __global double *dq,
   int i, s;
   i = get_global_id(0);
   s = get_global_id(1);
+  n = get_global_id(2);
 
   if (s >= slices)
     return;
@@ -662,21 +667,23 @@ LoopKcuSlope(__global double *q, __global double *dq,
   if (i >= ijmax - 1)
     return;
 
-  for (n = 0; n < Hnvar; n++) {
-    ihvwin =  IHVWS(i,     s, n, Hnxyt, Hnxystep);
-    ihvwimn = IHVWS(i - 1, s, n, Hnxyt, Hnxystep);
-    ihvwipn = IHVWS(i + 1, s, n, Hnxyt, Hnxystep);
-    dlft = slope_type * (q[ihvwin] - q[ihvwimn]);
-    drgt = slope_type * (q[ihvwipn] - q[ihvwin]);
-    dcen = demi * (dlft + drgt) / slope_type;
-    dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;   // sign(one, dcen);
-    slop = (double) Min(Fabs(dlft), Fabs(drgt));
-    dlim = ((dlft * drgt) <= zero) ? zero : slop;
-    //         if ((dlft * drgt) <= zero) {
-    //             dlim = zero;
-    //         }
-    dq[ihvwin] = dsgn * (double) Min(dlim, Fabs(dcen));
-  }
+  if (n >= Hnvar) return;
+
+  // for (n = 0; n < Hnvar; n++) {
+  ihvwin =  IHVWS(i,     s, n, Hnxyt, Hnxystep);
+  ihvwimn = IHVWS(i - 1, s, n, Hnxyt, Hnxystep);
+  ihvwipn = IHVWS(i + 1, s, n, Hnxyt, Hnxystep);
+  dlft = slope_type * (q[ihvwin] - q[ihvwimn]);
+  drgt = slope_type * (q[ihvwipn] - q[ihvwin]);
+  dcen = demi * (dlft + drgt) / slope_type;
+  dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;   // sign(one, dcen);
+  slop = (double) Min(Fabs(dlft), Fabs(drgt));
+  dlim = ((dlft * drgt) <= zero) ? zero : slop;
+  //         if ((dlft * drgt) <= zero) {
+  //             dlim = zero;
+  //         }
+  dq[ihvwin] = dsgn * (double) Min(dlim, Fabs(dcen));
+  // }
 }
 
 __kernel void
