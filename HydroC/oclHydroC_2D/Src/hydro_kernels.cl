@@ -93,8 +93,9 @@ Square(const double x) {
 #define Min fmin
 #define Fabs fabs
 #define Sqrt sqrt
-#else
+#endif
 
+#if CPUVERSION == 1
 inline double
 Max(const double a, const double b) {
   return (a > b) ? a : b;
@@ -109,7 +110,9 @@ inline double
 Fabs(const double a) {
   return (a > 0) ? a : -a;
 }
+#endif
 
+#if CPUVERSION == 1
 inline double
 Sqrt(const double a) {
   double v = 0;
@@ -598,9 +601,12 @@ Loop1KcuMakeBoundary(const int i, const int i0, const double sign, const long Hj
   long j, ivar;
   double vsign = sign;
 
-  idx2d(&j, &ivar, n);
-  if (ivar >= Hnvar)
-    return;
+  j = get_global_id(0);
+  ivar = get_global_id(1);
+  // idx2d(&j, &ivar, n);
+
+  if (j >= n) return;
+  if (ivar >= Hnvar) return;
 
   if (ivar == IU)
     vsign = -1.0;
@@ -615,7 +621,10 @@ Loop2KcuMakeBoundary(const int j, const int j0, const double sign, const long Hi
   long i, ivar;
   double vsign = sign;
 
-  idx2d(&i, &ivar, n);
+  i = get_global_id(0);
+  ivar = get_global_id(1);
+  // idx2d(&i, &ivar, n);
+  if (i >= n) return;
   if (ivar >= Hnvar)
     return;
 
@@ -635,6 +644,7 @@ Loop1KcuQleftright(const long bmax, const long Hnvar, const long Hnxyt, const in
   i = get_global_id(0);
   s = get_global_id(1);
   nvar = get_global_id(2);
+
   if (s >= slices)
     return;
 
@@ -711,11 +721,11 @@ Loop1KcuTrace(__global double *q, __global double *dq, __global double *c,
   if (i < imin || i >= imax)
     return;
 
-  size_t idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
-  size_t idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
-  size_t idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
-  size_t idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
-  size_t is = IHS(i, s, Hnxyt);
+  int idxIU = IHVWS(i, s, IU, Hnxyt, Hnxystep);
+  int idxIV = IHVWS(i, s, IV, Hnxyt, Hnxystep);
+  int idxIP = IHVWS(i, s, IP, Hnxyt, Hnxystep);
+  int idxID = IHVWS(i, s, ID, Hnxyt, Hnxystep);
+  int is = IHS(i, s, Hnxyt);
 
   cc = c[is];
   csq = Square(cc);
@@ -868,8 +878,8 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
   i = get_global_id(0);
   s = get_global_id(1);
 
-  if (s >= slices)
-    return;
+  // if (s >= slices)
+  //   return;
 
   if (i >= Knarray)
     return;
@@ -946,6 +956,7 @@ Loop1KcuRiemann(__global double *qleft, __global double *qright,
 
   double Kustari = demi * (Kuli + (Kpli - Kpstari) / Kwli + Kuri - (Kpri - Kpstari) / Kwri);
   sgnm[is] = (Kustari > 0) ? 1 : -1;
+
   if (sgnm[is] == 1) {
     Kroi = Krli;
     Kuoi = Kuli;

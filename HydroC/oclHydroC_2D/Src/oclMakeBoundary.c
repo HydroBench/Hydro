@@ -228,7 +228,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           i0 = H.nx + i;
         }
         OCLSETARG09(ker[Loop1KcuMakeBoundary], i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
+        oclLaunchKernel2D(ker[Loop1KcuMakeBoundary], cqueue, n, H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
     // Right boundary
@@ -246,7 +246,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           i0 = i - H.nx;
         }
         OCLSETARG09(ker[Loop1KcuMakeBoundary], i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop1KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
+        oclLaunchKernel2D(ker[Loop1KcuMakeBoundary], cqueue, n, H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
   } else {
@@ -335,7 +335,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           j0 = H.ny + j;
         }
         OCLSETARG09(ker[Loop2KcuMakeBoundary], j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
+        oclLaunchKernel2D(ker[Loop2KcuMakeBoundary], cqueue, n, H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
     // Upper boundary
@@ -354,7 +354,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
           j0 = j - H.ny;
         }
         OCLSETARG09(ker[Loop2KcuMakeBoundary], j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
-        oclLaunchKernel(ker[Loop2KcuMakeBoundary], cqueue, n * H.nvar, THREADSSZ, __FILE__, __LINE__);
+        oclLaunchKernel2D(ker[Loop2KcuMakeBoundary], cqueue, n, H.nvar, THREADSSZ, __FILE__, __LINE__);
       }
     }
   }
