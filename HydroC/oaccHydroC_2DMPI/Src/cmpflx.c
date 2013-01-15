@@ -46,7 +46,11 @@ cmpflx (const int narray,
   entho = one / (Hgamma - one);
 
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 128x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -92,7 +96,11 @@ cmpflx (const int narray,
       nface = narray;
 
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s*IN,i)
+#else
+#pragma hmppcg gridify(s*IN,i), blocksize 128x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
