@@ -108,7 +108,7 @@ static void ClearArrayDble(cl_mem array, size_t lgrBytes)
   long ldble = lgrBytes / sizeof(double);
   assert(array != NULL);
   OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgrBytes, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel(ker[KernelMemset], cqueue, ldble, THREADSSZ, __FILE__, __LINE__);
 }
 
 cl_mem  AllocClear(size_t lgrBytes) {
