@@ -48,9 +48,9 @@ qleftright (const int idim,
 
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*nvar,i)
+#pragma hmppcg gridify(nvar*s,i)
 #else
-#pragma hmppcg gridify(s*nvar,i), blocksize 512x1
+#pragma hmppcg gridify(nvar*s,i), blocksize 512x1
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY

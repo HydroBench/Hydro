@@ -84,9 +84,9 @@ constoprim (const int n,
       const int ijmin=0, ijmax=n;
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*IN,i)
+#pragma hmppcg gridify(IN*s,i)
 #else
-#pragma hmppcg gridify(s*IN,i), blocksize 256x2
+#pragma hmppcg gridify(IN*s,i), blocksize 256x2
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY

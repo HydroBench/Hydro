@@ -83,9 +83,9 @@ gatherConservativeVars (const int idim,
 	  {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*ivar,i)
+#pragma hmppcg gridify(ivar*s,i)
 #else
-#pragma hmppcg gridify(s*ivar,i), blocksize 32x16
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
@@ -146,9 +146,9 @@ gatherConservativeVars (const int idim,
 	  {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*ivar,j)
+#pragma hmppcg gridify(ivar*s,j)
 #else
-#pragma hmppcg gridify(s*ivar,j), blocksize 32x16
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
@@ -207,9 +207,9 @@ updateConservativeVars (const int idim,
       {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*ivar,i)
+#pragma hmppcg gridify(ivar*s,i)
 #else
-#pragma hmppcg gridify(s*ivar,i), blocksize 32x16
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
@@ -240,9 +240,9 @@ updateConservativeVars (const int idim,
       {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*ivar,i)
+#pragma hmppcg gridify(ivar*s,i)
 #else
-#pragma hmppcg gridify(s*ivar,i), blocksize 32x16
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
@@ -313,9 +313,9 @@ updateConservativeVars (const int idim,
       {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*ivar,j)
+#pragma hmppcg gridify(ivar*s,j)
 #else
-#pragma hmppcg gridify(s*ivar,j), blocksize 32x16
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY

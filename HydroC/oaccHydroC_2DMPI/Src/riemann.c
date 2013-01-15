@@ -279,9 +279,9 @@ riemann (const int narray,
     {
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*invar,i)
+#pragma hmppcg gridify(invar*s,i)
 #else
-#pragma hmppcg gridify(s*invar,i), blocksize 64x8
+#pragma hmppcg gridify(invar*s,i), blocksize 64x8
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY

@@ -45,9 +45,9 @@ slope (const int n,
     //#pragma hmppcg unroll i:4
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s*nbv,i)
+#pragma hmppcg gridify(nbv*s,i)
 #else
-#pragma hmppcg gridify(s*nbv,i), blocksize 512x1
+#pragma hmppcg gridify(nbv*s,i), blocksize 512x1
 #endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
