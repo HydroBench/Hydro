@@ -60,7 +60,7 @@ oclReduceMax(cl_mem array, long nb) {
 
   // fprintf(stdout, "Reduc: %d %d %ld\n", wrksiz, wrkgrp, nb);
   wrksiz = wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble], oclGetDeviceOfCQueue(cqueue));
-  wrksiz = wrkgrp = 16;
+  // wrksiz = wrkgrp = 16;
 
   lgrlocal = wrkgrp * sizeof(double);
 
