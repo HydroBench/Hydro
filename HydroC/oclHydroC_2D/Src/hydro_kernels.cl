@@ -35,17 +35,11 @@
 
 */
 
-#ifdef AMDATI
+#if defined(cl_khr_fp64)    // Khronos extension available?
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#elif defined(cl_amd_fp64)  // AMD extension available?
 #pragma OPENCL EXTENSION cl_amd_fp64 : enable
 #endif
-#ifdef NVIDIA
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#endif
-
-#ifdef INTEL
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#endif
-
 
 #include "oclparam.h"
 
@@ -76,17 +70,21 @@ Square(const double x) {
  * running version of the code in double precision.
  */
 
-#ifdef AMDATI
-#define CPUVERSION 1
-#endif
-
-#ifdef NVIDIA
 #define CPUVERSION 0
-#endif
+// Well AMD hardware has made progress: the following code is useless
+// (and kept just in case).
 
-#ifdef INTEL
-#define CPUVERSION 0
-#endif
+// #ifdef AMDATI
+// #define CPUVERSION 1
+// #endif
+
+// #ifdef NVIDIA
+// #define CPUVERSION 0
+// #endif
+
+// #ifdef INTEL
+// #define CPUVERSION 0
+// #endif
 
 #if CPUVERSION == 0
 #define Max fmax
@@ -95,66 +93,66 @@ Square(const double x) {
 #define Sqrt sqrt
 #endif
 
-#if CPUVERSION == 1
-inline double
-Max(const double a, const double b) {
-  return (a > b) ? a : b;
-}
+// #if CPUVERSION == 1
+// inline double
+// Max(const double a, const double b) {
+//   return (a > b) ? a : b;
+// }
 
-inline double
-Min(const double a, const double b) {
-  return (a < b) ? a : b;
-}
+// inline double
+// Min(const double a, const double b) {
+//   return (a < b) ? a : b;
+// }
 
-inline double
-Fabs(const double a) {
-  return (a > 0) ? a : -a;
-}
-#endif
+// inline double
+// Fabs(const double a) {
+//   return (a > 0) ? a : -a;
+// }
+// #endif
 
-#if CPUVERSION == 1
-inline double
-Sqrt(const double a) {
-  double v = 0;
-  double vn = 0;
-  float x0 = (float) a;
-  double error = (double) 1.e-8;
-  double prec = (double) 1.;
+// #if CPUVERSION == 1
+// inline double
+// Sqrt(const double a) {
+//   double v = 0;
+//   double vn = 0;
+//   float x0 = (float) a;
+//   double error = (double) 1.e-8;
+//   double prec = (double) 1.;
 
-  // initial value: to speedup the process we take the float approximation
-  x0 = sqrt(x0);
-  vn = (double) x0;
+//   // initial value: to speedup the process we take the float approximation
+//   x0 = sqrt(x0);
+//   vn = (double) x0;
 
-  prec = Fabs((v - vn) / vn);
+//   prec = Fabs((v - vn) / vn);
 
-  if (prec > error) {
-    v = (double) 0.5 *(vn + a / vn);
-    prec = Fabs((v - vn) / vn);
-    if (prec > error) {
-      vn = v;
-      v = (double) 0.5 *(vn + a / vn);
-      prec = Fabs((v - vn) / vn);
-      if (prec > error) {
-        vn = v;
-        v = (double) 0.5 *(vn + a / vn);
-        prec = Fabs((v - vn) / vn);
-        if (prec > error) {
-          vn = v;
-          v = (double) 0.5 *(vn + a / vn);
-          prec = Fabs((v - vn) / vn);
-          if (prec > error) {
-            vn = v;
-            v = (double) 0.5 *(vn + a / vn);
-            prec = Fabs((v - vn) / vn);
-          }
-        }
-      }
-    }
-  }
+//   if (prec > error) {
+//     v = (double) 0.5 *(vn + a / vn);
+//     prec = Fabs((v - vn) / vn);
+//     if (prec > error) {
+//       vn = v;
+//       v = (double) 0.5 *(vn + a / vn);
+//       prec = Fabs((v - vn) / vn);
+//       if (prec > error) {
+//         vn = v;
+//         v = (double) 0.5 *(vn + a / vn);
+//         prec = Fabs((v - vn) / vn);
+//         if (prec > error) {
+//           vn = v;
+//           v = (double) 0.5 *(vn + a / vn);
+//           prec = Fabs((v - vn) / vn);
+//           if (prec > error) {
+//             vn = v;
+//             v = (double) 0.5 *(vn + a / vn);
+//             prec = Fabs((v - vn) / vn);
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  return v;
-}
-#endif
+//   return v;
+// }
+// #endif
 /*
  * End math functions 
  */
