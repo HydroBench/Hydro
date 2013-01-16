@@ -46,7 +46,11 @@ gatherConservativeVars (const int idim,
   #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar], u[0:Hnvar * Hstep * Hnxyt]) 
   {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -78,7 +82,11 @@ gatherConservativeVars (const int idim,
     #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt]) 
 	  {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*ivar,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -109,7 +117,11 @@ gatherConservativeVars (const int idim,
 #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
       {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,j)
+#else
+#pragma hmppcg gridify(s,j), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -133,7 +145,11 @@ gatherConservativeVars (const int idim,
     #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
 	  {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*ivar,j)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,j)
+#else
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -190,7 +206,11 @@ updateConservativeVars (const int idim,
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
       {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*ivar,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -219,7 +239,11 @@ updateConservativeVars (const int idim,
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
       {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*ivar,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -247,7 +271,11 @@ updateConservativeVars (const int idim,
     #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
     {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,j)
+#else
+#pragma hmppcg gridify(s,j), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -284,7 +312,11 @@ updateConservativeVars (const int idim,
       #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
       {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*ivar,j)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,j)
+#else
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent

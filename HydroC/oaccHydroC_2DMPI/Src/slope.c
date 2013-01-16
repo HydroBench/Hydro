@@ -44,7 +44,11 @@ slope (const int n,
     ijmax = n;
     //#pragma hmppcg unroll i:4
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*nbv,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(nbv*s,i)
+#else
+#pragma hmppcg gridify(nbv*s,i), blocksize 512x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent

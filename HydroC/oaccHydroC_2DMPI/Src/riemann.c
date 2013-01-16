@@ -35,7 +35,16 @@ void
 Dmemset (const size_t nbr, double t[nbr], const double motif)
 {
   //int i;
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(i)
+#else
+#pragma hmppcg gridify(i), blocksize 64x8
+#endif
+#endif
+#ifndef GRIDIFY
 #pragma acc parallel loop pcopyout(t[0:nbr])
+#endif
   for (int i = 0; i < nbr; i++)
     {
       t[i] = motif;
@@ -80,7 +89,11 @@ riemann (const int narray,
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) 
     {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 64x8
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -265,7 +278,11 @@ riemann (const int narray,
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt])
     {
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*invar,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(invar*s,i)
+#else
+#pragma hmppcg gridify(invar*s,i), blocksize 64x8
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent

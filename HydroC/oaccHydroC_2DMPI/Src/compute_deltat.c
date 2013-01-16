@@ -42,7 +42,11 @@ ComputeQEforRow (const int j,
 #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], uold[0:Hnvar*Hnxt*Hnyt],e[0:Hstep*Hnxyt])
   {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 256x2
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -98,7 +102,11 @@ courantOnXY (double *cournox,
 #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt],c[0:Hstep*Hnxyt])
   {
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i) reduce(max:_cournox, max:_cournoy)
+#else
+#pragma hmppcg gridify(s,i) reduce(max:_cournox, max:_cournoy), blocksize 256x2
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent reduction(max:_cournox) reduction(max: _cournoy)

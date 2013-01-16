@@ -42,7 +42,11 @@ equation_of_state (const int imin,
     double smallp = Square (Hsmallc) / Hgamma;
     CFLOPS (1);
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,k)
+#else
+#pragma hmppcg gridify(s,k), blocksize 512x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent

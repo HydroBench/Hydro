@@ -82,7 +82,11 @@ trace (const double dtdx,
 
 
 #ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 256x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
@@ -178,7 +182,11 @@ trace (const double dtdx,
 ///      double  da, acmpright, spzero;
       int ijmin=0, ijmax=n;
 #ifdef GRIDIFY
-#pragma hmppcg gridify(s*IN,i)
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(IN*s,i)
+#else
+#pragma hmppcg gridify(IN*s,i), blocksize 256x1
+#endif
 #endif /* GRIDIFY */
 #ifndef GRIDIFY
 #pragma acc loop independent
