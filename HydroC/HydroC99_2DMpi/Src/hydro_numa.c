@@ -49,9 +49,11 @@ void force_move_pages(const void* data_, const size_t n, const size_t selem,
   const char* pages[np];
   size_t i;
   long res;
+
+#ifndef __MIC__
   const int nmn = numa_num_configured_nodes();
 
-  fprintf(stderr, "%s:%d elem_per_page = %zd, nmn = %d ; np = %zd\n", __PRETTY_FUNCTION__, __LINE__, elem_per_page, nmn, np);
+  // fprintf(stderr, "%s:%d elem_per_page = %zd, nmn = %d ; np = %zd\n", __PRETTY_FUNCTION__, __LINE__, elem_per_page, nmn, np);
   
   for (i = 0 ; i < np ; i++) {
     pages[i] = data + i * ASSUMED_PAGE_SIZE;
@@ -89,21 +91,22 @@ void force_move_pages(const void* data_, const size_t n, const size_t selem,
     int last_node = status[0];
     const char* last;
     const char* cur = data;
-    fprintf(stderr, "%s:%d: move_pages for %p of %zd elements (%zd bytes)\n", __PRETTY_FUNCTION__, __LINE__, data, n, n * selem);
-    fprintf(stderr, "\t%d: %p ... ", last_node, cur );
+    // fprintf(stderr, "%s:%d: move_pages for %p of %zd elements (%zd bytes)\n", __PRETTY_FUNCTION__, __LINE__, data, n, n * selem);
+    // fprintf(stderr, "\t%d: %p ... ", last_node, cur );
     last = cur;
     for (i = 1 ; i < np ; i++) {
       if (status[i] != last_node) {
         cur += ASSUMED_PAGE_SIZE;
-        fprintf(stderr, "%p (%llu)\n", cur, (unsigned long long)cur - (unsigned long long)last);
+        // fprintf(stderr, "%p (%llu)\n", cur, (unsigned long long)cur - (unsigned long long)last);
         last_node = status[i];
-        fprintf(stderr, "\t%d: %p ... ", last_node, cur);
+        // fprintf(stderr, "\t%d: %p ... ", last_node, cur);
         last = cur;
       } else {
         cur += ASSUMED_PAGE_SIZE;
       }
     }
-    fprintf(stderr, "%p (%llu)\n", cur, (unsigned long long)cur - (unsigned long long)last);
+    // fprintf(stderr, "%p (%llu)\n", cur, (unsigned long long)cur - (unsigned long long)last);
   }
+#endif
 }
 

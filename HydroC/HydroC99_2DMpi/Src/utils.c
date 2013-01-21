@@ -101,9 +101,11 @@ DMalloc(size_t n) {
 #if MEMSET == 1
   memset(r, 1, n * sizeof(double));
 #else
-#pragma omp parallel for schedule(auto) private(i)
+#ifndef NOTOUCHPAGE
+#pragma omp parallel for schedule(auto) private(i) shared(r) 
   for (i = 0; i < n; i++)
-    r[i] = 0.0;
+    r[i] = 0.0L;
+#endif
 #endif
   return r;
 }
@@ -121,7 +123,7 @@ IMalloc(size_t n) {
 #if MEMSET == 1
   memset(r, 1, n * sizeof(int));
 #else
-#pragma omp parallel for schedule(auto) private(i) 
+#pragma omp parallel for schedule(auto) private(i) shared(r) 
   for (i = 0; i < n; i++)
     r[i] = 0;
 #endif

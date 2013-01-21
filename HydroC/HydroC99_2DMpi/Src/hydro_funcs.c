@@ -39,6 +39,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "utils.h"
 #include "hydro_utils.h"
@@ -148,6 +149,18 @@ hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
   DFree(&Hv->uold, H.nvar * H.nxt * H.nyt);
 }                               // hydro_finish
 
+
+static void touchPage(double *adr, int lg) {
+  int i;
+#ifndef NOTOUCHPAGE
+#pragma omp parallel for private(i) schedule(auto) shared(adr) 
+  for(i = 0; i < lg; i++) {
+    adr[i] = 0.0l;
+  }
+#endif
+}
+
+
 void
 allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   int domain = ngrid * H.nxystep;
@@ -155,39 +168,104 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   int domainD = domain * sizeof(double);
   int domainI = domain * sizeof(int);
   int domainVarD = domainVar * sizeof(double);
+  int pageM = 1024*1024;
+
+#define ONEBLOCK 1
+
+#ifndef PAGEOFFSET
+#define PAGEOFFSET 1
+#endif
+
+#ifdef ONEBLOCK
+#ifndef TAILLEPAGE
+#define TAILLEPAGE 1024
+#endif
+  int oneBlock = 0;
+  int domainVarM = 0;
+  int domainM = 0;
+  int pageMD = TAILLEPAGE / 8 ;
+  double *blockD = 0; 
+#endif
 
   WHERE("allocate_work_space");
-  Hvw->u      = DMalloc(domainVar);
+
+#ifdef MOVETHEPAGES
+#ifndef __MIC__
+#define MOVEPAGEVAR(t) force_move_pages(t, domainVar, sizeof(double), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#define MOVEPAGE(t)    force_move_pages(t, domain,    sizeof(double), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#else
+#define MOVEPAGEVAR(t) 
+#define MOVEPAGE(t)    
+#endif
+#else
+#define MOVEPAGEVAR(t) 
+#define MOVEPAGE(t)    
+#endif
+
+#ifdef ONEBLOCK
+  fprintf(stderr, "Page offset %d\n", PAGEOFFSET);
+  // determine the right amount of pages to fit all arrays
+  domainVarM = (domainVar + pageMD - 1) / pageMD;
+  domainVarM *= pageMD + PAGEOFFSET;
+  domainM = (domain + pageMD - 1) / pageMD;
+  domainM *= pageMD + PAGEOFFSET;
+
+  oneBlock = 9 * domainVarM + 12 * domainM;  // expressed in term of pages of double
+  assert(oneBlock >= (9 * domainVar + 12 * domain));
+
+  blockD = (double *) malloc(oneBlock * sizeof(double));
+  Hvw->u      = blockD;                   touchPage(Hvw->u, domainVar);     
+  Hvw->q      = Hvw->u      + domainVarM; touchPage(Hvw->q, domainVar);     
+  Hvw->dq     = Hvw->q      + domainVarM; touchPage(Hvw->dq, domainVar);    
+  Hvw->qxm    = Hvw->dq     + domainVarM; touchPage(Hvw->qxm, domainVar);   
+  Hvw->qxp    = Hvw->qxm    + domainVarM; touchPage(Hvw->qxp, domainVar);   
+  Hvw->qleft  = Hvw->qxp    + domainVarM; touchPage(Hvw->qleft, domainVar); 
+  Hvw->qright = Hvw->qleft  + domainVarM; touchPage(Hvw->qright, domainVar);
+  Hvw->qgdnv  = Hvw->qright + domainVarM; touchPage(Hvw->qgdnv, domainVar); 
+  Hvw->flux   = Hvw->qgdnv  + domainVarM; touchPage(Hvw->flux, domainVar);  
+  Hw->e       = Hvw->flux   + domainVarM; touchPage(Hw->e, domain);         
+  Hw->c       = Hw->e       + domainM;    touchPage(Hw->c, domain);         
+  Hw->pstar   = Hw->c       + domainM;    touchPage(Hw->pstar, domain);     
+  Hw->rl      = Hw->pstar   + domainM;    touchPage(Hw->rl, domain);        
+  Hw->ul      = Hw->rl      + domainM;    touchPage(Hw->ul, domain);        
+  Hw->pl      = Hw->ul      + domainM;    touchPage(Hw->pl, domain);        
+  Hw->cl      = Hw->pl      + domainM;    touchPage(Hw->cl, domain);        
+  Hw->rr      = Hw->cl      + domainM;    touchPage(Hw->rr, domain);        
+  Hw->ur      = Hw->rr      + domainM;    touchPage(Hw->ur, domain);        
+  Hw->pr      = Hw->ur      + domainM;    touchPage(Hw->pr, domain);        
+  Hw->cr      = Hw->pr      + domainM;    touchPage(Hw->cr, domain);        
+  Hw->ro      = Hw->cr      + domainM;    touchPage(Hw->ro, domain);        
+#else
   /*
-    force_move_pages(Hvw->u, domainVar, sizeof(double),
-    HYDRO_NUMA_SIZED_BLOCK_RR, 1024*1024);
+    force_move_pages(Hvw->u, domainVar, sizeof(double), HYDRO_NUMA_SIZED_BLOCK_RR, pageM);
   */
-  Hvw->q      = DMalloc(domainVar);
-  Hvw->dq     = DMalloc(domainVar);
-  Hvw->qxm    = DMalloc(domainVar);
-  Hvw->qxp    = DMalloc(domainVar);
-  Hvw->qleft  = DMalloc(domainVar);
-  Hvw->qright = DMalloc(domainVar);
-  Hvw->qgdnv  = DMalloc(domainVar);
-  Hvw->flux   = DMalloc(domainVar);
+  fprintf(stderr, "Page malloc\n");
+  Hvw->u      = DMalloc(domainVar); MOVEPAGEVAR(Hvw->u);
+  Hvw->q      = DMalloc(domainVar); MOVEPAGEVAR(Hvw->q);
+  Hvw->dq     = DMalloc(domainVar); MOVEPAGEVAR(Hvw->dq);
+  Hvw->qxm    = DMalloc(domainVar); MOVEPAGEVAR(Hvw->qxm);
+  Hvw->qxp    = DMalloc(domainVar); MOVEPAGEVAR(Hvw->qxp);
+  Hvw->qleft  = DMalloc(domainVar); MOVEPAGEVAR(Hvw->qleft);
+  Hvw->qright = DMalloc(domainVar); MOVEPAGEVAR(Hvw->qright);
+  Hvw->qgdnv  = DMalloc(domainVar); MOVEPAGEVAR(Hvw->qgdnv);
+  Hvw->flux   = DMalloc(domainVar); MOVEPAGEVAR(Hvw->flux);
   //
-  Hw->e       = DMalloc(domain);
-  Hw->c       = DMalloc(domain);
-
-  Hw->sgnm = IMalloc(domain);
-
-  Hw->pstar = DMalloc(domain);
-  Hw->rl    = DMalloc(domain);
-  Hw->ul    = DMalloc(domain);
-  Hw->pl    = DMalloc(domain);
-  Hw->cl    = DMalloc(domain);
-  Hw->rr    = DMalloc(domain);
-  Hw->ur    = DMalloc(domain);
-  Hw->pr    = DMalloc(domain);
-  Hw->cr    = DMalloc(domain);
-  Hw->ro    = DMalloc(domain);
-
+  Hw->e       = DMalloc(domain); MOVEPAGE(Hw->e);
+  Hw->c       = DMalloc(domain); MOVEPAGE(Hw->c);
+  // 
+  Hw->pstar = DMalloc(domain); MOVEPAGE(Hw->pstar);
+  Hw->rl    = DMalloc(domain); MOVEPAGE(Hw->rl);
+  Hw->ul    = DMalloc(domain); MOVEPAGE(Hw->ul);
+  Hw->pl    = DMalloc(domain); MOVEPAGE(Hw->pl);
+  Hw->cl    = DMalloc(domain); MOVEPAGE(Hw->cl);
+  Hw->rr    = DMalloc(domain); MOVEPAGE(Hw->rr);
+  Hw->ur    = DMalloc(domain); MOVEPAGE(Hw->ur);
+  Hw->pr    = DMalloc(domain); MOVEPAGE(Hw->pr);
+  Hw->cr    = DMalloc(domain); MOVEPAGE(Hw->cr);
+  Hw->ro    = DMalloc(domain); MOVEPAGE(Hw->ro);
+#endif
   Hw->goon  = IMalloc(domain);
+  Hw->sgnm  = IMalloc(domain);
 
   //   Hw->uo = DMalloc(ngrid);
   //   Hw->po = DMalloc(ngrid);
@@ -218,8 +296,29 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrova
   int domainVarD = domainVar * sizeof(double);
 
   WHERE("deallocate_work_space");
+#ifdef ONEBLOCK
+  int oneBlock = 0;
+  int domainVarM = 0;
+  int domainM = 0;
+  int pageM = 1024*1024;
+  int pageMD = TAILLEPAGE / 8;
+  double *blockD = 0; 
+#endif
 
   //
+#ifdef ONEBLOCK
+  // determine the right amount of pages to fit all arrays
+  domainVarM = (domainVar + pageMD - 1) / pageMD;
+  domainVarM *= pageMD + PAGEOFFSET;
+  domainM = (domain + pageMD - 1) / pageMD;
+  domainM *= pageMD + PAGEOFFSET;
+
+  oneBlock = 9 * domainVarM + 12 * domainM;  // expressed in term of pages of double
+  DFree(&Hvw->u, oneBlock);
+  Hvw->q = Hvw->dq = Hvw->qxm = Hvw->qxp = 0;
+  Hvw->qleft = Hvw->qright = Hvw->qgdnv = Hvw->flux = Hw->e = Hw->c =0;
+  Hw->pstar = Hw->rl = Hw->ul = Hw->pl = Hw->cl = Hw->rr = Hw->ur =  Hw->pr = Hw->cr = Hw->ro = 0;
+#else
   DFree(&Hvw->u, domainVar);
   DFree(&Hvw->q, domainVar);
   DFree(&Hvw->dq, domainVar);
@@ -229,12 +328,8 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrova
   DFree(&Hvw->qright, domainVar);
   DFree(&Hvw->qgdnv, domainVar);
   DFree(&Hvw->flux, domainVar);
-  //
   DFree(&Hw->e, domain);
   DFree(&Hw->c, domain);
-
-  IFree(&Hw->sgnm, domainVar);
-
   DFree(&Hw->pstar, domain);
   DFree(&Hw->rl, domain);
   DFree(&Hw->ul, domain);
@@ -245,7 +340,9 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrova
   DFree(&Hw->pr, domain);
   DFree(&Hw->cr, domain);
   DFree(&Hw->ro, domain);
+#endif
 
+  IFree(&Hw->sgnm, domainVar);
   IFree(&Hw->goon, domain);
   //   Free(Hw->uo);
   //   Free(Hw->po);
