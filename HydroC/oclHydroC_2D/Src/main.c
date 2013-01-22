@@ -193,9 +193,9 @@ main(int argc, char **argv)
     flops = 0;
     cdt = ' ';
     if ((H.nstep % 2) == 0) {
-      start = dcclock();
+      start = cclock();
       oclComputeDeltat(&dt, H, &Hw, &Hv, &Hvw);
-      end = dcclock();
+      end = cclock();
       functim[TIM_COMPDT] += ccelaps(start, end);
       cdt = '*';
       // fprintf(stdout, "dt=%lg\n", dt);
@@ -205,9 +205,9 @@ main(int argc, char **argv)
       if (H.nproc > 1) {
 	double dtmin;
 	int uno = 1;
-	start = dcclock();
+	start = cclock();
 	MPI_Allreduce(&dt, &dtmin, uno, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-	end = dcclock();
+	end = cclock();
 	functim[TIM_ALLRED] += ccelaps(start, end);
 	dt = dtmin;
       }
