@@ -149,7 +149,6 @@ main (int argc, char **argv)
   double (*dq)[H.nxystep][H.nxyt];
   
   start = cclock();
-  start = cclock();
   allocate_work_space (H.nxyt, H, &Hw, &Hvw);
   end = cclock();
   if (H.mype == 0) fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
