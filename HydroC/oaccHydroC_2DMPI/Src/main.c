@@ -175,7 +175,7 @@ main (int argc, char **argv)
          flux[0:H.nvar], u[0:H.nvar],				\
          dq[0:H.nvar], e[0:H.nxystep], c[0:H.nxystep],		\
          sgnm[0:H.nxystep], qxm[0:H.nvar], qxp[0:H.nvar])	\
-  copy(uold[0:H.nvar*H.nxt*H.nyt]) 
+  copyin(uold[0:H.nvar*H.nxt*H.nyt]) 
   {
     end = cclock();
     fprintf(stdout, "Hydro %d: initialize acc %lfs\n", H.mype, ccelaps(start, end));
@@ -240,11 +240,13 @@ main (int argc, char **argv)
 	if (time_output == 0) {
 	  if ((H.nstep % H.noutput) == 0)
 	    {
+#pragma acc update host(uold[0:H.nvar*H.nxt*H.nyt])
 	      vtkfile (++nvtk, H, &Hv);
 	      sprintf (outnum, "%s [%04d]", outnum, nvtk);
 	    }
 	} else {
-	  if (H.t >= next_output_time) {
+	  if (time_output == 1 && H.t >= next_output_time) {
+#pragma acc update host(uold[0:H.nvar*H.nxt*H.nyt])
 	    vtkfile (++nvtk, H, &Hv);
 	    next_output_time = next_output_time + H.dtoutput;
 	    sprintf (outnum, "%s [%04d]", outnum, nvtk);
