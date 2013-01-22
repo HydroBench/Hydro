@@ -71,6 +71,7 @@ typedef enum {
   KernelMemset,
   KernelMemsetV4,
   kpack_arrayv, kunpack_arrayv, kpack_arrayh, kunpack_arrayh, 
+  LoopKComputeDeltat,
   LastEntryKernel
 } myKernel_t;
 
@@ -93,6 +94,7 @@ void oclMemset(cl_mem a, cl_int v, size_t lbyte);
 void oclMakeHydroKernels();
 
 void oclInitCode(const int nproc, const int mype);
+void oclCloseupCode();
 
 #endif // OCLINIT_H
 //EOF

@@ -110,7 +110,59 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[kunpack_arrayv], kunpack_arrayv);
   CREATEKER(pgm, ker[kpack_arrayh], kpack_arrayh);
   CREATEKER(pgm, ker[kunpack_arrayh], kunpack_arrayh);
+  CREATEKER(pgm, ker[LoopKComputeDeltat], LoopKComputeDeltat);
 }
+
+void
+oclReleaseHydroKernels()
+{
+  assert(ker != NULL);
+  
+  FREEKER( ker[Loop1KcuCmpflx], Loop1KcuCmpflx);
+  FREEKER( ker[Loop2KcuCmpflx], Loop2KcuCmpflx);
+  FREEKER( ker[LoopKQEforRow], LoopKQEforRow);
+  FREEKER( ker[LoopKcourant], LoopKcourant);
+  FREEKER( ker[Loop1KcuGather], Loop1KcuGather);
+  FREEKER( ker[Loop2KcuGather], Loop2KcuGather);
+  FREEKER( ker[Loop3KcuGather], Loop3KcuGather);
+  FREEKER( ker[Loop4KcuGather], Loop4KcuGather);
+  FREEKER( ker[Loop1KcuUpdate], Loop1KcuUpdate);
+  FREEKER( ker[Loop2KcuUpdate], Loop2KcuUpdate);
+  FREEKER( ker[Loop3KcuUpdate], Loop3KcuUpdate);
+  FREEKER( ker[Loop4KcuUpdate], Loop4KcuUpdate);
+  FREEKER( ker[Loop1KcuConstoprim], Loop1KcuConstoprim);
+  FREEKER( ker[Loop2KcuConstoprim], Loop2KcuConstoprim);
+  FREEKER( ker[LoopEOS], LoopEOS);
+  FREEKER( ker[Loop1KcuMakeBoundary], Loop1KcuMakeBoundary);
+  FREEKER( ker[Loop2KcuMakeBoundary], Loop2KcuMakeBoundary);
+  FREEKER( ker[Loop1KcuQleftright], Loop1KcuQleftright);
+  FREEKER( ker[Loop1KcuRiemann], Loop1KcuRiemann);
+  FREEKER( ker[Loop10KcuRiemann], Loop10KcuRiemann);
+  FREEKER( ker[LoopKcuSlope], LoopKcuSlope);
+  FREEKER( ker[Loop1KcuTrace], Loop1KcuTrace);
+  FREEKER( ker[Loop2KcuTrace], Loop2KcuTrace);
+  FREEKER( ker[LoopKredMaxDble], reduceMaxDble);
+  FREEKER( ker[KernelMemset], KernelMemset);
+  FREEKER( ker[KernelMemsetV4], KernelMemsetV4);
+  FREEKER( ker[kpack_arrayv], kpack_arrayv);
+  FREEKER( ker[kunpack_arrayv], kunpack_arrayv);
+  FREEKER( ker[kpack_arrayh], kpack_arrayh);
+  FREEKER( ker[kunpack_arrayh], kunpack_arrayh);
+  FREEKER( ker[LoopKComputeDeltat], LoopKComputeDeltat);
+
+  free( (void*) ker );
+}
+
+void
+oclCloseupCode()
+{
+  oclReleaseHydroKernels();
+  
+  if ( pgm ) { clReleaseProgram( pgm ); pgm = 0; }
+  if ( cqueue ) { clReleaseCommandQueue( cqueue ); cqueue = 0; }
+  if ( ctx ) { clReleaseContext( ctx ); ctx = 0; }
+}
+
 
 void
 oclInitCode(const int nproc, const int mype)

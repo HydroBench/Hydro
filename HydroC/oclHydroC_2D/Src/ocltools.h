@@ -106,8 +106,14 @@ typedef size_t dim3[3];
     OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
     OCLSETARG((k), (n)) ; OCLSETARG((k), (o)) ; }
 
+#define OCLSETARG17(k, a, b, c, d, e, f, g, h, i, j, l, m, n, o, p, q, r) { OCLINITARG ; \
+    OCLSETARG((k), (a)) ; OCLSETARG((k), (b)) ; OCLSETARG((k), (c)) ; OCLSETARG((k), (d)) ; \
+    OCLSETARG((k), (e)) ; OCLSETARG((k), (f)) ; OCLSETARG((k), (g)) ; OCLSETARG((k), (h)) ; \
+    OCLSETARG((k), (i)) ; OCLSETARG((k), (j)) ; OCLSETARG((k), (l)) ; OCLSETARG((k), (m)) ; \
+    OCLSETARG((k), (n)) ; OCLSETARG((k), (o)) ; OCLSETARG((k), (p)) ; OCLSETARG((k), (q)) ; OCLSETARG((k), (r)) ;}
+	
 #define CREATEKER(pgm, k, a) do {cl_int err = 0; (k) = clCreateKernel((pgm), #a, &err); oclCheckErrF(err, #a, __FILE__, __LINE__); } while (0)
-
+#define FREEKER(k, a) do {cl_int err = clReleaseKernel((k)); oclCheckErr(err, #a); } while (0)
 #define OCLFREE(tab) do {cl_int status = 0; status = clReleaseMemObject((tab)); oclCheckErrF(status, "",  __FILE__, __LINE__); } while (0)
 
 #ifdef __cplusplus

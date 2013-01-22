@@ -131,22 +131,12 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
     if (jend >= Hmax)
       jend = Hmax;
     slices = jend - j;
-    // fprintf(stdout, "(%02d) slices=%d\n", H.mype, slices);
 
-    // ClearArrayDble(eDEV, Hnxyt * H.nxystep * sizeof(double));
-    // ClearArrayDble(cDEV, Hnxyt * H.nxystep * sizeof(double));
-    // ClearArrayDble(qDEV, Hnxyt * H.nxystep * H.nvar * sizeof(double));
+	//merged 3 kernel calls into one
+	OCLSETARG17( ker[LoopKComputeDeltat], j, uoldDEV, qDEV, eDEV, H.smallr, H.nxt, H.nyt, H.nxyt, H.nx, slices, (int)H.nxystep,
+									offsetIP, offsetID, H.smallc, H.gamma, cDEV, courantDEV );
+	oclLaunchKernel2D(ker[LoopKComputeDeltat], cqueue, H.nxyt, slices, THREADSSZ, __FILE__, __LINE__);
 
-    oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, slices, H.nxystep);
-    // GETARR (eDEV, Hw->e);
-    // PRINTARRAY(fic, Hw->e, H.nx, "e", H);
-    // GETARRV (qDEV, Hvw->q);
-    // PRINTARRAYV2(fic, Hvw->q, H.nx, "q", H);
-
-    oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
-    // GETARR (cDEV, Hw->c);
-    // PRINTARRAY(fic, Hw->c, H.nx, "c", H);
-    oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc, slices, H.nxystep);
     if (H.prt) {
       GETARR(courantDEV, lcourant);
       PRINTARRAY(fic, lcourant, H.nx, "lcourant", H);

@@ -291,6 +291,7 @@ main(int argc, char **argv)
   }
 
   oclFreeOnDevice();
+  oclCloseupCode();
   // Deallocate work space
   deallocate_work_space(H, &Hw, &Hvw);
 
