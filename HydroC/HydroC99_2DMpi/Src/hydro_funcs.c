@@ -203,7 +203,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 #endif
 
 #ifdef ONEBLOCK
-  fprintf(stderr, "Page offset %d\n", PAGEOFFSET);
+  if (H.mype == 0) fprintf(stderr, "Page offset %d\n", PAGEOFFSET);
   // determine the right amount of pages to fit all arrays
   domainVarM = (domainVar + pageMD - 1) / pageMD;
   domainVarM *= pageMD + PAGEOFFSET;
