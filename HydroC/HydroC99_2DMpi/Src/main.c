@@ -157,7 +157,7 @@ main(int argc, char **argv) {
   hydro_init(&H, &Hv);
 
   if (H.mype == 0)
-    fprintf(stdout, "Hydro starts.\n");
+    fprintf(stdout, "Hydro starts in %s precision.\n", ((sizeof(real_t) == sizeof(double))? "double": "single"));
 
 #ifdef _OPENMP
   if (H.mype == 0) {
@@ -224,7 +224,11 @@ main(int argc, char **argv) {
       if (H.nproc > 1) {
         real_t dtmin;
         // printf("pe=%4d\tdt=%lg\n",H.mype, dt);
-        MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	if (sizeof(real_t) == sizeof(double)) {
+	    MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	  } else {
+	    MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+	  }
         dt = dtmin;
       }
 #endif

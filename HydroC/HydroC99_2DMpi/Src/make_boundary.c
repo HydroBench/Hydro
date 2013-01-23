@@ -159,10 +159,13 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
   MPI_Status status[4];
 #endif
   int reqcnt = 0;
+  MPI_Datatype mpiFormat = MPI_DOUBLE;
 
   static FILE *fic = NULL;
 
   WHERE("make_boundary");
+
+  if (sizeof(real_t) == sizeof(float))  mpiFormat = MPI_FLOAT;
 
   if (idim == 1) {
 #ifdef MPI
@@ -172,19 +175,19 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
     size = pack_arrayv(i, H, Hv, sendbufru);
 
     if (H.box[RIGHT_BOX] != -1) {
-      MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[LEFT_BOX] != -1) {
-      MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[RIGHT_BOX] != -1) {
-      MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[LEFT_BOX] != -1) {
-      MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
 
@@ -283,19 +286,19 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
     }
 
     if (H.box[DOWN_BOX] != -1) {
-      MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[UP_BOX] != -1) {
-      MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[DOWN_BOX] != -1) {
-      MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[UP_BOX] != -1) {
-      MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
 
