@@ -173,7 +173,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 #define ONEBLOCK 1
 
 #ifndef PAGEOFFSET
-#define PAGEOFFSET 1
+#define PAGEOFFSET sizeof(double)
 #endif
 
 #ifdef ONEBLOCK
