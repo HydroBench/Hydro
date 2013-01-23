@@ -43,7 +43,7 @@ knowledge of the CeCILL license and that you accept its terms.
 void slope(const int n,
            const int Hnvar,
            const int Hnxyt,
-           const double Hslope_type,
-           const int slices, const int Hstep, double q[Hnvar][Hstep][Hnxyt], double dq[Hnvar][Hstep][Hnxyt]);
+           const real_t Hslope_type,
+           const int slices, const int Hstep, real_t q[Hnvar][Hstep][Hnxyt], real_t dq[Hnvar][Hstep][Hnxyt]);
 
 #endif // SLOPE_H_INCLUDED

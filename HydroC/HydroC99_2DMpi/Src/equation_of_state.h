@@ -48,9 +48,9 @@ void equation_of_state(int imin,
                        int imax,
                        const int Hnxyt,
                        const int Hnvar,
-                       const double Hsmallc,
-                       const double Hgamma,
+                       const real_t Hsmallc,
+                       const real_t Hgamma,
                        const int slices, const int Hstep,
-                       double eint[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt]);
+                       real_t eint[Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt], real_t c[Hstep][Hnxyt]);
 
 #endif // EQUATION_OF_STATE_H_INCLUDED

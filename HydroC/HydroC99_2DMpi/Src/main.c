@@ -133,14 +133,14 @@ void printTimingsLabel(const int N, const int fmtSize)
 
 int
 main(int argc, char **argv) {
-  double dt = 0;
+  real_t dt = 0;
   int nvtk = 0;
   char outnum[80];
   int time_output = 0;
   long flops = 0;
 
-  // double output_time = 0.0;
-  double next_output_time = 0;
+  // real_t output_time = 0.0;
+  real_t next_output_time = 0;
   double start_time = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
@@ -222,7 +222,7 @@ main(int argc, char **argv) {
       }
 #ifdef MPI
       if (H.nproc > 1) {
-        double dtmin;
+        real_t dtmin;
         // printf("pe=%4d\tdt=%lg\n",H.mype, dt);
         MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
         dt = dtmin;
@@ -241,7 +241,7 @@ main(int argc, char **argv) {
     H.nstep++;
     H.t += dt;
     {
-      double iter_time = (double) (end_iter - start_iter);
+      real_t iter_time = (real_t) (end_iter - start_iter);
 #ifdef MPI
       long flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t;
       start = cclock();

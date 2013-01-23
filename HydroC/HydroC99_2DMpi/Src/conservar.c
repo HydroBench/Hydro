@@ -57,7 +57,7 @@ gatherConservativeVars(const int idim,
                        const int Hnyt,
                        const int Hnxyt,
                        const int slices, const int Hstep,
-                       double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt]
+                       real_t uold[Hnvar * Hnxt * Hnyt], real_t u[Hnvar][Hstep][Hnxyt]
 		       ) {
   int i, j, ivar, s;
 
@@ -122,7 +122,7 @@ gatherConservativeVars(const int idim,
 void
 updateConservativeVars(const int idim,
                        const int rowcol,
-                       const double dtdx,
+                       const real_t dtdx,
                        const int Himin,
                        const int Himax,
                        const int Hjmin,
@@ -132,7 +132,7 @@ updateConservativeVars(const int idim,
                        const int Hnyt,
                        const int Hnxyt,
                        const int slices, const int Hstep,
-                       double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]
+                       real_t uold[Hnvar * Hnxt * Hnyt], real_t u[Hnvar][Hstep][Hnxyt], real_t flux[Hnvar][Hstep][Hnxyt]
 		       ) {
   int i, j, ivar, s;
   WHERE("updateConservativeVars");

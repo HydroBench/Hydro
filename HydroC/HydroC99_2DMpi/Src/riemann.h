@@ -41,15 +41,15 @@ knowledge of the CeCILL license and that you accept its terms.
 
 
 void
-  riemann(int narray, const double Hsmallr, const double Hsmallc, 
-	  const double Hgamma, const int Hniter_riemann, 
+  riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, 
+	  const real_t Hgamma, const int Hniter_riemann, 
 	  const int Hnvar, const int Hnxyt, const int slices, 
 	  const int Hstep, 
-	  double qleft[Hnvar][Hstep][Hnxyt], 
-	  double qright[Hnvar][Hstep][Hnxyt],    //
-          double qgdnv[Hnvar][Hstep][Hnxyt],    //
+	  real_t qleft[Hnvar][Hstep][Hnxyt], 
+	  real_t qright[Hnvar][Hstep][Hnxyt],    //
+          real_t qgdnv[Hnvar][Hstep][Hnxyt],    //
           int sgnm[Hstep][Hnxyt], hydrowork_t * Hw);
 
-void Dmemset(size_t nbr, double t[nbr], double motif);
+void Dmemset(size_t nbr, real_t t[nbr], real_t motif);
 
 #endif // RIEMANN_H_INCLUDED

@@ -42,10 +42,10 @@ knowledge of the CeCILL license and that you accept its terms.
 void cmpflx(const int narray,
             const int Hnxyt,
             const int Hnvar,
-            const double Hgamma,
+            const real_t Hgamma,
             const int slices, 
 	    const int Hstep, 
-	    double qgdnv[Hnvar][Hstep][Hnxyt], 
-	    double flux[Hnvar][Hstep][Hnxyt]);
+	    real_t qgdnv[Hnvar][Hstep][Hnxyt], 
+	    real_t flux[Hnvar][Hstep][Hnxyt]);
 
 #endif // CMPFLX_H_INCLUDED

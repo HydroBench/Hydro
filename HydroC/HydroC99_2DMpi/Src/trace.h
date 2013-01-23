@@ -41,15 +41,15 @@ knowledge of the CeCILL license and that you accept its terms.
 
 
 
-void trace(const double dtdx,
+void trace(const real_t dtdx,
            const int n,
            const int Hscheme,
            const int Hnvar,
            const int Hnxyt,
            const int slices, const int Hstep,
-           double q[Hnvar][Hstep][Hnxyt],
-           double dq[Hnvar][Hstep][Hnxyt],
-           double c[Hstep][Hnxyt], double qxm[Hnvar][Hstep][Hnxyt], double qxp[Hnvar][Hstep][Hnxyt]
+           real_t q[Hnvar][Hstep][Hnxyt],
+           real_t dq[Hnvar][Hstep][Hnxyt],
+           real_t c[Hstep][Hnxyt], real_t qxm[Hnvar][Hstep][Hnxyt], real_t qxp[Hnvar][Hstep][Hnxyt]
   );
 
 #endif // TRACE_H_INCLUDED

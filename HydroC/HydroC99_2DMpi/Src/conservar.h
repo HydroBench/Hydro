@@ -50,11 +50,11 @@ void gatherConservativeVars(const int idim,
                             const int Hnyt,
                             const int Hnxyt,
                             const int slices, const int Hstep,
-                            double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt]);
+                            real_t uold[Hnvar * Hnxt * Hnyt], real_t u[Hnvar][Hstep][Hnxyt]);
 
 void updateConservativeVars(const int idim,
                             const int rowcol,
-                            const double dtdx,
+                            const real_t dtdx,
                             const int Himin,
                             const int Himax,
                             const int Hjmin,
@@ -64,8 +64,8 @@ void updateConservativeVars(const int idim,
                             const int Hnyt,
                             const int Hnxyt,
                             const int slices, const int Hstep,
-                            double uold[Hnvar * Hnxt * Hnyt],
-                            double u[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]
+                            real_t uold[Hnvar * Hnxt * Hnyt],
+                            real_t u[Hnvar][Hstep][Hnxyt], real_t flux[Hnvar][Hstep][Hnxyt]
   );
 
 #endif // CONSERVAR_H_INCLUDED

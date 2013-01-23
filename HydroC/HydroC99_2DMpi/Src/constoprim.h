@@ -44,8 +44,8 @@ knowledge of the CeCILL license and that you accept its terms.
 void constoprim(const int n,
                 const int Hnxyt,
                 const int Hnvar,
-                const double Hsmallr,
+                const real_t Hsmallr,
                 const int slices, const int Hstep,
-                double u[Hnvar][Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]);
+                real_t u[Hnvar][Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt], real_t e[Hstep][Hnxyt]);
 
 #endif // CONSTOPRIM_H_INCLUDED

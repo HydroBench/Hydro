@@ -48,18 +48,18 @@ knowledge of the CeCILL license and that you accept its terms.
 #ifndef HMPP
 
 void
-trace(const double dtdx,
+trace(const real_t dtdx,
       const int n,
       const int Hscheme,
       const int Hnvar,
       const int Hnxyt,
       const int slices, const int Hstep,
-      double q[Hnvar][Hstep][Hnxyt],
-      double dq[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt], double qxm[Hnvar][Hstep][Hnxyt],
-      double qxp[Hnvar][Hstep][Hnxyt]) {
+      real_t q[Hnvar][Hstep][Hnxyt],
+      real_t dq[Hnvar][Hstep][Hnxyt], real_t c[Hstep][Hnxyt], real_t qxm[Hnvar][Hstep][Hnxyt],
+      real_t qxp[Hnvar][Hstep][Hnxyt]) {
   int ijmin, ijmax;
   int i, IN, s;
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  real_t zerol = 0.0, zeror = 0.0, project = 0.;
 
   WHERE("trace");
   ijmin = 0;
@@ -87,12 +87,12 @@ trace(const double dtdx,
 #pragma omp parallel for schedule(auto) private(s,i), shared(qxp, qxm) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (i = ijmin + 1; i < ijmax - 1; i++) {
-      double cc, csq, r, u, v, p;
-      double dr, du, dv, dp;
-      double alpham, alphap, alpha0r, alpha0v;
-      double spminus, spplus, spzero;
-      double apright, amright, azrright, azv1right;
-      double apleft, amleft, azrleft, azv1left;
+      real_t cc, csq, r, u, v, p;
+      real_t dr, du, dv, dp;
+      real_t alpham, alphap, alpha0r, alpha0v;
+      real_t spminus, spplus, spzero;
+      real_t apright, amright, azrright, azv1right;
+      real_t apleft, amleft, azrleft, azv1left;
       cc = c[s][i];
       csq = Square(cc);
       r = q[ID][s][i];
@@ -163,11 +163,11 @@ trace(const double dtdx,
     for (IN = IP + 1; IN < Hnvar; IN++) {
       for (s = 0; s < slices; s++) {
         for (i = ijmin + 1; i < ijmax - 1; i++) {
-	  double u, a;
-	  double da;
-	  double spzero;
-	  double acmpright;
-	  double acmpleft;
+	  real_t u, a;
+	  real_t da;
+	  real_t spzero;
+	  real_t acmpright;
+	  real_t acmpleft;
           u = q[IU][s][i];
           a = q[IN][s][i];
           da = dq[IN][s][i];

@@ -72,7 +72,7 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv) {
   // printf("apres %d \n", H->nxyt);
 
   // allocate uold for each conservative variable
-  Hv->uold = (double *) DMalloc(H->nvar * H->nxt * H->nyt);
+  Hv->uold = (real_t *) DMalloc(H->nvar * H->nxt * H->nyt);
 
   // wind tunnel with point explosion
   for (j = H->jmin + ExtraLayer; j < H->jmax - ExtraLayer; j++) {
@@ -150,7 +150,7 @@ hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
 }                               // hydro_finish
 
 
-static void touchPage(double *adr, int lg) {
+static void touchPage(real_t *adr, int lg) {
   int i;
 #ifndef NOTOUCHPAGE
 #pragma omp parallel for private(i) schedule(auto) shared(adr) 
@@ -165,9 +165,9 @@ void
 allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   int domain = ngrid * H.nxystep;
   int domainVar = domain * H.nvar;
-  int domainD = domain * sizeof(double);
+  int domainD = domain * sizeof(real_t);
   int domainI = domain * sizeof(int);
-  int domainVarD = domainVar * sizeof(double);
+  int domainVarD = domainVar * sizeof(real_t);
   int pageM = 1024*1024;
 
 #define ONEBLOCK 1
@@ -184,15 +184,15 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   int domainVarM = 0;
   int domainM = 0;
   int pageMD = TAILLEPAGE / 8 ;
-  double *blockD = 0; 
+  real_t *blockD = 0; 
 #endif
 
   WHERE("allocate_work_space");
 
 #ifdef MOVETHEPAGES
 #ifndef __MIC__
-#define MOVEPAGEVAR(t) force_move_pages(t, domainVar, sizeof(double), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
-#define MOVEPAGE(t)    force_move_pages(t, domain,    sizeof(double), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#define MOVEPAGEVAR(t) force_move_pages(t, domainVar, sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#define MOVEPAGE(t)    force_move_pages(t, domain,    sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
 #else
 #define MOVEPAGEVAR(t) 
 #define MOVEPAGE(t)    
@@ -213,7 +213,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   oneBlock = 9 * domainVarM + 12 * domainM;  // expressed in term of pages of double
   assert(oneBlock >= (9 * domainVar + 12 * domain));
 
-  blockD = (double *) malloc(oneBlock * sizeof(double));
+  blockD = (real_t *) malloc(oneBlock * sizeof(real_t));
   Hvw->u      = blockD;                   touchPage(Hvw->u, domainVar);     
   Hvw->q      = Hvw->u      + domainVarM; touchPage(Hvw->q, domainVar);     
   Hvw->dq     = Hvw->q      + domainVarM; touchPage(Hvw->dq, domainVar);    
@@ -291,9 +291,9 @@ void
 deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   int domain = ngrid * H.nxystep;
   int domainVar = domain * H.nvar;
-  int domainD = domain * sizeof(double);
+  int domainD = domain * sizeof(real_t);
   int domainI = domain * sizeof(int);
-  int domainVarD = domainVar * sizeof(double);
+  int domainVarD = domainVar * sizeof(real_t);
 
   WHERE("deallocate_work_space");
 #ifdef ONEBLOCK
@@ -302,7 +302,7 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrova
   int domainM = 0;
   int pageM = 1024*1024;
   int pageMD = TAILLEPAGE / 8;
-  double *blockD = 0; 
+  real_t *blockD = 0; 
 #endif
 
   //

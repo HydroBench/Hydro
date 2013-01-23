@@ -53,9 +53,9 @@ qleftright(const int idim,
            const int Hnxyt,
            const int Hnvar,
            const int slices, const int Hstep,
-           double qxm[Hnvar][Hstep][Hnxyt],
-           double qxp[Hnvar][Hstep][Hnxyt], double qleft[Hnvar][Hstep][Hnxyt],
-           double qright[Hnvar][Hstep][Hnxyt]) {
+           real_t qxm[Hnvar][Hstep][Hnxyt],
+           real_t qxp[Hnvar][Hstep][Hnxyt], real_t qleft[Hnvar][Hstep][Hnxyt],
+           real_t qright[Hnvar][Hstep][Hnxyt]) {
   // #define IHVW(i,v) ((i) + (v) * Hnxyt)
   int nvar, i, s;
   int bmax;

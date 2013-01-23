@@ -38,6 +38,8 @@ knowledge of the CeCILL license and that you accept its terms.
 #define PARAMETRES_H_INCLUDED
 extern unsigned long flops;
 
+typedef double real_t;
+
 typedef enum {
   XMIN_BOX, XMAX_BOX,
   YMIN_BOX, YMAX_BOX,
@@ -50,10 +52,10 @@ typedef struct _hydroparam {
   int prt;
 
   // time control
-  double t, tend;
+  real_t t, tend;
   int nstep, nstepmax;
   int noutput;
-  double dtoutput;
+  real_t dtoutput;
 
   // dimensions
   int imin, imax, jmin, jmax, nx, ny, nxt, nyt, nxyt, nxystep;
@@ -70,15 +72,15 @@ typedef struct _hydroparam {
 
   // physics
   int nvar;
-  double dx;
-  double gamma;
-  double courant_factor;
-  double smallc, smallr;
+  real_t dx;
+  real_t gamma;
+  real_t courant_factor;
+  real_t smallc, smallr;
 
   // numerical scheme
   int niter_riemann;
   int iorder;
-  double slope_type;
+  real_t slope_type;
 
   // char scheme[20];
   int scheme;
@@ -94,7 +96,7 @@ typedef struct _hydroparam {
 
 // Hydrovar holds the whole 2D problem for all variables
 typedef struct _hydrovar {
-  double *uold;                 // nxt, nyt, nvar allocated as (nxt * nyt), nvar
+  real_t *uold;                 // nxt, nyt, nvar allocated as (nxt * nyt), nvar
 } hydrovar_t;                   // 1:nvar
 #ifndef IHv
 // #define IHv(i,j,v) ((i) + (j) * H.nxt + (H.nxt * H.nyt) * (v))
@@ -104,8 +106,8 @@ typedef struct _hydrovar {
 
 // work arrays along one direction for all variables
 typedef struct _hydrovarwork {
-  double *u, *q, *qxm, *qxp, *dq;       // (nxt or nyt), nvar
-  double *qleft, *qright, *qgdnv, *flux;        // (nx+1 or ny+1), nvar
+  real_t *u, *q, *qxm, *qxp, *dq;       // (nxt or nyt), nvar
+  real_t *qleft, *qright, *qgdnv, *flux;        // (nx+1 or ny+1), nvar
 } hydrovarwork_t;               // 1:nvar
 #ifndef IHvw
 // #define IHvw(i,v) ((i) + (v) * H.nxyt)
@@ -114,18 +116,18 @@ typedef struct _hydrovarwork {
 
 // works arrays along one direction
 typedef struct _hydrowork {
-  double *c;                    // nxt or nyt
-  double *e;                    // nxt or nyt
-  double *tmpm1, *tmpm2;        // for the reduction
+  real_t *c;                    // nxt or nyt
+  real_t *e;                    // nxt or nyt
+  real_t *tmpm1, *tmpm2;        // for the reduction
   // all others nx+1 or ny+1
-  double *rl, *ul, *pl, *cl, *wl;
-  double *rr, *ur, *pr, *cr, *wr;
-  double *ro, *uo, *po, *co, *wo;
-  double *rstar, *ustar, *pstar, *cstar;
-  double *spin, *spout, *ushock;
+  real_t *rl, *ul, *pl, *cl, *wl;
+  real_t *rr, *ur, *pr, *cr, *wr;
+  real_t *ro, *uo, *po, *co, *wo;
+  real_t *rstar, *ustar, *pstar, *cstar;
+  real_t *spin, *spout, *ushock;
   int *sgnm;
   int *goon; // convergence indicator for riemann
-  double *frac, *scr, *delp, *pold;
+  real_t *frac, *scr, *delp, *pold;
   int *ind, *ind2;
 } hydrowork_t;
 
@@ -137,16 +139,16 @@ typedef struct _hydrowork {
 
 // useful constants to force double promotion
 #ifdef ALWAYS                   // HMPP
-static const double zero = (double) 0.0;
-static const double one = (double) 1.0;
-static const double two = (double) 2.0;
-static const double three = (double) 3.0;
-static const double hundred = (double) 100.0;
-static const double two3rd = (double) 2.0 / (double) 3.0;
-static const double half = (double) 1.0 / (double) 2.0;
-static const double third = (double) 1.0 / (double) 3.0;
-static const double forth = (double) 1.0 / (double) 4.0;
-static const double sixth = (double) 1.0 / (double) 6.0;
+static const real_t zero = (real_t) 0.0;
+static const real_t one = (real_t) 1.0;
+static const real_t two = (real_t) 2.0;
+static const real_t three = (real_t) 3.0;
+static const real_t hundred = (real_t) 100.0;
+static const real_t two3rd = (real_t) 2.0 / (real_t) 3.0;
+static const real_t half = (real_t) 1.0 / (real_t) 2.0;
+static const real_t third = (real_t) 1.0 / (real_t) 3.0;
+static const real_t forth = (real_t) 1.0 / (real_t) 4.0;
+static const real_t sixth = (real_t) 1.0 / (real_t) 6.0;
 
 // conservative variables with C indexing
 static const int ID = 1 - 1;
@@ -159,16 +161,16 @@ static const int ExtraLayer = 2;
 static const int ExtraLayerTot = 2 * 2;
 
 #else /*  */
-#define zero   ((double) 0.0)
-#define one    ((double) 1.0)
-#define two    ((double) 2.0)
-#define three  ((double) 3.0)
-#define hundred  ((double) 100.0)
-#define two3rd ((double) 2.0 / (double) 3.0)
-#define half   ((double) 1.0 / (double) 2.0)
-#define third  ((double) 1.0 / (double) 3.0)
-#define forth  ((double) 1.0 / (double) 4.0)
-#define sixth  ((double) 1.0 / (double) 6.0)
+#define zero   ((real_t) 0.0)
+#define one    ((real_t) 1.0)
+#define two    ((real_t) 2.0)
+#define three  ((real_t) 3.0)
+#define hundred  ((real_t) 100.0)
+#define two3rd ((real_t) 2.0 / (real_t) 3.0)
+#define half   ((real_t) 1.0 / (real_t) 2.0)
+#define third  ((real_t) 1.0 / (real_t) 3.0)
+#define forth  ((real_t) 1.0 / (real_t) 4.0)
+#define sixth  ((real_t) 1.0 / (real_t) 6.0)
 #define ID     (0)
 #define IU     (1)
 #define IV     (2)

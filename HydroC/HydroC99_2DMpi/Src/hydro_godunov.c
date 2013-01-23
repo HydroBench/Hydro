@@ -61,26 +61,26 @@
 
 // variables auxiliaires pour mettre en place le mode resident de HMPP
 void
-hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
+hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw) {
   // Local variables
   struct timespec start, end;
   int j;
-  double dtdx;
+  real_t dtdx;
   int clear=0;
 
-  double (*e)[H.nxyt];
-  double (*flux)[H.nxystep][H.nxyt];
-  double (*qleft)[H.nxystep][H.nxyt];
-  double (*qright)[H.nxystep][H.nxyt];
-  double (*c)[H.nxyt];
-  double *uold;
+  real_t (*e)[H.nxyt];
+  real_t (*flux)[H.nxystep][H.nxyt];
+  real_t (*qleft)[H.nxystep][H.nxyt];
+  real_t (*qright)[H.nxystep][H.nxyt];
+  real_t (*c)[H.nxyt];
+  real_t *uold;
   int (*sgnm)[H.nxyt];
-  double (*qgdnv)[H.nxystep][H.nxyt];
-  double (*u)[H.nxystep][H.nxyt];
-  double (*qxm)[H.nxystep][H.nxyt];
-  double (*qxp)[H.nxystep][H.nxyt];
-  double (*q)[H.nxystep][H.nxyt];
-  double (*dq)[H.nxystep][H.nxyt];
+  real_t (*qgdnv)[H.nxystep][H.nxyt];
+  real_t (*u)[H.nxystep][H.nxyt];
+  real_t (*qxm)[H.nxystep][H.nxyt];
+  real_t (*qxp)[H.nxystep][H.nxyt];
+  real_t (*q)[H.nxystep][H.nxyt];
+  real_t (*dq)[H.nxystep][H.nxyt];
 
   static FILE *fic = NULL;
 
@@ -115,18 +115,18 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
     PRINTUOLD(fic, H, Hv);
 
     uold = Hv->uold;
-    qgdnv = (double (*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
-    flux = (double (*)[H.nxystep][H.nxyt]) Hvw->flux;
-    c = (double (*)[H.nxyt]) Hw->c;
-    e = (double (*)[H.nxyt]) Hw->e;
-    qleft = (double (*)[H.nxystep][H.nxyt]) Hvw->qleft;
-    qright = (double (*)[H.nxystep][H.nxyt]) Hvw->qright;
+    qgdnv = (real_t (*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
+    flux = (real_t (*)[H.nxystep][H.nxyt]) Hvw->flux;
+    c = (real_t (*)[H.nxyt]) Hw->c;
+    e = (real_t (*)[H.nxyt]) Hw->e;
+    qleft = (real_t (*)[H.nxystep][H.nxyt]) Hvw->qleft;
+    qright = (real_t (*)[H.nxystep][H.nxyt]) Hvw->qright;
     sgnm = (int (*)[H.nxyt]) Hw->sgnm;
-    q = (double (*)[H.nxystep][H.nxyt]) Hvw->q;
-    dq = (double (*)[H.nxystep][H.nxyt]) Hvw->dq;
-    u = (double (*)[H.nxystep][H.nxyt]) Hvw->u;
-    qxm = (double (*)[H.nxystep][H.nxyt]) Hvw->qxm;
-    qxp = (double (*)[H.nxystep][H.nxyt]) Hvw->qxp;
+    q = (real_t (*)[H.nxystep][H.nxyt]) Hvw->q;
+    dq = (real_t (*)[H.nxystep][H.nxyt]) Hvw->dq;
+    u = (real_t (*)[H.nxystep][H.nxyt]) Hvw->u;
+    qxm = (real_t (*)[H.nxystep][H.nxyt]) Hvw->qxm;
+    qxp = (real_t (*)[H.nxystep][H.nxyt]) Hvw->qxp;
 
     int Hmin, Hmax, Hstep;
     int Hdimsize;
@@ -158,7 +158,7 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       int slices = jend - j;    // numbre of slices to compute
       // fprintf(stderr, "Godunov idim=%d, j=%d %d \n", idim, j, slices);
 
-      if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
+      if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (real_t *) dq, 0);
       start = cclock();
       gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep, uold,
                              u);
@@ -167,7 +167,7 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
       if (H.prt) {fprintf(fic, "ConservativeVars %d %d %d %d %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
       PRINTARRAYV2(fic, u, Hdimsize, "u", H);
 
-      if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (double *) dq, 0);
+      if (clear) Dmemset((H.nxyt) * H.nxystep * H.nvar, (real_t *) dq, 0);
 
       // Convert to primitive variables
       start = cclock();
@@ -193,12 +193,12 @@ hydro_godunov(int idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, h
         PRINTARRAYV2(fic, dq, Hdimsize, "dq", H);
       }
 
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxm, 0);
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qxp, 0);
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qleft, 0);
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qright, 0);
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) flux, 0);
-      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (double *) qgdnv, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qxm, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qxp, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qleft, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qright, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) flux, 0);
+      if (clear) Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qgdnv, 0);
       start = cclock();
       trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, q, dq, c, qxm, qxp);
       end = cclock();

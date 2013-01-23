@@ -51,16 +51,16 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 
 static int
-pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-pack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+pack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-unpack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+unpack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 
 int
-pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
@@ -74,7 +74,7 @@ pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffe
 }
 
 int
-unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
@@ -88,7 +88,7 @@ unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buf
 }
 
 int
-pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = ymin; j < ymin + ExtraLayer; j++) {
@@ -103,7 +103,7 @@ pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffe
 }
 
 int
-unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = ymin; j < ymin + ExtraLayer; j++) {
@@ -118,7 +118,7 @@ unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buf
 
 #define VALPERLINE 11
 int
-print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0, nbr = 1;
   for (ivar = 3; ivar < H.nvar; ivar++) {
     fprintf(fic, "BufferH v=%d\n", ivar);
@@ -147,13 +147,13 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
   // des index depuis fortran.
   // - - - - - - - - - - - - - - - - - - -
   int i, ivar, i0, j, j0, err, size;
-  double sign;
-  double sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
-  double sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  //   double *sendbufru, *sendbufld;
-  double recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  double recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
-  //   double *recvbufru, *recvbufld;
+  real_t sign;
+  real_t sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  real_t sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  //   real_t *sendbufru, *sendbufld;
+  real_t recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  real_t recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  //   real_t *recvbufru, *recvbufld;
 #ifdef MPI
   MPI_Request requests[4];
   MPI_Status status[4];

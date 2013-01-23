@@ -46,14 +46,14 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #ifndef HMPP
 
-#define DABS(x) (double) fabs((x))
+#define DABS(x) (real_t) fabs((x))
 
 void
 slope(const int n,
       const int Hnvar,
       const int Hnxyt,
-      const double Hslope_type,
-      const int slices, const int Hstep, double q[Hnvar][Hstep][Hnxyt], double dq[Hnvar][Hstep][Hnxyt]) {
+      const real_t Hslope_type,
+      const int slices, const int Hstep, real_t q[Hnvar][Hstep][Hnxyt], real_t dq[Hnvar][Hstep][Hnxyt]) {
   int nbv, i, ijmin, ijmax, s;
   // long ihvwin, ihvwimn, ihvwipn;
   // #define IHVW(i, v) ((i) + (v) * Hnxyt)
@@ -69,13 +69,13 @@ slope(const int n,
       for (nbv = 0; nbv < Hnvar; nbv++) {
 #pragma ivdep
       for (i = ijmin + 1; i < ijmax - 1; i++) {
-     	double dlft, drgt, dcen, dsgn, slop, dlim;
+     	real_t dlft, drgt, dcen, dsgn, slop, dlim;
 	int llftrgt = 0;
-	double t1;
+	real_t t1;
         dlft = Hslope_type * (q[nbv][s][i] - q[nbv][s][i - 1]);
         drgt = Hslope_type * (q[nbv][s][i + 1] - q[nbv][s][i]);
         dcen = half * (dlft + drgt) / Hslope_type;
-        dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;       // sign(one, dcen);
+        dsgn = (dcen > 0) ? (real_t) 1.0 : (real_t) -1.0;       // sign(one, dcen);
 #ifdef OLDSTYLE
         slop = fmin(fabs(dlft), fabs(drgt));
         dlim = slop;

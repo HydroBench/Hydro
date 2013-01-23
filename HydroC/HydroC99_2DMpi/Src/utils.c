@@ -47,11 +47,11 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include "utils.h"
 // #include "parametres.h"
-double **
+real_t **
 allocate(int imin, int imax, int nvar) {
   int i;
 
-  double **r = (double **) calloc(nvar, sizeof(double *));
+  real_t **r = (real_t **) calloc(nvar, sizeof(real_t *));
   assert(r != NULL);
   for (i = 0; i < nvar; i++) {
     r[i] = DMalloc(imax - imin + 1 + MallocGuard);
@@ -69,10 +69,10 @@ allocate(int imin, int imax, int nvar) {
 #define MEMSET 0
 #endif
 
-void DFree(double ** adr, size_t n)
+void DFree(real_t ** adr, size_t n)
 {
 #if NUMA_ALLOC == 1
-  numa_free(*adr, sizeof(double) * (n + MallocGuard));
+  numa_free(*adr, sizeof(real_t) * (n + MallocGuard));
 #else
   free(*adr); 
 #endif
@@ -88,18 +88,18 @@ void IFree(int ** adr, size_t n)
 *adr = NULL;
 }
 
-double *
+real_t *
 DMalloc(size_t n) {
   size_t i;
 #if NUMA_ALLOC == 1
-  double *r = (double *) numa_alloc_interleaved((n + MallocGuard) * sizeof(double));
+  real_t *r = (real_t *) numa_alloc_interleaved((n + MallocGuard) * sizeof(real_t));
 #else
-  double *r = (double *) calloc((n + MallocGuard), sizeof(double));
+  real_t *r = (real_t *) calloc((n + MallocGuard), sizeof(real_t));
 #endif
   assert(r != NULL);
   
 #if MEMSET == 1
-  memset(r, 1, n * sizeof(double));
+  memset(r, 1, n * sizeof(real_t));
 #else
 #ifndef NOTOUCHPAGE
 #pragma omp parallel for schedule(auto) private(i) shared(r) 
@@ -158,8 +158,8 @@ printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv) {
 }
 
 void
-printarray(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H) {
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+printarray(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H) {
+  real_t (*ptr)[H.nxyt] = (real_t (*)[H.nxyt]) a;
   long i, j, nbr = 1;
   fprintf(fic, "=%s >\n", nom);
   for (j = 0; j < H.nxystep; j++) {
@@ -195,11 +195,11 @@ printarrayi(FILE * fic, int *a, int n, const char *nom) {
 }
 
 void
-printarrayv(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H) {
+printarrayv(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H) {
   int i, nbr = 1;
   int nvar;
   fprintf(fic, "=%s >\n", nom);
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+  real_t (*ptr)[H.nxyt] = (real_t (*)[H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++) {
     nbr = 1;
     for (i = 0; i < n; i++) {
@@ -217,11 +217,11 @@ printarrayv(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H)
 }
 
 void
-printarrayv2(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H) {
+printarrayv2(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H) {
   int i, j, nbr = 1;
   int nvar;
   fprintf(fic, "=%s >\n#", nom);
-  double (*ptr)[H.nxystep][H.nxyt] = (double (*)[H.nxystep][H.nxyt]) a;
+  real_t (*ptr)[H.nxystep][H.nxyt] = (real_t (*)[H.nxystep][H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++) {
     for (j = 0; j < H.nxystep; j++) {
       nbr = 1;
