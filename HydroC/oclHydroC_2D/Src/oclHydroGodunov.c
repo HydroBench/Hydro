@@ -116,8 +116,26 @@ cl_mem  AllocClear(size_t lgrBytes) {
   cl_int status;
 
   tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
-  oclCheckErr(status, "");
+  oclCheckErr(status, "AllocClear");
   ClearArrayDble(tab, lgrBytes);
+  return tab;
+}
+
+cl_mem SubBlock(cl_mem base, size_t org, size_t len)
+{
+  cl_int status = 0;
+  cl_buffer_region bufinfo;
+  cl_mem tab;
+
+  bufinfo.origin = org;
+  bufinfo.size = len;
+  tab = clCreateSubBuffer(base, 
+			  CL_MEM_READ_WRITE, 
+			  CL_BUFFER_CREATE_TYPE_REGION, &bufinfo, 
+			  &status);
+  oclCheckErr(status, "clCreateSubBuffer");
+  assert(tab != NULL);
+  oclMemset(tab, 0, len);
   return tab;
 }
 
@@ -125,12 +143,12 @@ void
 oclAllocOnDevice(const hydroparam_t H)
 {
   cl_int status = 0;
-
   size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
+  size_t lUold = H.arUoldSz * sizeof(double);
   size_t lSz = H.arSz * H.nxystep * sizeof(double);
   size_t lSzL = H.arSz * H.nxystep * sizeof(long);
 
-  uoldDEV = AllocClear(H.arUoldSz * sizeof(double));
+  uoldDEV = AllocClear(lUold);
   uDEV = AllocClear(lVarSz);
   qDEV = AllocClear(lVarSz);
   dqDEV = AllocClear(lVarSz);
