@@ -289,14 +289,14 @@ main(int argc, char **argv) {
       fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
       fflush(stdout);
     }
-  }
+  } // while
+  end_time = dcclock();
 
   // Deallocate work spaces
   deallocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
   compute_deltat_clean_mem(H, &Hw_deltat, &Hvw_deltat);
 
   hydro_finish(H, &Hv);
-  end_time = dcclock();
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);
   if (H.mype == 0) {
