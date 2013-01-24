@@ -38,7 +38,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include "SplitSurface.h"
 
 #include "parametres.h"
@@ -254,8 +256,13 @@ process_args(long argc, char **argv, hydroparam_t * H)
 
   default_values(H);
 
+  H->nproc = 1;
+  H->mype = 0;
+
+#ifdef MPI
   MPI_Comm_size(MPI_COMM_WORLD, &H->nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &H->mype);
+#endif
   while (n < argc) {
     if (strcmp(argv[n], "--help") == 0) {
       usage();
