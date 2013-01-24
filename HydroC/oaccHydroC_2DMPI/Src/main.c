@@ -149,7 +149,6 @@ main (int argc, char **argv)
   double (*dq)[H.nxystep][H.nxyt];
   
   start = cclock();
-  start = cclock();
   allocate_work_space (H.nxyt, H, &Hw, &Hvw);
   end = cclock();
   if (H.mype == 0) fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
@@ -168,20 +167,19 @@ main (int argc, char **argv)
   u = (double (*)[H.nxystep][H.nxyt]) Hvw.u;
   qxm = (double (*)[H.nxystep][H.nxyt]) Hvw.qxm;
   qxp = (double (*)[H.nxystep][H.nxyt]) Hvw.qxp;
-    
-
-#pragma acc data
-  {
-    start_time_2 = dcclock ();
-	
-    
+  
+  start = cclock();
 #pragma acc data						\
   create(qleft[0:H.nvar], qright[0:H.nvar],			\
          q[0:H.nvar], qgdnv[0:H.nvar],				\
          flux[0:H.nvar], u[0:H.nvar],				\
          dq[0:H.nvar], e[0:H.nxystep], c[0:H.nxystep],		\
          sgnm[0:H.nxystep], qxm[0:H.nvar], qxp[0:H.nvar])	\
-  copy(uold[0:H.nvar*H.nxt*H.nyt]) 
+  copyin(uold[0:H.nvar*H.nxt*H.nyt]) 
+  {
+    end = cclock();
+    fprintf(stdout, "Hydro %d: initialize acc %lfs\n", H.mype, ccelaps(start, end));
+    start_time_2 = dcclock ();
     while ((H.t < H.tend) && (H.nstep < H.nstepmax))
       {
 	start_iter = dcclock ();
@@ -242,11 +240,13 @@ main (int argc, char **argv)
 	if (time_output == 0) {
 	  if ((H.nstep % H.noutput) == 0)
 	    {
+#pragma acc update host(uold[0:H.nvar*H.nxt*H.nyt])
 	      vtkfile (++nvtk, H, &Hv);
 	      sprintf (outnum, "%s [%04d]", outnum, nvtk);
 	    }
 	} else {
-	  if (H.t >= next_output_time) {
+	  if (time_output == 1 && H.t >= next_output_time) {
+#pragma acc update host(uold[0:H.nvar*H.nxt*H.nyt])
 	    vtkfile (++nvtk, H, &Hv);
 	    next_output_time = next_output_time + H.dtoutput;
 	    sprintf (outnum, "%s [%04d]", outnum, nvtk);
@@ -257,15 +257,15 @@ main (int argc, char **argv)
 		   dt, outnum);
 	  fflush (stdout);
 	}
-      }//data region
+      }
    
-  }//bogus data region
+  }// data region
   hydro_finish (H, &Hv);
   end_time = dcclock ();
   elaps = (double) (end_time - start_time);
   timeToString (outnum, elaps);
   if (H.mype == 0){
-    fprintf (stdout, "Hydro ends in %ss(%.3lf) without device acquirement: %.3lfs.\n", outnum, elaps, (double) (end_time - start_time_2));
+    fprintf (stdout, "Hydro ends in %ss(%.3lf) without init: %.3lfs.\n", outnum, elaps, (double) (end_time - start_time_2));
     fprintf(stdout, "    ");
   }
   if (H.nproc == 1) {

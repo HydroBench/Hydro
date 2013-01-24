@@ -141,7 +141,7 @@ main(int argc, char **argv)
 
   // double output_time = 0.0;
   double next_output_time = 0;
-  double start_time = 0, end_time = 0;
+  double start_time = 0, start_time_2 = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
   char cdt;
@@ -149,6 +149,7 @@ main(int argc, char **argv)
 
 
   MPI_Init(&argc, &argv);
+  start_time = dcclock ();
   process_args(argc, argv, &H);
   if (H.mype == 0) {
     fprintf(stdout, "Hydro starts.\n");
@@ -165,6 +166,7 @@ main(int argc, char **argv)
 
   // Allocate work space for 1D sweeps
   allocate_work_space(H, &Hw, &Hvw);
+  start = cclock();
   oclAllocOnDevice(H);
 
   // vtkfile(nvtk, H, &Hv);
@@ -175,6 +177,8 @@ main(int argc, char **argv)
     next_output_time = next_output_time + H.dtoutput;
   }
   oclPutUoldOnDevice(H, &Hv);
+  end = cclock();
+  fprintf(stdout, "Hydro %d: initialize acc %lfs\n", H.mype, ccelaps(start, end));
 
   if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
@@ -182,7 +186,7 @@ main(int argc, char **argv)
   if (H.mype == 1)
     fprintf(stdout, "Hydro starts main loop.\n");
 
-  start_time = dcclock();
+  start_time_2 = dcclock();
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
     start_iter = dcclock();
     outnum[0] = 0;
@@ -250,7 +254,7 @@ main(int argc, char **argv)
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);  
   if (H.mype == 0) {
-    fprintf(stdout, "Hydro ends in %ss (%.3lf).\n", outnum, elaps);
+    fprintf(stdout, "Hydro ends in %ss(%.3lf) without init: %.3lfs.\n", outnum, elaps, (double) (end_time - start_time_2));
     fprintf(stdout, "    ");
   }
   if (H.nproc == 1) {
