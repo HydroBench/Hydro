@@ -101,21 +101,10 @@ courantOnXY (double *cournox,
   double _cournoy = *cournoy;
 #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt],c[0:Hstep*Hnxyt])
   {
-#ifdef GRIDIFY
-#ifndef GRIDIFY_TUNE_PHI
-#pragma hmppcg gridify(s,i) reduce(max:_cournox, max:_cournoy)
-#else
-#pragma hmppcg gridify(s,i) reduce(max:_cournox, max:_cournoy), blocksize 256x2
-#endif
-#endif /* GRIDIFY */
-#ifndef GRIDIFY
-#pragma acc loop independent reduction(max:_cournox) reduction(max: _cournoy)
-#endif /* !GRIDIFY */
+#pragma acc loop independent reduction(max:_cournox) reduction(max:_cournoy) gang(128)
   for (s = 0; s < slices; s++)
     {
-#ifndef GRIDIFY
-#pragma acc loop independent reduction(max:_cournox) reduction(max: _cournoy)
-#endif /* !GRIDIFY */
+#pragma acc loop independent reduction(max:_cournox) reduction(max:_cournoy) worker(64)
       for (i = 0; i < Hnx; i++)
 	{
 	  tmp1 = c[IDXE(s,i)] + DABS (q[IDX(IU,s,i)]);
