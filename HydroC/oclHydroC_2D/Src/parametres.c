@@ -140,6 +140,8 @@ process_input(char *datafile, hydroparam_t * H)
   FILE *fd = NULL;
   char buffer[1024];
   char *pval, *pkey;
+  char *rFmt = (sizeof(real_t) == sizeof(double))? "%lf": "%f";
+
   fd = fopen(datafile, "r");
   if (fd == NULL) {
     fprintf(stderr, "Input file not readable\n");
@@ -199,31 +201,31 @@ process_input(char *datafile, hydroparam_t * H)
     }
     // float parameters
     if (strcmp(pkey, "slope_type") == 0) {
-      sscanf(pval, "%lf", &H->slope_type);
+      sscanf(pval, rFmt, &H->slope_type);
       continue;
     }
     if (strcmp(pkey, "tend") == 0) {
-      sscanf(pval, "%lf", &H->tend);
+      sscanf(pval, rFmt, &H->tend);
       continue;
     }
     if (strcmp(pkey, "dx") == 0) {
-      sscanf(pval, "%lf", &H->dx);
+      sscanf(pval, rFmt, &H->dx);
       continue;
     }
     if (strcmp(pkey, "courant_factor") == 0) {
-      sscanf(pval, "%lf", &H->courant_factor);
+      sscanf(pval, rFmt, &H->courant_factor);
       continue;
     }
     if (strcmp(pkey, "smallr") == 0) {
-      sscanf(pval, "%lf", &H->smallr);
+      sscanf(pval, rFmt, &H->smallr);
       continue;
     }
     if (strcmp(pkey, "smallc") == 0) {
-      sscanf(pval, "%lf", &H->smallc);
+      sscanf(pval, rFmt, &H->smallc);
       continue;
     }
     if (strcmp(pkey, "dtoutput") == 0) {
-      sscanf(pval, "%lf", &H->dtoutput);
+      sscanf(pval, rFmt, &H->dtoutput);
       continue;
     }
     if (strcmp(pkey, "testcase") == 0) {

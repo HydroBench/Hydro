@@ -81,7 +81,7 @@ oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
   cl_int err = 0;
   cl_event event;
-  err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
+  err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(real_t), Hv->uold, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueWriteBuffer");
   err = clWaitForEvents(1, &event);
   oclCheckErr(err, "clWaitForEvents");
@@ -94,7 +94,7 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
   cl_int err = 0;
   cl_event event;
-  err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
+  err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(real_t), Hv->uold, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueWriteBuffer");
   err = clWaitForEvents(1, &event);
   oclCheckErr(err, "clWaitForEvents");
@@ -102,13 +102,13 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clReleaseEvent");
 }
 
-static void ClearArrayDble(cl_mem array, size_t lgrBytes)
+static void ClearArrayDble(cl_mem array, size_t lgr)
 {
-  int lzero = 0;
-  long ldble = lgrBytes / sizeof(double);
+  real_t lzero = 0.;
   assert(array != NULL);
-  OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
-  oclLaunchKernel(ker[KernelMemset], cqueue, ldble, THREADSSZ, __FILE__, __LINE__);
+  assert(lgr > 0);
+  OCLSETARG03(ker[KernelMemset], array, lzero, lgr);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, THREADSSZ, __FILE__, __LINE__);
 }
 
 cl_mem  AllocClear(size_t lgrBytes) {
@@ -117,25 +117,17 @@ cl_mem  AllocClear(size_t lgrBytes) {
 
   tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
   oclCheckErr(status, "AllocClear");
-  ClearArrayDble(tab, lgrBytes);
+  ClearArrayDble(tab, lgrBytes / sizeof(real_t));
   return tab;
 }
 
-cl_mem SubBlock(cl_mem base, size_t org, size_t len)
-{
-  cl_int status = 0;
-  cl_buffer_region bufinfo;
+cl_mem  AllocClearL(size_t lgrBytes) {
   cl_mem tab;
+  cl_int status;
 
-  bufinfo.origin = org;
-  bufinfo.size = len;
-  tab = clCreateSubBuffer(base, 
-			  CL_MEM_READ_WRITE, 
-			  CL_BUFFER_CREATE_TYPE_REGION, &bufinfo, 
-			  &status);
-  oclCheckErr(status, "clCreateSubBuffer");
-  assert(tab != NULL);
-  oclMemset(tab, 0, len);
+  tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
+  oclCheckErr(status, "AllocClearL");
+  // ClearArrayDble(tab, lgrBytes / sizeof(real_t));
   return tab;
 }
 
@@ -143,25 +135,25 @@ void
 oclAllocOnDevice(const hydroparam_t H)
 {
   cl_int status = 0;
-  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
-  size_t lUold = H.arUoldSz * sizeof(double);
-  size_t lSz = H.arSz * H.nxystep * sizeof(double);
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(real_t);
+  size_t lUold = H.arUoldSz * sizeof(real_t);
+  size_t lSz = H.arSz * H.nxystep * sizeof(real_t);
   size_t lSzL = H.arSz * H.nxystep * sizeof(long);
-
-  uoldDEV = AllocClear(lUold);
-  uDEV = AllocClear(lVarSz);
-  qDEV = AllocClear(lVarSz);
-  dqDEV = AllocClear(lVarSz);
-  qxpDEV = AllocClear(lVarSz);
-  qleftDEV = AllocClear(lVarSz);
+                                  
+  uoldDEV = AllocClear(lUold);    
+  uDEV = AllocClear(lVarSz);      
+  qDEV = AllocClear(lVarSz);      
+  dqDEV = AllocClear(lVarSz);     
+  qxpDEV = AllocClear(lVarSz);    
+  qleftDEV = AllocClear(lVarSz); 
   qrightDEV = AllocClear(lVarSz);
-  qxmDEV = AllocClear(lVarSz);
+  qxmDEV = AllocClear(lVarSz);    
   qgdnvDEV = AllocClear(lVarSz);
-  fluxDEV = AllocClear(lVarSz);
+  fluxDEV = AllocClear(lVarSz);   
 
-  eDEV = AllocClear(lSz);
-  cDEV = AllocClear(lSz);
-  sgnmDEV = AllocClear(lSzL);
+  eDEV = AllocClear(lSz);         
+  cDEV = AllocClear(lSz);         
+  sgnmDEV = AllocClearL(lSzL);    
 }
 
 void
@@ -182,11 +174,11 @@ oclFreeOnDevice()
   OCLFREE(sgnmDEV);
 }
 
-#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
-#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
 
 void
-oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
+oclHydroGodunov(long idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   cl_int status;
   // Local variables
@@ -196,8 +188,8 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
   int Hdimsize;
   int Hndim_1;
   int slices, iend;
-  double dtdx;
-  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
+  real_t dtdx;
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(real_t);
   long Hnxyt = H.nxyt;
   int clear = 0;
   static FILE *fic = NULL;

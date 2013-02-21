@@ -38,6 +38,6 @@ knowledge of the CeCILL license and that you accept its terms.
 #ifndef CUCOMPUTE_DELTAT_H_INCLUDED
 #define CUCOMPUTE_DELTAT_H_INCLUDED
 
-void oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw);
+void oclComputeDeltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw);
 
 #endif // COMPUTE_DELTAT_H_INCLUDED

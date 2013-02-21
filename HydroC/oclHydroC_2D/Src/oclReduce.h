@@ -37,7 +37,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #ifndef OCLREDUCE_H
 #define OCLREDUCE_H
-
-double oclReduceMax(cl_mem array, long nb);
+#include "oclparam.h"
+real_t oclReduceMax(cl_mem array, long nb);
 #endif // OCLREDUCE_H
 //EOF

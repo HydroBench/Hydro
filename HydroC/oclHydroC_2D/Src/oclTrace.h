@@ -40,7 +40,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <CL/cl.h>
 
-void oclTrace(const double dtdx, const long n, const long Hscheme, 
+void oclTrace(const real_t dtdx, const long n, const long Hscheme, 
 	      const long Hnvar, const long Hnxyt,
 	      const int slices, const int Hstep,
 	      cl_mem qDEV, cl_mem dqDEV, cl_mem cDEV, cl_mem qxmDEV, cl_mem qxpDEV

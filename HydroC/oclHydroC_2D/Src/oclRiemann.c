@@ -48,8 +48,8 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void
 oclRiemann(const long narray,
-           const double Hsmallr,
-           const double Hsmallc, const double Hgamma,
+           const real_t Hsmallr,
+           const real_t Hsmallc, const real_t Hgamma,
            const long Hniter_riemann, const long Hnvar, const long Hnxyt,
            const int slices, const int Hstep, cl_mem qleft, cl_mem qright, cl_mem qgdnv, cl_mem sgnm) {
   // Local variables

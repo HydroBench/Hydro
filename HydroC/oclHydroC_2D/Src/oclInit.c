@@ -45,6 +45,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include "oclInit.h"
 #include "ocltools.h"
+#include "oclparam.h"
 
 cl_command_queue cqueue = 0;
 cl_context ctx = 0;
@@ -63,7 +64,7 @@ oclMemset(cl_mem a, cl_int v, size_t lbyte)
   cl_kernel kern = ker[KernelMemset]; 
 
   lgr = lbyte;
-  lgr /= (size_t) sizeof(cl_double);
+  lgr /= (size_t) sizeof(real_t);
   OCLSETARG03(kern, a, v, lgr); 
   oclLaunchKernel(ker[KernelMemset], cqueue, lgr, 1024, __FILE__, __LINE__);
 }
@@ -103,7 +104,7 @@ oclMakeHydroKernels()
   CREATEKER(pgm, ker[LoopKcuSlope], LoopKcuSlope);
   CREATEKER(pgm, ker[Loop1KcuTrace], Loop1KcuTrace);
   CREATEKER(pgm, ker[Loop2KcuTrace], Loop2KcuTrace);
-  CREATEKER(pgm, ker[LoopKredMaxDble], reduceMaxDble);
+  CREATEKER(pgm, ker[LoopKredMaxReal], reduceMaxReal);
   CREATEKER(pgm, ker[KernelMemset], KernelMemset);
   CREATEKER(pgm, ker[KernelMemsetV4], KernelMemsetV4);
   CREATEKER(pgm, ker[kpack_arrayv], kpack_arrayv);
@@ -141,7 +142,7 @@ oclReleaseHydroKernels()
   FREEKER( ker[LoopKcuSlope], LoopKcuSlope);
   FREEKER( ker[Loop1KcuTrace], Loop1KcuTrace);
   FREEKER( ker[Loop2KcuTrace], Loop2KcuTrace);
-  FREEKER( ker[LoopKredMaxDble], reduceMaxDble);
+  FREEKER( ker[LoopKredMaxReal], reduceMaxReal);
   FREEKER( ker[KernelMemset], KernelMemset);
   FREEKER( ker[KernelMemsetV4], KernelMemsetV4);
   FREEKER( ker[kpack_arrayv], kpack_arrayv);

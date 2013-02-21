@@ -87,7 +87,7 @@ oclGatherConservativeVars(const long idim,
 void
 oclUpdateConservativeVars(const long idim,
 			  const long rowcol,
-			  const double dtdx,
+			  const real_t dtdx,
 			  const long Himin,
 			  const long Himax,
 			  const long Hjmin,

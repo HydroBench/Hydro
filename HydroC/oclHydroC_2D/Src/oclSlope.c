@@ -48,7 +48,7 @@
 
 void
 oclSlope(const long narray, const long Hnvar, 
-	 const long Hnxyt, const double slope_type,
+	 const long Hnxyt, const real_t slope_type,
 	 const int slices, const int Hnxystep, 
 	 cl_mem q, cl_mem dq 
 	 )

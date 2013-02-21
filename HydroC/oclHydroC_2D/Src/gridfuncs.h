@@ -85,5 +85,5 @@ void initDevice(long myCard);
 void releaseDevice(long myCard);
 long getDeviceCapability(int *nDevice, long *maxMemOnDevice, long *maxThreads);
 
-double reduceMax(double *array, long nb);
+real_t reduceMax(real_t *array, long nb);
 #endif

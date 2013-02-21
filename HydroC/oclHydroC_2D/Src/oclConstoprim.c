@@ -46,7 +46,7 @@
 #include "ocltools.h"
 
 void
-oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsmallr,
+oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const real_t Hsmallr,
 	      const int slices, const int Hnxystep, 
 	      cl_mem u, cl_mem q, cl_mem e)
 {

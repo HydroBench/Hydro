@@ -67,7 +67,7 @@ typedef enum {
   LoopKcuSlope,
   Loop1KcuTrace,
   Loop2KcuTrace,
-  LoopKredMaxDble,
+  LoopKredMaxReal,
   KernelMemset,
   KernelMemsetV4,
   kpack_arrayv, kunpack_arrayv, kpack_arrayh, kunpack_arrayh, 

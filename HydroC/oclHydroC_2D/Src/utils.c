@@ -44,16 +44,16 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include "utils.h"
 
-double **
+real_t **
 allocate(long imin, long imax, long nvar)
 {
   long i;
 
 #ifdef FAST
-  double **r = (double **) malloc(nvar * sizeof(double *));
+  real_t **r = (real_t **) malloc(nvar * sizeof(real_t *));
 
 #else /*  */
-  double **r = (double **) calloc(nvar, sizeof(double *));
+  real_t **r = (real_t **) calloc(nvar, sizeof(real_t *));
 
 #endif /*  */
   assert(r != NULL);
@@ -63,15 +63,15 @@ allocate(long imin, long imax, long nvar)
   return r;
 }
 
-double *
+real_t *
 DMalloc(long n)
 {
 
 #ifdef FAST
-  double *r = (double *) malloc((n + MallocGuard) * sizeof(double));
+  real_t *r = (real_t *) malloc((n + MallocGuard) * sizeof(real_t));
 
 #else /*  */
-  double *r = (double *) calloc((n + MallocGuard), sizeof(double));
+  real_t *r = (real_t *) calloc((n + MallocGuard), sizeof(real_t));
 
 #endif /*  */
   assert(r != NULL);
@@ -120,7 +120,7 @@ printuold(FILE * fic, const hydroparam_t H, hydrovar_t * Hv)
 }
 
 void
-printarray(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarray(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   int Hnxystep = H.nxystep;
   int Hnxyt = H.nxyt;
@@ -161,7 +161,7 @@ printarrayi(FILE * fic, long *a, long n, const char *nom)
 }
 
 void
-printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarrayv(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   long i, nbr = 1;
   long nvar;
@@ -184,7 +184,7 @@ printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H
 }
 
 void
-printarrayv2(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarrayv2(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   long i, j, nbr = 1;
   long nvar;

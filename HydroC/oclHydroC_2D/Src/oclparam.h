@@ -37,12 +37,25 @@ knowledge of the CeCILL license and that you accept its terms.
 /*
   This is the bridge between c options and opencl ones.
 */
-inline size_t
-IHS(const int i, const int s, const int Hnxyt) {
-  return (i) + Hnxyt * (s);
-}
+// inline size_t
+// IHS(const int i, const int s, const int Hnxyt) {
+//   return (i) + Hnxyt * (s);
+// }
 
-inline size_t
-IHVWS(const int i, const int s, const int v, const int Hnxyt, const int Hnxystep) {
-  return i + Hnxyt * s + Hnxyt * Hnxystep * v;
-}
+// inline size_t
+// IHVWS(const int i, const int s, const int v, const int Hnxyt, const int Hnxystep) {
+//   return i + Hnxyt * s + Hnxyt * Hnxystep * v;
+// }
+
+#ifndef IHS
+#define IHS(i,s)     ((i) + Hnxyt * (s))
+#define IHS_(i,s,Hnxyt)     ((i) + (Hnxyt) * (s))
+#endif
+
+#ifndef IHVWS
+#define IHVWS(i,j,v) ( (i) + Hnxyt * (j) + Hnxyt * Hnxystep * (v) )
+#define IHVWS_(i,j,v,Hnxyt,Hnxystep) ( (i) + (Hnxyt) * (j) + (Hnxyt) * (Hnxystep) * (v) )
+#endif
+
+// typedef float real_t;
+typedef double real_t;

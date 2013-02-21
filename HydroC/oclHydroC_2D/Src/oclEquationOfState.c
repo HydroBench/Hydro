@@ -47,7 +47,7 @@
 
 void
 oclEquationOfState(long offsetIP, long offsetID, long imin, long imax, 
-		   const double Hsmallc, const double Hgamma,
+		   const real_t Hsmallc, const real_t Hgamma,
 		   const int slices, const int Hnxyt,
 		   cl_mem qDEV, cl_mem eintDEV, cl_mem cDEV)
 {

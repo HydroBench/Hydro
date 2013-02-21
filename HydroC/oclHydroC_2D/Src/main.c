@@ -134,13 +134,13 @@ void printTimingsLabel(const int N, const int fmtSize)
 int
 main(int argc, char **argv)
 {
-  double dt = 0;
+  real_t dt = 0;
   long nvtk = 0;
   char outnum[80];
   long time_output = 0;
 
   // double output_time = 0.0;
-  double next_output_time = 0;
+  real_t next_output_time = 0;
   double start_time = 0, start_time_2 = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
@@ -152,7 +152,7 @@ main(int argc, char **argv)
   start_time = dcclock ();
   process_args(argc, argv, &H);
   if (H.mype == 0) {
-    fprintf(stdout, "Hydro starts.\n");
+    fprintf(stdout, "Hydro starts in %s.\n", (sizeof(real_t) == sizeof(double))? "double precision": "single precision");
     fflush(stdout);
   }
   
@@ -203,10 +203,12 @@ main(int argc, char **argv)
         dt = dt / 2.0;
       }
       if (H.nproc > 1) {
-	double dtmin;
+	real_t dtmin;
 	int uno = 1;
 	start = cclock();
-	MPI_Allreduce(&dt, &dtmin, uno, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	MPI_Allreduce(&dt, &dtmin, uno, 
+		      (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, 
+		       MPI_MIN, MPI_COMM_WORLD);
 	end = cclock();
 	functim[TIM_ALLRED] += ccelaps(start, end);
 	dt = dtmin;
@@ -254,7 +256,7 @@ main(int argc, char **argv)
   elaps = (double) (end_time - start_time);
   timeToString(outnum, elaps);  
   if (H.mype == 0) {
-    fprintf(stdout, "Hydro ends in %ss(%.3lf) without init: %.3lfs.\n", outnum, elaps, (double) (end_time - start_time_2));
+    fprintf(stdout, "Hydro ends in %ss(%.3lf) without init: %.3lfs. [%s]\n", outnum, elaps, (double) (end_time - start_time_2), (sizeof(real_t) == sizeof(double))? "DP": "SP");
     fprintf(stdout, "    ");
   }
   if (H.nproc == 1) {

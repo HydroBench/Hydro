@@ -48,37 +48,38 @@
 #include "oclInit.h"
 #include "ocltools.h"
 
-double
+real_t
 oclReduceMax(cl_mem array, long nb) {
   cl_event event;
   cl_int err;
-  double resultat = 0, elapsk;
+  real_t resultat = 0; 
+  double elapsk;
   cl_mem temp1DEV;
   size_t gws[3], lws[3];
   int wrksiz, wrkgrp;
   size_t lgrlocal;
 
   // fprintf(stdout, "Reduc: %d %d %ld\n", wrksiz, wrkgrp, nb);
-  wrksiz = wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxDble], oclGetDeviceOfCQueue(cqueue));
+  wrksiz = wrkgrp = oclGetMaxWorkSize(ker[LoopKredMaxReal], oclGetDeviceOfCQueue(cqueue));
   // wrksiz = wrkgrp = 16;
 
-  lgrlocal = wrkgrp * sizeof(double);
+  lgrlocal = wrkgrp * sizeof(real_t);
 
-  temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(double), NULL, &err);
+  temp1DEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(real_t), NULL, &err);
   oclCheckErr(err, "");
 
   lws[0] = wrkgrp;
   gws[0] = wrkgrp;
-  OCLSETARG03(ker[LoopKredMaxDble], array, nb, temp1DEV);
-  oclSetArg(ker[LoopKredMaxDble], 3, lgrlocal, NULL, __FILE__, __LINE__);
-  err = clEnqueueNDRangeKernel(cqueue, ker[LoopKredMaxDble], 1, NULL, gws, lws, 0, NULL, &event);
+  OCLSETARG03(ker[LoopKredMaxReal], array, nb, temp1DEV);
+  oclSetArg(ker[LoopKredMaxReal], 3, lgrlocal, NULL, __FILE__, __LINE__);
+  err = clEnqueueNDRangeKernel(cqueue, ker[LoopKredMaxReal], 1, NULL, gws, lws, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueNDRangeKernel");
   err = clWaitForEvents(1, &event);
   oclCheckErr(err, "clWaitForEvents");
   err = clReleaseEvent(event);
   oclCheckErr(err, "clReleaseEvent");
 
-  err = clEnqueueReadBuffer(cqueue, temp1DEV, CL_TRUE, 0, sizeof(double), &resultat, 0, NULL, NULL);
+  err = clEnqueueReadBuffer(cqueue, temp1DEV, CL_TRUE, 0, sizeof(real_t), &resultat, 0, NULL, NULL);
   oclCheckErr(err, "clEnqueueReadBuffer");
 
   OCLFREE(temp1DEV);

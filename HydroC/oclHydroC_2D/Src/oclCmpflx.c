@@ -51,7 +51,7 @@
 
 void
 oclCmpflx(const long narray, const long Hnxyt, const long Hnvar, 
-	  const double Hgamma, 
+	  const real_t Hgamma, 
 	  const int slices, const int Hstep,
 	  cl_mem qgdnv, cl_mem flux)
 {

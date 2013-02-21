@@ -47,14 +47,14 @@
 #include "ocltools.h"
 
 void
-oclTrace(const double dtdx, const long n, const long Hscheme, 
+oclTrace(const real_t dtdx, const long n, const long Hscheme, 
 	 const long Hnvar, const long Hnxyt,
 	 const int slices, const int Hstep,
 	 cl_mem q, cl_mem dq, cl_mem c, cl_mem qxm, cl_mem qxp
 	 )
 {
   long ijmin, ijmax;
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  real_t zerol = 0.0, zeror = 0.0, project = 0.;
 
   WHERE("trace");
   ijmin = 0;

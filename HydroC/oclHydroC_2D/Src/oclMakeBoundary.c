@@ -50,7 +50,7 @@
 
 #define VALPERLINE 11
 int
-print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0, nbr = 1;
   int Hnxt = H.nxt;
   fprintf(fic, "BufferH\n");
@@ -74,7 +74,7 @@ print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 }
 
 int
-print_bufferv(FILE * fic, const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer, char *st) {
+print_bufferv(FILE * fic, const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer, char *st) {
   int ivar, i, j, p = 0, nbr = 1;
   int Hnyt = H.nyt;
   fprintf(fic, "BufferV %s\n", st);
@@ -104,11 +104,11 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   int i, i0, j, j0;
   int size;
   long n = 1;
-  double sign;
-  double *sendbufld;
-  double *sendbufru;
-  double *recvbufru;
-  double *recvbufld;
+  real_t sign;
+  real_t *sendbufld;
+  real_t *sendbufru;
+  real_t *recvbufru;
+  real_t *recvbufld;
 
   cl_mem recvbufruDEV, recvbufldDEV, sendbufldDEV, sendbufruDEV;
   MPI_Request requests[4];
@@ -124,22 +124,22 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   // }
 
   if (H.nproc > 1) {
-    sendbufld = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    sendbufld = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
     assert(sendbufld);
-    sendbufru = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    sendbufru = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
     assert(sendbufru);
-    recvbufru = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    recvbufru = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
     assert(recvbufru);
-    recvbufld = (double *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(double));
+    recvbufld = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
     assert(recvbufld);
     
-    recvbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
+    recvbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(real_t), NULL, &error);
     oclCheckErr(error, "");
-    recvbufldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
+    recvbufldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(real_t), NULL, &error);
     oclCheckErr(error, "");
-    sendbufldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
+    sendbufldDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(real_t), NULL, &error);
     oclCheckErr(error, "");
-    sendbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(double), NULL, &error);
+    sendbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(real_t), NULL, &error);
     oclCheckErr(error, "");
   }
 
@@ -160,29 +160,29 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
 
       if (H.box[RIGHT_BOX] != -1) {
         error =
-          clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(double), sendbufru, 0, NULL, &event);
+          clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(real_t), sendbufru, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
 	// print_bufferv(fic, H.nx, H, Hv, sendbufru, "H.nx");
 
-        MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Isend(sendbufru, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
       if (H.box[LEFT_BOX] != -1) {
         error =
-          clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(double), sendbufld, 0, NULL, &event);
+          clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(real_t), sendbufld, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
 	// print_bufferv(fic, ExtraLayer, H, Hv, sendbufld, "ExtraLayer");
-        MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Isend(sendbufld, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
       if (H.box[RIGHT_BOX] != -1) {
-        MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Irecv(recvbufru, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
       if (H.box[LEFT_BOX] != -1) {
-        MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Irecv(recvbufld, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
 
@@ -193,7 +193,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         i = H.nx + ExtraLayer;
         // fprintf(stderr, "make_boundary 03--%d\n", H.mype);
         error =
-          clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(double), recvbufru, 0, NULL, &event);
+          clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(real_t), recvbufru, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         OCLSETARG06(ker[kunpack_arrayv], i, H.nxt, H.nyt, H.nvar, recvbufruDEV, uoldDEV);
@@ -204,7 +204,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         i = 0;
         // fprintf(stderr, "make_boundary 04--%d\n", H.mype);
         error =
-          clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(double), recvbufld, 0, NULL, &event);
+          clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(real_t), recvbufld, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         OCLSETARG06(ker[kunpack_arrayv], i, H.nxt, H.nyt, H.nvar, recvbufldDEV, uoldDEV);
@@ -266,29 +266,29 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
 
       if (H.box[DOWN_BOX] != -1) {
         error =
-          clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(double), sendbufld, 0, NULL, &event);
+          clEnqueueReadBuffer(cqueue, sendbufldDEV, CL_TRUE, 0, size * sizeof(real_t), sendbufld, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stderr, ExtraLayer, H, Hv, sendbufld);
-        MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Isend(sendbufld, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
       if (H.box[UP_BOX] != -1) {
         error =
-          clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(double), sendbufru, 0, NULL, &event);
+          clEnqueueReadBuffer(cqueue, sendbufruDEV, CL_TRUE, 0, size * sizeof(real_t), sendbufru, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stderr, j, H, Hv, sendbufru);
-        MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Isend(sendbufru, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
 
       if (H.box[DOWN_BOX] != -1) {
-        MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Irecv(recvbufld, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
       if (H.box[UP_BOX] != -1) {
-        MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+        MPI_Irecv(recvbufru, size, (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
         reqcnt++;
       }
 
@@ -298,7 +298,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       if (H.box[DOWN_BOX] != -1) {
         j = 0;
         error =
-          clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(double), recvbufld, 0, NULL, &event);
+          clEnqueueWriteBuffer(cqueue, recvbufldDEV, CL_TRUE, 0, size * sizeof(real_t), recvbufld, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stdout, j, H, Hv, recvbufld);
@@ -309,7 +309,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
       if (H.box[UP_BOX] != -1) {
         j = H.ny + ExtraLayer;
         error =
-          clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(double), recvbufru, 0, NULL, &event);
+          clEnqueueWriteBuffer(cqueue, recvbufruDEV, CL_TRUE, 0, size * sizeof(real_t), recvbufru, 0, NULL, &event);
         oclCheckErr(error, "");
 	error = clReleaseEvent(event); oclCheckErr(error, "");
         // print_bufferh(stdout, j, H, Hv, recvbufru);
