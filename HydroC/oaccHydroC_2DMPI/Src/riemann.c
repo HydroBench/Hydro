@@ -35,6 +35,9 @@ void
 Dmemset (const size_t nbr, double t[nbr], const double motif)
 {
   //int i;
+#ifndef GRIDIFY
+#pragma acc kernels pcopyout(t[0:nbr])
+#endif
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
 #pragma hmppcg gridify(i)
@@ -43,7 +46,7 @@ Dmemset (const size_t nbr, double t[nbr], const double motif)
 #endif
 #endif
 #ifndef GRIDIFY
-#pragma acc parallel loop pcopyout(t[0:nbr])
+#pragma acc loop independent
 #endif
   for (int i = 0; i < nbr; i++)
     {
@@ -54,7 +57,7 @@ Dmemset (const size_t nbr, double t[nbr], const double motif)
 
 #define DABS(x) (double) fabs((x))
 #ifndef HMPP
-#define CFLOPS(c) {flops+=c;}
+#define CFLOPS(c) /*{flops+=c;}*/
 #else
 #define MAX(x,y) fmax(x,y)
 #define CFLOPS(c)
