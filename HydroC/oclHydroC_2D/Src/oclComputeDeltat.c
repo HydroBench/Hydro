@@ -40,6 +40,7 @@
 #include <malloc.h>
 // #include <unistd.h>
 #include <math.h>
+#include <float.h>
 #include <assert.h>
 
 #include "parametres.h"
@@ -89,8 +90,8 @@ oclComputeDeltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   long j;
   cl_mem uoldDEV, qDEV, eDEV, cDEV, courantDEV;
   real_t *lcourant;
-  real_t maxCourant;
-  real_t lmaxCourant;
+  real_t maxCourant = -1.0 * FLT_MAX;
+  real_t lmaxCourant = -1.0 * FLT_MAX;
   long Hnxyt = H.nxyt;
   cl_int err = 0;
   int slices = 1, jend, Hstep, Hnxystep, i;
@@ -127,16 +128,18 @@ oclComputeDeltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
 
 
   for (j = Hmin; j < Hmax; j += Hstep) {
+    int par10;
     jend = j + Hstep;
     if (jend >= Hmax)
       jend = Hmax;
     slices = jend - j;
 
-	//merged 3 kernel calls into one
-	OCLSETARG17( ker[LoopKComputeDeltat], j, uoldDEV, qDEV, eDEV, H.nxt, H.nyt, H.nxyt, H.nx, slices, (int)H.nxystep,
-									offsetIP, offsetID, H.smallc, H.gamma, H.smallr, cDEV, courantDEV );
-	oclLaunchKernel2D(ker[LoopKComputeDeltat], cqueue, H.nxyt, slices, THREADSSZ, __FILE__, __LINE__);
-
+    //merged 3 kernel calls into one
+    par10 = (int)H.nxystep;
+    OCLSETARG17( ker[LoopKComputeDeltat], j, uoldDEV, qDEV, eDEV, H.nxt, H.nyt, H.nxyt, H.nx, slices, par10,
+		 offsetIP, offsetID, H.smallc, H.gamma, H.smallr, cDEV, courantDEV );
+    oclLaunchKernel2D(ker[LoopKComputeDeltat], cqueue, H.nxyt, slices, THREADSSZ, __FILE__, __LINE__);
+    
     if (H.prt) {
       GETARR(courantDEV, lcourant);
       PRINTARRAY(fic, lcourant, H.nx, "lcourant", H);
@@ -149,7 +152,7 @@ oclComputeDeltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   // PRINTARRAY(fic, lcourant, H.nx, "lcourant avant reduction", H);
   maxCourant = oclReduceMax(courantDEV, H.nxyt * H.nxystep);
 
-  lmaxCourant = 0.;
+  lmaxCourant = -1.0 * FLT_MAX;
   for (i = 0; i < H.nxyt * H.nxystep; i++) {
     lmaxCourant = fmax(lmaxCourant, lcourant[i]);
   }

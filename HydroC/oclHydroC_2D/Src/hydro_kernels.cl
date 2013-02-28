@@ -1219,7 +1219,8 @@ reduceMaxReal(__global real_t *buffer,
 	      __local real_t *scratch) {
   int global_index = get_global_id(0);
   int local_index  = get_local_id(0);
-  real_t accumulator = -DBL_MAX;
+  // Our initial value is the minimum possible for a given precision
+  real_t accumulator = -1 * ((sizeof(real_t) == sizeof(double)) ? DBL_MAX: FLT_MAX);
   // Pass 1
   // Loop sequentially over chunks of input vector
 
