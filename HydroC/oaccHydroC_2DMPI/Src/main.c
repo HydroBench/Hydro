@@ -94,7 +94,7 @@ unsigned long flops = 0;
 int
 main (int argc, char **argv)
 {
-  double dt = 0;
+  real dt = 0;
   int nvtk = 0;
   char outnum[80];
   int time_output = 0;
@@ -134,19 +134,19 @@ main (int argc, char **argv)
     
     
   //Data management tweaking
-  double (*e)[H.nxyt];
-  double (*flux)[H.nxystep][H.nxyt];
-  double (*qleft)[H.nxystep][H.nxyt];
-  double (*qright)[H.nxystep][H.nxyt];
-  double (*c)[H.nxyt];
-  double *uold;
+  real (*e)[H.nxyt];
+  real (*flux)[H.nxystep][H.nxyt];
+  real (*qleft)[H.nxystep][H.nxyt];
+  real (*qright)[H.nxystep][H.nxyt];
+  real (*c)[H.nxyt];
+  real *uold;
   int (*sgnm)[H.nxyt];
-  double (*qgdnv)[H.nxystep][H.nxyt];
-  double (*u)[H.nxystep][H.nxyt];
-  double (*qxm)[H.nxystep][H.nxyt];
-  double (*qxp)[H.nxystep][H.nxyt];
-  double (*q)[H.nxystep][H.nxyt];
-  double (*dq)[H.nxystep][H.nxyt];
+  real (*qgdnv)[H.nxystep][H.nxyt];
+  real (*u)[H.nxystep][H.nxyt];
+  real (*qxm)[H.nxystep][H.nxyt];
+  real (*qxp)[H.nxystep][H.nxyt];
+  real (*q)[H.nxystep][H.nxyt];
+  real (*dq)[H.nxystep][H.nxyt];
   
   start = cclock();
   allocate_work_space (H.nxyt, H, &Hw, &Hvw);
@@ -155,18 +155,18 @@ main (int argc, char **argv)
   
   
   uold = Hv.uold;
-  qgdnv = (double (*)[H.nxystep][H.nxyt]) Hvw.qgdnv;
-  flux = (double (*)[H.nxystep][H.nxyt]) Hvw.flux;
-  c = (double (*)[H.nxyt]) Hw.c;
-  e = (double (*)[H.nxyt]) Hw.e;
-  qleft = (double (*)[H.nxystep][H.nxyt]) Hvw.qleft;
-  qright = (double (*)[H.nxystep][H.nxyt]) Hvw.qright;
+  qgdnv = (real (*)[H.nxystep][H.nxyt]) Hvw.qgdnv;
+  flux = (real (*)[H.nxystep][H.nxyt]) Hvw.flux;
+  c = (real (*)[H.nxyt]) Hw.c;
+  e = (real (*)[H.nxyt]) Hw.e;
+  qleft = (real (*)[H.nxystep][H.nxyt]) Hvw.qleft;
+  qright = (real (*)[H.nxystep][H.nxyt]) Hvw.qright;
   sgnm = (int (*)[H.nxyt]) Hw.sgnm;
-  q = (double (*)[H.nxystep][H.nxyt]) Hvw.q;
-  dq = (double (*)[H.nxystep][H.nxyt]) Hvw.dq;
-  u = (double (*)[H.nxystep][H.nxyt]) Hvw.u;
-  qxm = (double (*)[H.nxystep][H.nxyt]) Hvw.qxm;
-  qxp = (double (*)[H.nxystep][H.nxyt]) Hvw.qxp;
+  q = (real (*)[H.nxystep][H.nxyt]) Hvw.q;
+  dq = (real (*)[H.nxystep][H.nxyt]) Hvw.dq;
+  u = (real (*)[H.nxystep][H.nxyt]) Hvw.u;
+  qxm = (real (*)[H.nxystep][H.nxyt]) Hvw.qxm;
+  qxp = (real (*)[H.nxystep][H.nxyt]) Hvw.qxp;
   
   start = cclock();
 #pragma acc data						\
