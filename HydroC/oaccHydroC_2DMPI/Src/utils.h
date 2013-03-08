@@ -18,20 +18,20 @@
 // Make sure that the pointer is unusable afterwards.
 #define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
 #endif /*  */
-double **allocate (int imin, int imax, int nvar);
-double *DMalloc (long n);
+real **allocate (int imin, int imax, int nvar);
+real *DMalloc (long n);
 int *IMalloc (long n);
 
 // 0 means perfect memory management from the code ;-)
 // static const int MallocGuard = 0;
 #define MallocGuard 0
 void printuoldf (FILE * fic, const hydroparam_t H, hydrovar_t * Hv);
-void printarray (FILE * fic, double *a, int n, const char *nom,
+void printarray (FILE * fic, real *a, int n, const char *nom,
 		 const hydroparam_t H);
 void printarrayi (FILE * fic, int *a, int n, const char *nom);
-void printarrayv (FILE * fic, double *a, int n, const char *nom,
+void printarrayv (FILE * fic, real *a, int n, const char *nom,
 		  const hydroparam_t H);
-void printarrayv2 (FILE * fic, double *a, int n, const char *nom,
+void printarrayv2 (FILE * fic, real *a, int n, const char *nom,
 		   const hydroparam_t H);
 void timeToString (char *buf, const double timeInS);
 double Dcclock (void);
@@ -39,10 +39,10 @@ double Dcclock (void);
 #ifndef PRINTUOLD
 #ifndef HMPP
 #define PRINTUOLD(f,x,y) if ((x).prt) { printuoldf((f), (x), (y)); }
-#define PRINTARRAY(f,x,y,z,t) if ((t).prt) { printarray((f), (double *) (x), (y), (z), (t)); }
+#define PRINTARRAY(f,x,y,z,t) if ((t).prt) { printarray((f), (real *) (x), (y), (z), (t)); }
 #define PRINTARRAYI(f,x,y,z,t) if ((t).prt) { printarrayi((f), (x), (y), (z)); }
-#define PRINTARRAYV(f,x,y,z,t) if ((t).prt) { printarrayv((f), (double *) (x), (y), (z), (t)); }
-#define PRINTARRAYV2(f,x,y,z,t) if ((t).prt) { printarrayv2((f), (double *) (x), (y), (z), (t)); }
+#define PRINTARRAYV(f,x,y,z,t) if ((t).prt) { printarrayv((f), (real *) (x), (y), (z), (t)); }
+#define PRINTARRAYV2(f,x,y,z,t) if ((t).prt) { printarrayv2((f), (real *) (x), (y), (z), (t)); }
 #else /*  */
 // HMPP doesn't support prints : kill them
 #define PRINTUOLD(x, y)

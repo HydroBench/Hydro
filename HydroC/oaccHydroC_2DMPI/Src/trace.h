@@ -5,12 +5,12 @@
 
 
 
-void trace (const double dtdx,
+void trace (const real dtdx,
 	    const int n,
 	    const int Hscheme,
 	    const int Hnvar,
 	    const int Hnxyt,
 	    const int slices, const int Hstep,
-	    double *q, double *dq, double *c, double *qxm, double *qxp);
+	    real *q, real *dq, real *c, real *qxm, real *qxp);
 
 #endif // TRACE_H_INCLUDED

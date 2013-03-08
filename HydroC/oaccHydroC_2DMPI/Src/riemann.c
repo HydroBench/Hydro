@@ -32,7 +32,7 @@
 
 
 void
-Dmemset (const size_t nbr, double t[nbr], const double motif)
+Dmemset (const size_t nbr, real t[nbr], const real motif)
 {
   //int i;
 #ifndef GRIDIFY
@@ -55,7 +55,7 @@ Dmemset (const size_t nbr, double t[nbr], const double motif)
 }
 
 
-#define DABS(x) (double) fabs((x))
+#define DABS(x) (real) fabs((x))
 #ifndef HMPP
 #define CFLOPS(c) /*{flops+=c;}*/
 #else
@@ -69,14 +69,14 @@ Dmemset (const size_t nbr, double t[nbr], const double motif)
 
 void
 riemann (const int narray,
-	 const double Hsmallr,
-	 const double Hsmallc,
-	 const double Hgamma,
+	 const real Hsmallr,
+	 const real Hsmallc,
+	 const real Hgamma,
 	 const int Hniter_riemann,
 	 const int Hnvar,
 	 const int Hnxyt,
 	 const int slices, const int Hstep,
-	 double *qleft, double *qright, double *qgdnv, int *sgnm)
+	 real *qleft, real *qright, real *qgdnv, int *sgnm)
 {
   //double qleft[Hnvar][Hstep][Hnxyt],
   //double qright[Hnvar][Hstep][Hnxyt], //
@@ -84,9 +84,9 @@ riemann (const int narray,
   //int sgnm[Hstep][Hnxyt]) {
   // #define IHVW(i, v) ((i) + (v) * Hnxyt)
   //int i, s;
-  const double smallp_ = Square (Hsmallc) / Hgamma;
-  const double gamma6_ = (Hgamma + one) / (two * Hgamma);
-  const double smallpp_ = Hsmallr * smallp_;
+  const real smallp_ = Square (Hsmallc) / Hgamma;
+  const real gamma6_ = (Hgamma + one) / (two * Hgamma);
+  const real smallpp_ = Hsmallr * smallp_;
 
   // Pressure, density and velocity
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) 
@@ -108,27 +108,27 @@ riemann (const int narray,
 #endif /* !GRIDIFY */
           for (int i = 0; i < narray; i++)
 	        {
-	          double smallp = smallp_;
-	          double gamma6 = gamma6_;
-	          double smallpp = smallpp_;
-	          double rl_i = MAX (qleft[IDX (ID, s, i)], Hsmallr);
-	          double ul_i = qleft[IDX (IU, s, i)];
-	          double pl_i = MAX (qleft[IDX (IP, s, i)], (double) (rl_i * smallp));
-	          double rr_i = MAX (qright[IDX (ID, s, i)], Hsmallr);
-	          double ur_i = qright[IDX (IU, s, i)];
-	          double pr_i =
-	            MAX (qright[IDX (IP, s, i)], (double) (rr_i * smallp));
+	          real smallp = smallp_;
+	          real gamma6 = gamma6_;
+	          real smallpp = smallpp_;
+	          real rl_i = MAX (qleft[IDX (ID, s, i)], Hsmallr);
+	          real ul_i = qleft[IDX (IU, s, i)];
+	          real pl_i = MAX (qleft[IDX (IP, s, i)], (real) (rl_i * smallp));
+	          real rr_i = MAX (qright[IDX (ID, s, i)], Hsmallr);
+	          real ur_i = qright[IDX (IU, s, i)];
+	          real pr_i =
+	            MAX (qright[IDX (IP, s, i)], (real) (rr_i * smallp));
 	          CFLOPS (2);
 
 	          // Lagrangian sound speed
-	          double cl_i = Hgamma * pl_i * rl_i;
-	          double cr_i = Hgamma * pr_i * rr_i;
+	          real cl_i = Hgamma * pl_i * rl_i;
+	          real cr_i = Hgamma * pr_i * rr_i;
 	          CFLOPS (4);
 	          // First guess
 
-	          double wl_i = sqrt (cl_i);
-	          double wr_i = sqrt (cr_i);
-	          double pstar_i =
+	          real wl_i = sqrt (cl_i);
+	          real wr_i = sqrt (cr_i);
+	          real pstar_i =
 	            MAX (((wr_i * pl_i + wl_i * pr_i) +
 		          wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), 0.0);
 	          CFLOPS (9);
@@ -141,18 +141,18 @@ riemann (const int narray,
 	              {
 		        if (goon)
 		          {
-		            double wwl, wwr;
+		            real wwl, wwr;
 		            wwl =
 		              sqrt (cl_i * (one + gamma6 * (pstar_i - pl_i) / pl_i));
 		            wwr =
 		              sqrt (cr_i * (one + gamma6 * (pstar_i - pr_i) / pr_i));
-		            double ql =
+		            real ql =
 		              two * wwl * Square (wwl) / (Square (wwl) + cl_i);
-		            double qr =
+		            real qr =
 		              two * wwr * Square (wwr) / (Square (wwr) + cr_i);
-		            double usl = ul_i - (pstar_i - pl_i) / wwl;
-		            double usr = ur_i + (pstar_i - pr_i) / wwr;
-		            double delp_i =
+		            real usl = ul_i - (pstar_i - pl_i) / wwl;
+		            real usr = ur_i + (pstar_i - pr_i) / wwr;
+		            real delp_i =
 		              MAX ((qr * ql / (qr + ql) * (usl - usr)), (-pstar_i));
 		            CFLOPS (38);
 
@@ -161,7 +161,7 @@ riemann (const int narray,
 		            CFLOPS (1);
 
 		            // Convergence indicator
-		            double uo_i = DABS (delp_i / (pstar_i + smallpp));
+		            real uo_i = DABS (delp_i / (pstar_i + smallpp));
 		            CFLOPS (2);
 
 		            goon = uo_i > PRECISION;
@@ -176,13 +176,13 @@ riemann (const int narray,
 	              CFLOPS (10);
 	            }
 
-	          double ustar_i =
+	          real ustar_i =
 	            half * (ul_i + (pl_i - pstar_i) / wl_i + ur_i -
 		            (pr_i - pstar_i) / wr_i);
 	          CFLOPS (8);
 
 	          int left = ustar_i > 0;
-	          double ro_i, uo_i, po_i, wo_i;
+	          real ro_i, uo_i, po_i, wo_i;
 
 	          if (left)
 	            {
@@ -201,22 +201,22 @@ riemann (const int narray,
 	              wo_i = wr_i;
 	            }
 
-	          double co_i = sqrt (DABS (Hgamma * po_i / ro_i));
+	          real co_i = sqrt (DABS (Hgamma * po_i / ro_i));
 	          co_i = MAX (Hsmallc, co_i);
 	          CFLOPS (2);
 
-	          double rstar_i =
+	          real rstar_i =
 	            ro_i / (one + ro_i * (po_i - pstar_i) / Square (wo_i));
 	          rstar_i = MAX (rstar_i, Hsmallr);
 	          CFLOPS (6);
 
-	          double cstar_i = sqrt (DABS (Hgamma * pstar_i / rstar_i));
+	          real cstar_i = sqrt (DABS (Hgamma * pstar_i / rstar_i));
 	          cstar_i = MAX (Hsmallc, cstar_i);
 	          CFLOPS (2);
 
-	          double spout_i = co_i - sgnm[IDXE (s, i)] * uo_i;
-	          double spin_i = cstar_i - sgnm[IDXE (s, i)] * ustar_i;
-	          double ushock_i = wo_i / ro_i - sgnm[IDXE (s, i)] * uo_i;
+	          real spout_i = co_i - sgnm[IDXE (s, i)] * uo_i;
+	          real spin_i = cstar_i - sgnm[IDXE (s, i)] * ustar_i;
+	          real ushock_i = wo_i / ro_i - sgnm[IDXE (s, i)] * uo_i;
 	          CFLOPS (7);
 
 	          if (pstar_i >= po_i)
@@ -225,18 +225,18 @@ riemann (const int narray,
 	              spout_i = ushock_i;
 	            }
 
-	          double scr_i = MAX ((double) (spout_i - spin_i),
-			              (double) (Hsmallc + DABS (spout_i + spin_i)));
+	          real scr_i = MAX ((real) (spout_i - spin_i),
+			              (real) (Hsmallc + DABS (spout_i + spin_i)));
 	          CFLOPS (3);
 
-	          double frac_i = (one + (spout_i + spin_i) / scr_i) * half;
-	          frac_i = MAX (zero, (double) (MIN (one, frac_i)));
+	          real frac_i = (one + (spout_i + spin_i) / scr_i) * half;
+	          frac_i = MAX (zero, (real) (MIN (one, frac_i)));
 	          CFLOPS (4);
 
 	          int addSpout = spout_i < zero;
 	          int addSpin = spin_i > zero;
-	          // double originalQgdnv = !addSpout & !addSpin;
-	          double qgdnv_ID, qgdnv_IU, qgdnv_IP;
+	          // real originalQgdnv = !addSpout & !addSpin;
+	          real qgdnv_ID, qgdnv_IU, qgdnv_IP;
 
 	          if (addSpout)
 	            {

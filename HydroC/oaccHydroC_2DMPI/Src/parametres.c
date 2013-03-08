@@ -184,37 +184,65 @@ process_input (char *datafile, hydroparam_t * H)
       // float parameters
       if (strcmp (pkey, "slope_type") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->slope_type);
+#else
+	  sscanf (pval, "%f", &H->slope_type);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "tend") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->tend);
+#else
+	  sscanf (pval, "%lf", &H->tend);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "dx") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->dx);
+#else
+	  sscanf (pval, "%f", &H->dx);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "courant_factor") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->courant_factor);
+#else
+	  sscanf (pval, "%f", &H->courant_factor);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "smallr") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->smallr);
+#else
+	  sscanf (pval, "%f", &H->smallr);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "smallc") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->smallc);
+#else
+	  sscanf (pval, "%f", &H->smallc);
+#endif
 	  continue;
 	}
       if (strcmp (pkey, "dtoutput") == 0)
 	{
+#ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->dtoutput);
+#else
+	  sscanf (pval, "%lf", &H->dtoutput);
+#endif
 	  continue;
 	}
       // string parameter

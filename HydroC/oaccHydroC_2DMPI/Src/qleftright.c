@@ -26,7 +26,7 @@ qleftright (const int idim,
 	    const int Hnxyt,
 	    const int Hnvar,
 	    const int slices, const int Hstep,
-	    double *qxm, double *qxp, double *qleft, double *qright)
+	    real *qxm, real *qxp, real *qleft, real *qright)
 {
   //double qxm[Hnvar][Hstep][Hnxyt],
   //double qxp[Hnvar][Hstep][Hnxyt], double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt]) {

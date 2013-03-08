@@ -1,3 +1,4 @@
+
 #ifndef PARAMETRES_H_INCLUDED
 #define PARAMETRES_H_INCLUDED
 extern unsigned long flops;
@@ -53,12 +54,13 @@ typedef struct _hydroparam
   // numerical scheme
   int niter_riemann;
   int iorder;
-  double slope_type;
+  real slope_type;
 
   // char scheme[20];
   int scheme;
   int boundary_right, boundary_left, boundary_down, boundary_up;
 } hydroparam_t;
+
 
 #define HSCHEME_MUSCL 1
 #define HSCHEME_PLMDE 2
@@ -67,7 +69,7 @@ typedef struct _hydroparam
 // Hydrovar holds the whole 2D problem for all variables
 typedef struct _hydrovar
 {
-  double *uold;			// nxt, nyt, nvar allocated as (nxt * nyt), nvar
+  real *uold;			// nxt, nyt, nvar allocated as (nxt * nyt), nvar
 } hydrovar_t;			// 1:nvar
 #ifndef IHv
 // #define IHv(i,j,v) ((i) + (j) * H.nxt + (H.nxt * H.nyt) * (v))

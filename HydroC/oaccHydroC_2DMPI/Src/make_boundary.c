@@ -20,20 +20,20 @@
 
 static int
 pack_arrayv (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
-	     double *buffer);
+	     real *buffer);
 static int unpack_arrayv (const int xmin, const hydroparam_t H,
-			  hydrovar_t * Hv, double *buffer);
+			  hydrovar_t * Hv, real *buffer);
 static int pack_arrayh (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
-			double *buffer);
+			real *buffer);
 static int unpack_arrayh (const int xmin, const hydroparam_t H,
-			  hydrovar_t * Hv, double *buffer);
-static MPI_Request send_array (int to, double *buf, int size, int tag);
-static MPI_Request recv_array (int from, double *buf, int size, int tag);
+			  hydrovar_t * Hv, real *buffer);
+static MPI_Request send_array (int to, real *buf, int size, int tag);
+static MPI_Request recv_array (int from, real *buf, int size, int tag);
 static void
 exch_boundary (Box_t dir, const hydroparam_t H, hydrovar_t * Hv, int tag);
 
 MPI_Request
-send_array (int to, double *buf, int size, int tag)
+send_array (int to, real *buf, int size, int tag)
 {
   MPI_Request request = NULL;
   int err = 0;
@@ -43,7 +43,7 @@ send_array (int to, double *buf, int size, int tag)
 }
 
 MPI_Request
-recv_array (int from, double *buf, int size, int tag)
+recv_array (int from, real *buf, int size, int tag)
 {
   MPI_Request request = NULL;
   MPI_Status st;
@@ -56,7 +56,7 @@ recv_array (int from, double *buf, int size, int tag)
 
 int
 pack_arrayv (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
-	     double *buffer)
+	     real *buffer)
 {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++)
@@ -74,7 +74,7 @@ pack_arrayv (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 
 int
 unpack_arrayv (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
-	       double *buffer)
+	       real *buffer)
 {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++)
@@ -92,7 +92,7 @@ unpack_arrayv (const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 
 int
 pack_arrayh (const int ymin, const hydroparam_t H, hydrovar_t * Hv,
-	     double *buffer)
+	     real *buffer)
 {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++)
@@ -110,7 +110,7 @@ pack_arrayh (const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 
 int
 unpack_arrayh (const int ymin, const hydroparam_t H, hydrovar_t * Hv,
-	       double *buffer)
+	       real *buffer)
 {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++)
@@ -129,7 +129,7 @@ unpack_arrayh (const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 #define VALPERLINE 11
 int
 print_bufferh (FILE * fic, const int ymin, const hydroparam_t H,
-	       hydrovar_t * Hv, double *buffer)
+	       hydrovar_t * Hv, real *buffer)
 {
   int ivar, i, j, p = 0, nbr = 1;
   for (ivar = 3; ivar < H.nvar; ivar++)
@@ -158,8 +158,8 @@ void
 exch_boundary (Box_t dir, const hydroparam_t H, hydrovar_t * Hv, int tag)
 {
   int i, j, ivar, size, err;
-  double sendbuf[ExtraLayerTot * H.nxyt * H.nvar];
-  double recvbuf[ExtraLayerTot * H.nxyt * H.nvar];
+  real sendbuf[ExtraLayerTot * H.nxyt * H.nvar];
+  real recvbuf[ExtraLayerTot * H.nxyt * H.nvar];
   MPI_Status st;
 
   switch (dir)
@@ -226,12 +226,12 @@ make_boundary (int idim, const hydroparam_t H, hydrovar_t * Hv)
   // des index depuis fortran.
   // - - - - - - - - - - - - - - - - - - -
   int i, ivar, i0, j, j0, err, size;
-  double sign;
-  double sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
-  double sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  //   double *sendbufru, *sendbufld;
-  double recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  double recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  real sign;
+  real sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  real sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  //   real *sendbufru, *sendbufld;
+  real recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  real recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
   //   double *recvbufru, *recvbufld;
   MPI_Status st;
   MPI_Win winld, winru;

@@ -12,9 +12,9 @@ void equation_of_state (int imin,
 			int imax,
 			const int Hnxyt,
 			const int Hnvar,
-			const double Hsmallc,
-			const double Hgamma,
+			const real Hsmallc,
+			const real Hgamma,
 			const int slices, const int Hstep,
-			double *eint, double *q, double *c);
+			real *eint, real *q, real *c);
 
 #endif // EQUATION_OF_STATE_H_INCLUDED

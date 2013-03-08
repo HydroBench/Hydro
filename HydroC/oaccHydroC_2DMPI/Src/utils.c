@@ -14,17 +14,17 @@
 #include <sys/time.h>
 
 #include "utils.h"
-// #include "parametres.h"
-double **
+#include "parametres.h"
+real **
 allocate (int imin, int imax, int nvar)
 {
   int i;
 
 #ifdef FAST
-  double **r = (double **) malloc (nvar * sizeof (double *));
+  real **r = (real **) malloc (nvar * sizeof (real *));
 
 #else /*  */
-  double **r = (double **) calloc (nvar, sizeof (double *));
+  real **r = (real **) calloc (nvar, sizeof (real *));
 
 #endif /*  */
   assert (r != NULL);
@@ -35,15 +35,15 @@ allocate (int imin, int imax, int nvar)
   return r;
 }
 
-double *
+real *
 DMalloc (long n)
 {
 
 #ifdef FAST
-  double *r = (double *) malloc ((n + MallocGuard) * sizeof (double));
+  real *r = (real *) malloc ((n + MallocGuard) * sizeof (real));
 
 #else /*  */
-  double *r = (double *) calloc ((n + MallocGuard), sizeof (double));
+  real *r = (real *) calloc ((n + MallocGuard), sizeof (real));
 
 #endif /*  */
   assert (r != NULL);
@@ -98,10 +98,10 @@ printuoldf (FILE * fic, const hydroparam_t H, hydrovar_t * Hv)
 }
 
 void
-printarray (FILE * fic, double *a, int n, const char *nom,
+printarray (FILE * fic, real *a, int n, const char *nom,
 	    const hydroparam_t H)
 {
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+  real (*ptr)[H.nxyt] = (real (*)[H.nxyt]) a;
   long i, j, nbr = 1;
   fprintf (fic, "=%s >\n", nom);
   for (j = 0; j < H.nxystep; j++)
@@ -143,13 +143,13 @@ printarrayi (FILE * fic, int *a, int n, const char *nom)
 }
 
 void
-printarrayv (FILE * fic, double *a, int n, const char *nom,
+printarrayv (FILE * fic, real *a, int n, const char *nom,
 	     const hydroparam_t H)
 {
   int i, nbr = 1;
   int nvar;
   fprintf (fic, "=%s >\n", nom);
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+  real (*ptr)[H.nxyt] = (real (*)[H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++)
     {
       nbr = 1;
@@ -170,13 +170,13 @@ printarrayv (FILE * fic, double *a, int n, const char *nom,
 }
 
 void
-printarrayv2 (FILE * fic, double *a, int n, const char *nom,
+printarrayv2 (FILE * fic, real *a, int n, const char *nom,
 	      const hydroparam_t H)
 {
   int i, j, nbr = 1;
   int nvar;
   fprintf (fic, "=%s >\n#", nom);
-  double (*ptr)[H.nxystep][H.nxyt] = (double (*)[H.nxystep][H.nxyt]) a;
+  real (*ptr)[H.nxystep][H.nxyt] = (real (*)[H.nxystep][H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++)
     {
       for (j = 0; j < H.nxystep; j++)

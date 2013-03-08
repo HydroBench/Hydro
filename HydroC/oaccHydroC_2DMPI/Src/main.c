@@ -197,7 +197,7 @@ main (int argc, char **argv)
 	    }
 	    if (H.nproc > 1)
 	      {
-	      	volatile double dtmin;
+	      	volatile real dtmin;
 		start = cclock();
 	      	MPI_Allreduce (&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN,
 			       MPI_COMM_WORLD);
@@ -253,8 +253,8 @@ main (int argc, char **argv)
 	  }
 	}
 	if (H.mype == 0) {
-	  fprintf (stdout, "--> Step=%4d, %12.5e, %10.5e %s\n", H.nstep, H.t,
-		   dt, outnum);
+	  fprintf (stdout, "--> Step=%4d, %12.5e, %10.5e %f %s\n", H.nstep, H.t,
+		   dt, dt, outnum);
 	  fflush (stdout);
 	}
       }

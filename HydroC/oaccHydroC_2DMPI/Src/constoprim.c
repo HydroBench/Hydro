@@ -24,9 +24,9 @@ void
 constoprim (const int n,
 	    const int Hnxyt,
 	    const int Hnvar,
-	    const double Hsmallr,
+	    const real Hsmallr,
 	    const int slices, const int Hstep,
-	    double *u, double *q, double *e)
+	    real *u, real *q, real *e)
 {
   //double u[Hnvar][Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]) {
   //int ijmin, ijmax, IN, i, s;
@@ -58,17 +58,17 @@ constoprim (const int n,
 #endif /* !GRIDIFY */
       for (int i = ijmin; i < ijmax; i++)
 	    {
-	      double qid = MAX (u[IDX (ID, s, i)], Hsmallr);
+	      real qid = MAX (u[IDX (ID, s, i)], Hsmallr);
 	      q[IDX (ID, s, i)] = qid;
 
-	      double qiu = u[IDX (IU, s, i)] / qid;
-	      double qiv = u[IDX (IV, s, i)] / qid;
+	      real qiu = u[IDX (IU, s, i)] / qid;
+	      real qiv = u[IDX (IV, s, i)] / qid;
 	      q[IDX (IU, s, i)] = qiu;
 	      q[IDX (IV, s, i)] = qiv;
 
-	      double eken = half * (Square (qiu) + Square (qiv));
+	      real eken = half * (Square (qiu) + Square (qiv));
 
-	      double qip = u[IDX (IP, s, i)] / qid - eken;
+	      real qip = u[IDX (IP, s, i)] / qid - eken;
 	      q[IDX (IP, s, i)] = qip;
 	      e[IDXE (s, i)] = qip;
 

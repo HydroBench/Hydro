@@ -16,15 +16,15 @@
 
 #ifndef HMPP
 
-#define DABS(x) (double) fabs((x))
+#define DABS(x) (real) fabs((x))
 #define IDX(i,j,k) ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 
 void
 slope (const int n,
        const int Hnvar,
        const int Hnxyt,
-       const double Hslope_type,
-       const int slices, const int Hstep, double *q, double *dq){
+       const real Hslope_type,
+       const int slices, const int Hstep, real *q, real *dq){
        //const int slices, const int Hstep, double* q[Hnvar][Hstep][Hnxyt], double* dq) {
   //int nbv, i, ijmin, ijmax, s;
   //double dlft, drgt, dcen, dsgn, slop, dlim;
@@ -65,11 +65,11 @@ slope (const int n,
 #endif /* !GRIDIFY */
         for (int i = ijmin + 1; i < ijmax - 1; i++)
         {
-double dlft, drgt, dcen, dsgn, slop, dlim;
+real dlft, drgt, dcen, dsgn, slop, dlim;
             dlft = Hslope_type * (q[IDX (nbv, s, i)]      - q[IDX (nbv, s, i - 1)]);
             drgt = Hslope_type * (q[IDX (nbv, s, i + 1)]  - q[IDX (nbv, s, i)]);
             dcen = half * (dlft + drgt) / Hslope_type;
-            dsgn = (dcen > 0) ? (double) 1.0 : (double) -1.0;	// sign(one, dcen);
+            dsgn = (dcen > 0) ? (real) 1.0 : (real) -1.0;	// sign(one, dcen);
             slop = fmin (fabs (dlft), fabs (drgt));
             dlim = slop;
             if ((dlft * drgt) <= zero){
