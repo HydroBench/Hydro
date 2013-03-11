@@ -100,7 +100,7 @@ main (int argc, char **argv)
   int time_output = 0;
 
   // double output_time = 0.0;
-  double next_output_time = 0;
+  real next_output_time = 0;
   double start_time = 0, start_time_2=0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
@@ -122,7 +122,6 @@ main (int argc, char **argv)
 
   if (H.dtoutput > 0)
     {
-
       // outputs are in physical time not in time steps
       time_output = 1;
       next_output_time = next_output_time + H.dtoutput;

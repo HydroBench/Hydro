@@ -160,8 +160,7 @@ compute_deltat (real *dt, const hydroparam_t H, hydrowork_t * Hw,
 
 			//download everything on Host
 //#pragma acc update host (q[0:H.nvar],c[0:H.nxystep])
-      courantOnXY (&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c,
-		   q);
+      courantOnXY (&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c, q);
 		   
 		   
 #ifdef FLOPS
@@ -171,10 +170,8 @@ compute_deltat (real *dt, const hydroparam_t H, hydrowork_t * Hw,
   //Free (Hvw->q);
   //Free (Hw->e);
   //Free (Hw->c);
-  printf("dt = H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc))\n");
-  printf("%f   %f    %f    %f  %f %f \n", *dt,H.courant_factor , H.dx, cournox,cournoy, H.smallc);
-  *dt = H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc));
-  printf("After  DT : %f\n", *dt);
+  printf("dt= %f , Courant= %f , dx= %f , cournox= %f , cournoy= %f , smallc= %f\n ",*dt,H.courant_factor,H.dx , cournox , cournoy,   H.smallc);
+  *dt =(real)( H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc)));
 #ifdef FLOPS
   flops += 2;
 

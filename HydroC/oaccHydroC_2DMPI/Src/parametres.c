@@ -196,7 +196,7 @@ process_input (char *datafile, hydroparam_t * H)
 #ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->tend);
 #else
-	  sscanf (pval, "%lf", &H->tend);
+	  sscanf (pval, "%f", &H->tend);
 #endif
 	  continue;
 	}
@@ -241,7 +241,7 @@ process_input (char *datafile, hydroparam_t * H)
 #ifdef USE_DOUBLE
 	  sscanf (pval, "%lf", &H->dtoutput);
 #else
-	  sscanf (pval, "%lf", &H->dtoutput);
+	  sscanf (pval, "%f", &H->dtoutput);
 #endif
 	  continue;
 	}

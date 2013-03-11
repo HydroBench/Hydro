@@ -2,7 +2,10 @@
 # GNU Makefile version
 ######################
 
-CFLAGS=-D__NO_INLINE__
+CFLAGS=-D__NO_INLINE__ 
+ifeq ($(PREC),DOUBLE)
+	CFLAGS=-D__NO_INLINE__ -DUSE_DOUBLE 
+endif
 
 #This variable can be overridden  from the command line
 TARGET=opencl

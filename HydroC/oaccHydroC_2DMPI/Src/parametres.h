@@ -26,10 +26,10 @@ typedef struct _hydroparam
   int prt;
 
   // time control
-  double t, tend;
+  real t, tend;
   int nstep, nstepmax;
   int noutput;
-  double dtoutput;
+  real dtoutput;
 
   // dimensions
   int imin, imax, jmin, jmax, nx, ny, nxt, nyt, nxyt, nxystep;
@@ -107,7 +107,7 @@ typedef struct _hydrowork
 // All variables are grouped in structs for clarity sake.
 /*
   Warning : no global variables are declared.
-  They are passed as arguments.
+   They are passed as arguments.
 */
 
 // useful constants to force double promotion
