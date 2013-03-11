@@ -20,18 +20,18 @@
 #include "utils.h"
 #include "equation_of_state.h"
 
-#define DABS(x) (real) fabs((x))
+#define DABS(x) (hydro_real_t) fabs((x))
 
 static void
 ComputeQEforRow (const int j,
-		 const real Hsmallr,
+		 const hydro_real_t Hsmallr,
 		 const int Hnx,
 		 const int Hnxt,
 		 const int Hnyt,
 		 const int Hnxyt,
 		 const int Hnvar,
-		 const int slices, const int Hstep, real *uold,
-		 real *q, real *e)
+		 const int slices, const int Hstep, hydro_real_t *uold,
+		 hydro_real_t *q, hydro_real_t *e)
 {
   int i, s;
   //  double eken;
@@ -58,7 +58,7 @@ ComputeQEforRow (const int j,
 #endif /* !GRIDIFY */
       for (i = 0; i < Hnx; i++)
 	{
-real eken;
+hydro_real_t eken;
 	  int idxuID = IHV (i + ExtraLayer, j + s, ID);
 	  int idxuIU = IHV (i + ExtraLayer, j + s, IU);
 	  int idxuIV = IHV (i + ExtraLayer, j + s, IV);
@@ -77,16 +77,16 @@ real eken;
 }
 
 static void
-courantOnXY (real *cournox,
-	     real *cournoy,
+courantOnXY (hydro_real_t *cournox,
+	     hydro_real_t *cournoy,
 	     const int Hnx,
 	     const int Hnxyt,
 	     const int Hnvar, const int slices, const int Hstep,
-	     real *c, real *q)
+	     hydro_real_t *c, hydro_real_t *q)
 {
   int i, s;
   // double maxValC = zero;
-  real tmp1, tmp2;
+  hydro_real_t tmp1, tmp2;
 
   // #define IHVW(i,v) ((i) + (v) * nxyt)
   //     maxValC = c[0];
@@ -97,8 +97,8 @@ courantOnXY (real *cournox,
   //         *cournox = MAX(*cournox, maxValC + DABS(q[IU][i]));
   //         *cournoy = MAX(*cournoy, maxValC + DABS(q[IV][i]));
   //     }
-  real _cournox = *cournox;
-  real _cournoy = *cournoy;
+  hydro_real_t _cournox = *cournox;
+  hydro_real_t _cournoy = *cournoy;
 #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt],c[0:Hstep*Hnxyt])
   {
 #pragma acc loop independent reduction(max:_cournox) reduction(max:_cournoy) gang(128)
@@ -121,14 +121,14 @@ courantOnXY (real *cournox,
 }
 
 void
-compute_deltat (real *dt, const hydroparam_t H, hydrowork_t * Hw,
+compute_deltat (hydro_real_t *dt, const hydroparam_t H, hydrowork_t * Hw,
 		hydrovar_t * Hv, hydrovarwork_t * Hvw)
 {
-  real cournox, cournoy;
+  hydro_real_t cournox, cournoy;
   int j, jend, slices, Hstep, Hmin, Hmax;
-  real (*e)[H.nxyt];
-  real (*c)[H.nxyt];
-  real (*q)[H.nxystep][H.nxyt];
+  hydro_real_t (*e)[H.nxyt];
+  hydro_real_t (*c)[H.nxyt];
+  hydro_real_t (*q)[H.nxystep][H.nxyt];
   WHERE ("compute_deltat");
 
   //   compute time step on grid interior
@@ -138,9 +138,9 @@ compute_deltat (real *dt, const hydroparam_t H, hydrowork_t * Hw,
   //Hw->e = (double (*)) malloc ((H.nxyt) * H.nxystep * sizeof (double));
   //Hw->c = (double (*)) malloc ((H.nxyt) * H.nxystep * sizeof (double));
 
-  c = (real (*)[H.nxyt]) Hw->c;
-  e = (real (*)[H.nxyt]) Hw->e;
-  q = (real (*)[H.nxystep][H.nxyt]) Hvw->q;
+  c = (hydro_real_t (*)[H.nxyt]) Hw->c;
+  e = (hydro_real_t (*)[H.nxyt]) Hw->e;
+  q = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw->q;
 
   Hstep = H.nxystep;
   Hmin = H.jmin + ExtraLayer;
@@ -171,7 +171,7 @@ compute_deltat (real *dt, const hydroparam_t H, hydrowork_t * Hw,
   //Free (Hw->e);
   //Free (Hw->c);
   printf("dt= %f , Courant= %f , dx= %f , cournox= %f , cournoy= %f , smallc= %f\n ",*dt,H.courant_factor,H.dx , cournox , cournoy,   H.smallc);
-  *dt =(real)( H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc)));
+  *dt =(hydro_real_t)( H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc)));
 #ifdef FLOPS
   flops += 2;
 

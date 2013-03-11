@@ -29,7 +29,7 @@ gatherConservativeVars (const int idim,
 			const int Hnyt,
 			const int Hnxyt,
 			const int slices, const int Hstep,
-			real *uold, real *u
+			hydro_real_t *uold, hydro_real_t *u
 			//double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt]
   )
 {
@@ -178,7 +178,7 @@ gatherConservativeVars (const int idim,
 void
 updateConservativeVars (const int idim,
 			const int rowcol,
-			const real dtdx,
+			const hydro_real_t dtdx,
 			const int Himin,
 			const int Himax,
 			const int Hjmin,
@@ -188,8 +188,8 @@ updateConservativeVars (const int idim,
 			const int Hnyt,
 			const int Hnxyt,
 			const int slices, const int Hstep,
-			real *uold, real *u,
-			real *flux
+			hydro_real_t *uold, hydro_real_t *u,
+			hydro_real_t *flux
 			//double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]
   )
 {

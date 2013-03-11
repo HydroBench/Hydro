@@ -5,9 +5,9 @@ extern unsigned long flops;
 
 
 #ifdef USE_DOUBLE
-typedef double real;
+typedef double hydro_real_t;
 #else
-typedef float real;
+typedef float hydro_real_t;
 #endif
 
 
@@ -26,16 +26,16 @@ typedef struct _hydroparam
   int prt;
 
   // time control
-  real t, tend;
+  hydro_real_t t, tend;
   int nstep, nstepmax;
   int noutput;
-  real dtoutput;
+  hydro_real_t dtoutput;
 
   // dimensions
   int imin, imax, jmin, jmax, nx, ny, nxt, nyt, nxyt, nxystep;
 
   /*
-     nx, ny: real useful size of the domain
+     nx, ny: hydro_real_t useful size of the domain
      i/j min, max: the total domain index range
      nxt, nyt: the total domain size (includes 2 extra layers around the domain)
      nxyt: maximum of nxt and nyt to minimize allocations
@@ -46,15 +46,15 @@ typedef struct _hydroparam
 
   // physics
   int nvar;
-  real dx;
-  real gamma;
-  real courant_factor;
-  real smallc, smallr;
+  hydro_real_t dx;
+  hydro_real_t gamma;
+  hydro_real_t courant_factor;
+  hydro_real_t smallc, smallr;
 
   // numerical scheme
   int niter_riemann;
   int iorder;
-  real slope_type;
+  hydro_real_t slope_type;
 
   // char scheme[20];
   int scheme;
@@ -69,7 +69,7 @@ typedef struct _hydroparam
 // Hydrovar holds the whole 2D problem for all variables
 typedef struct _hydrovar
 {
-  real *uold;			// nxt, nyt, nvar allocated as (nxt * nyt), nvar
+  hydro_real_t *uold;			// nxt, nyt, nvar allocated as (nxt * nyt), nvar
 } hydrovar_t;			// 1:nvar
 #ifndef IHv
 // #define IHv(i,j,v) ((i) + (j) * H.nxt + (H.nxt * H.nyt) * (v))
@@ -80,8 +80,8 @@ typedef struct _hydrovar
 // work arrays along one direction for all variables
 typedef struct _hydrovarwork
 {
-  real *u, *q, *qxm, *qxp, *dq;	// (nxt or nyt), nvar
-  real *qleft, *qright, *qgdnv, *flux;	// (nx+1 or ny+1), nvar
+  hydro_real_t *u, *q, *qxm, *qxp, *dq;	// (nxt or nyt), nvar
+  hydro_real_t *qleft, *qright, *qgdnv, *flux;	// (nx+1 or ny+1), nvar
 } hydrovarwork_t;		// 1:nvar
 #ifndef IHvw
 // #define IHvw(i,v) ((i) + (v) * H.nxyt)
@@ -91,16 +91,16 @@ typedef struct _hydrovarwork
 // works arrays along one direction
 typedef struct _hydrowork
 {
-  real *c;			// nxt or nyt
-  real *e;			// nxt or nyt
+  hydro_real_t *c;			// nxt or nyt
+  hydro_real_t *e;			// nxt or nyt
   // all others nx+1 or ny+1
-  real *rl, *ul, *pl, *cl, *wl;
-  real *rr, *ur, *pr, *cr, *wr;
-  real *ro, *uo, *po, *co, *wo;
-  real *rstar, *ustar, *pstar, *cstar;
-  real *spin, *spout, *ushock;
+  hydro_real_t *rl, *ul, *pl, *cl, *wl;
+  hydro_real_t *rr, *ur, *pr, *cr, *wr;
+  hydro_real_t *ro, *uo, *po, *co, *wo;
+  hydro_real_t *rstar, *ustar, *pstar, *cstar;
+  hydro_real_t *spin, *spout, *ushock;
   int *sgnm;
-  real *frac, *scr, *delp, *pold;
+  hydro_real_t *frac, *scr, *delp, *pold;
   int *ind, *ind2;
 } hydrowork_t;
 
@@ -112,16 +112,16 @@ typedef struct _hydrowork
 
 // useful constants to force double promotion
 #ifdef ALWAYS			// HMPP
-static const real zero = (real) 0.0;
-static const real one = (real) 1.0;
-static const real two = (real) 2.0;
-static const real three = (real) 3.0;
-static const real hundred = (real) 100.0;
-static const real two3rd = (real) 2.0 / (real) 3.0;
-static const real half = (real) 1.0 / (real) 2.0;
-static const real third = (real) 1.0 / (real) 3.0;
-static const real forth = (real) 1.0 / (real) 4.0;
-static const real sixth = (real) 1.0 / (real) 6.0;
+static const hydro_real_t zero = (hydro_real_t) 0.0;
+static const hydro_real_t one = (hydro_real_t) 1.0;
+static const hydro_real_t two = (hydro_real_t) 2.0;
+static const hydro_real_t three = (hydro_real_t) 3.0;
+static const hydro_real_t hundred = (hydro_real_t) 100.0;
+static const hydro_real_t two3rd = (hydro_real_t) 2.0 / (hydro_real_t) 3.0;
+static const hydro_real_t half = (hydro_real_t) 1.0 / (hydro_real_t) 2.0;
+static const hydro_real_t third = (hydro_real_t) 1.0 / (hydro_real_t) 3.0;
+static const hydro_real_t forth = (hydro_real_t) 1.0 / (hydro_real_t) 4.0;
+static const hydro_real_t sixth = (hydro_real_t) 1.0 / (hydro_real_t) 6.0;
 
 // conservative variables with C indexing
 static const int ID = 1 - 1;
@@ -134,16 +134,16 @@ static const int ExtraLayer = 2;
 static const int ExtraLayerTot = 2 * 2;
 
 #else /*  */
-#define zero   ((real) 0.0)
-#define one    ((real) 1.0)
-#define two    ((real) 2.0)
-#define three  ((real) 3.0)
-#define hundred  ((real) 100.0)
-#define two3rd ((real) 2.0 / (real) 3.0)
-#define half   ((real) 1.0 / (real) 2.0)
-#define third  ((real) 1.0 / (real) 3.0)
-#define forth  ((real) 1.0 / (real) 4.0)
-#define sixth  ((real) 1.0 / (real) 6.0)
+#define zero   ((hydro_real_t) 0.0)
+#define one    ((hydro_real_t) 1.0)
+#define two    ((hydro_real_t) 2.0)
+#define three  ((hydro_real_t) 3.0)
+#define hundred  ((hydro_real_t) 100.0)
+#define two3rd ((hydro_real_t) 2.0 / (hydro_real_t) 3.0)
+#define half   ((hydro_real_t) 1.0 / (hydro_real_t) 2.0)
+#define third  ((hydro_real_t) 1.0 / (hydro_real_t) 3.0)
+#define forth  ((hydro_real_t) 1.0 / (hydro_real_t) 4.0)
+#define sixth  ((hydro_real_t) 1.0 / (hydro_real_t) 6.0)
 #define ID     (0)
 #define IU     (1)
 #define IV     (2)

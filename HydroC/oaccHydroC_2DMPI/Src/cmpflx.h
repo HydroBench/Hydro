@@ -6,7 +6,7 @@
 void cmpflx (const int narray,
 	     const int Hnxyt,
 	     const int Hnvar,
-	     const real Hgamma,
-	     const int slices, const int Hstep, real *qgdnv, real *flux);
+	     const hydro_real_t Hgamma,
+	     const int slices, const int Hstep, hydro_real_t *qgdnv, hydro_real_t *flux);
 
 #endif // CMPFLX_H_INCLUDED

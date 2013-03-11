@@ -8,8 +8,8 @@
 void constoprim (const int n,
 		 const int Hnxyt,
 		 const int Hnvar,
-		 const real  Hsmallr,
+		 const hydro_real_t  Hsmallr,
 		 const int slices, const int Hstep,
-		 real  *u, real *q, real *e);
+		 hydro_real_t  *u, hydro_real_t *q, hydro_real_t *e);
 
 #endif // CONSTOPRIM_H_INCLUDED

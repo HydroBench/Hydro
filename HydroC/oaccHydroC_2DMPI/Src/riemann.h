@@ -5,15 +5,15 @@
 
 
 void riemann (int narray,
-	      const real Hsmallr,
-	      const real Hsmallc,
-	      const real Hgamma,
+	      const hydro_real_t Hsmallr,
+	      const hydro_real_t Hsmallc,
+	      const hydro_real_t Hgamma,
 	      const int Hniter_riemann,
 	      const int Hnvar,
 	      const int Hnxyt,
 	      const int slices, const int Hstep,
-	      real *qleft, real *qright, real *qgdnv, int *sgnm);
+	      hydro_real_t *qleft, hydro_real_t *qright, hydro_real_t *qgdnv, int *sgnm);
 
-void Dmemset (size_t nbr, real t[nbr], real motif);
+void Dmemset (size_t nbr, hydro_real_t t[nbr], hydro_real_t motif);
 
 #endif // RIEMANN_H_INCLUDED

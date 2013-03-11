@@ -24,10 +24,10 @@ equation_of_state (const int imin,
 		   const int imax,
 		   const int Hnxyt,
 		   const int Hnvar,
-		   const real Hsmallc,
-		   const real Hgamma,
+		   const hydro_real_t Hsmallc,
+		   const hydro_real_t Hgamma,
 		   const int slices, const int Hstep,
-		   real *eint, real *q, real *c)
+		   hydro_real_t *eint, hydro_real_t *q, hydro_real_t *c)
 {
   //double eint[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt]) {
   //int k, s;
@@ -39,7 +39,7 @@ equation_of_state (const int imin,
 
   #pragma acc kernels present(eint[0:Hstep*Hnxyt], q[0:Hnvar*Hstep*Hnxyt], c[0:Hstep*Hnxyt])
   {
-    real smallp = Square (Hsmallc) / Hgamma;
+    hydro_real_t smallp = Square (Hsmallc) / Hgamma;
     CFLOPS (1);
 #ifdef GRIDIFY
 #ifndef GRIDIFY_TUNE_PHI
@@ -58,9 +58,9 @@ equation_of_state (const int imin,
 #endif /* !GRIDIFY */
       for (int k = imin; k < imax; k++)
 	    {
-	      real rhok = q[IDX (ID, s, k)];
-	      real base = (Hgamma - one) * rhok * eint[IDXE (s, k)];
-	      base = MAX (base, (real) (rhok * smallp));
+	      hydro_real_t rhok = q[IDX (ID, s, k)];
+	      hydro_real_t base = (Hgamma - one) * rhok * eint[IDXE (s, k)];
+	      base = MAX (base, (hydro_real_t) (rhok * smallp));
 
 	      q[IDX (IP, s, k)] = base;
 	      c[IDXE (s, k)] = sqrt (Hgamma * base / rhok);
