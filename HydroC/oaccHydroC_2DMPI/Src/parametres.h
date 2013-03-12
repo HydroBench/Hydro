@@ -4,10 +4,15 @@
 extern unsigned long flops;
 
 
+
+
+//Double/single precision management
 #ifdef USE_DOUBLE
 typedef double hydro_real_t;
+#define autocast(x) x
 #else
 typedef float hydro_real_t;
+#define autocast(x) x ##f
 #endif
 
 
@@ -112,16 +117,16 @@ typedef struct _hydrowork
 
 // useful constants to force double promotion
 #ifdef ALWAYS			// HMPP
-static const hydro_real_t zero = (hydro_real_t) 0.0;
-static const hydro_real_t one = (hydro_real_t) 1.0;
-static const hydro_real_t two = (hydro_real_t) 2.0;
-static const hydro_real_t three = (hydro_real_t) 3.0;
-static const hydro_real_t hundred = (hydro_real_t) 100.0;
-static const hydro_real_t two3rd = (hydro_real_t) 2.0 / (hydro_real_t) 3.0;
-static const hydro_real_t half = (hydro_real_t) 1.0 / (hydro_real_t) 2.0;
-static const hydro_real_t third = (hydro_real_t) 1.0 / (hydro_real_t) 3.0;
-static const hydro_real_t forth = (hydro_real_t) 1.0 / (hydro_real_t) 4.0;
-static const hydro_real_t sixth = (hydro_real_t) 1.0 / (hydro_real_t) 6.0;
+static const hydro_real_t zero = (hydro_real_t) autocast(0.0);
+static const hydro_real_t one = (hydro_real_t) autocast(1.0);
+static const hydro_real_t two = (hydro_real_t) autocast(2.0);
+static const hydro_real_t three = (hydro_real_t) autocast(3.0);
+static const hydro_real_t hundred = (hydro_real_t)autocast( 100.0);
+static const hydro_real_t two3rd = (hydro_real_t) autocast(2.0) / (hydro_real_t) autocast(3.0);							       	
+static const hydro_real_t half = (hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(2.0);
+static const hydro_real_t third = (hydro_real_t) autocast(1.0f / (hydro_real_t) autocast(3.0);
+							  static const hydro_real_t forth = (hydro_real_t) autocast(1.0f / (hydro_real_t) autocast(4.0);
+														    static const hydro_real_t sixth = (hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(6.0);
 
 // conservative variables with C indexing
 static const int ID = 1 - 1;
@@ -134,16 +139,16 @@ static const int ExtraLayer = 2;
 static const int ExtraLayerTot = 2 * 2;
 
 #else /*  */
-#define zero   ((hydro_real_t) 0.0)
-#define one    ((hydro_real_t) 1.0)
-#define two    ((hydro_real_t) 2.0)
-#define three  ((hydro_real_t) 3.0)
-#define hundred  ((hydro_real_t) 100.0)
-#define two3rd ((hydro_real_t) 2.0 / (hydro_real_t) 3.0)
-#define half   ((hydro_real_t) 1.0 / (hydro_real_t) 2.0)
-#define third  ((hydro_real_t) 1.0 / (hydro_real_t) 3.0)
-#define forth  ((hydro_real_t) 1.0 / (hydro_real_t) 4.0)
-#define sixth  ((hydro_real_t) 1.0 / (hydro_real_t) 6.0)
+#define zero   ((hydro_real_t) autocast(0.0))
+#define one    ((hydro_real_t) autocast(1.0))
+#define two    ((hydro_real_t) autocast(2.0))
+#define three  ((hydro_real_t) autocast(3.0))
+#define hundred  ((hydro_real_t) autocast(100.0))
+#define two3rd ((hydro_real_t) autocast(2.0) / (hydro_real_t)autocast( 3.0))
+#define half   ((hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(2.0))
+#define third  ((hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(3.0))
+#define forth  ((hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(4.0))
+#define sixth  ((hydro_real_t) autocast(1.0) / (hydro_real_t) autocast(6.0))
 #define ID     (0)
 #define IU     (1)
 #define IV     (2)

@@ -19,6 +19,7 @@
 #define IDX(i,j,k)    ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 #define IDXE(i,j)     ( (i*Hnxyt) + j )
 
+
 void
 equation_of_state (const int imin,
 		   const int imax,
