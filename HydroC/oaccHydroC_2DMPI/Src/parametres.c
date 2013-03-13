@@ -48,17 +48,17 @@ default_values (hydroparam_t * H)
 
   H->nxystep = -1;		// default=one row/column processed per call
   H->nvar = IP + 1;
-  H->dx = one;
-  H->t = zero;
+  H->dx = 1.0;
+  H->t = 0.0;
   H->nstep = 0;
-  H->tend = zero;
+  H->tend = 0.0;
   H->gamma = 1.4;
   H->courant_factor = one / two;
   H->smallc = 1e-10;
   H->smallr = 1e-10;
   H->niter_riemann = 10;
   H->iorder = 2;
-  H->slope_type = one;
+  H->slope_type = 1.;
 
   // strcpy(H->scheme, "muscl");
   H->scheme = HSCHEME_MUSCL;
@@ -68,7 +68,7 @@ default_values (hydroparam_t * H)
   H->boundary_down = 1;
   H->noutput = 1000000;
   H->nstepmax = 1000000;
-  H->dtoutput = zero;
+  H->dtoutput = 0.0;
 }
 
 

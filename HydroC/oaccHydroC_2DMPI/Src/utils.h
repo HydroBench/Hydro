@@ -14,23 +14,6 @@
 #define MIN(x, y) ((x) < (y)? (x): (y))
 #endif /*  */
 
-#ifndef DABS
-#ifdef USE_DOUBLE
-#define DABS(x) fabs(x)
-#else
-#define DABS(x) fabsf(x)
-#endif// USE_DOUBLE
-#endif
-
-#ifndef sqrt
-#ifdef USE_DOUBLE
-#define sqrt(x) sqrt(x)
-#else
-#define sqrt(x) sqrtf(x)
-#endif
-#endif
-
-
 #ifndef Free
 // Make sure that the pointer is unusable afterwards.
 #define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)

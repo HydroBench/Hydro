@@ -20,7 +20,7 @@
 #include "utils.h"
 #include "equation_of_state.h"
 
-//#define DABS(x) (hydro_real_t) fabsf((x))
+#define DABS(x) (hydro_real_t) fabs((x))
 
 static void
 ComputeQEforRow (const int j,
@@ -159,7 +159,7 @@ compute_deltat (hydro_real_t *dt, const hydroparam_t H, hydrowork_t * Hw,
       equation_of_state (0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma, slices, Hstep, e, q, c);
 
 			//download everything on Host
-      //#pragma acc update host (q[0:H.nvar],c[0:H.nxystep])
+//#pragma acc update host (q[0:H.nvar],c[0:H.nxystep])
       courantOnXY (&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c, q);
 		   
 		   
@@ -170,6 +170,7 @@ compute_deltat (hydro_real_t *dt, const hydroparam_t H, hydrowork_t * Hw,
   //Free (Hvw->q);
   //Free (Hw->e);
   //Free (Hw->c);
+  printf("dt= %f , Courant= %f , dx= %f , cournox= %f , cournoy= %f , smallc= %f\n ",*dt,H.courant_factor,H.dx , cournox , cournoy,   H.smallc);
   *dt =(hydro_real_t)( H.courant_factor * H.dx / MAX (cournox, MAX (cournoy, H.smallc)));
 #ifdef FLOPS
   flops += 2;

@@ -26,7 +26,7 @@
 #define HMPP
 #endif
 
-#define PRECISION autocast(1e-6)
+#define PRECISION 1e-6
 #define IDX(i,j,k)    ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 #define IDXE(i,j)    ( (i*Hnxyt) + j )
 
@@ -55,14 +55,16 @@ Dmemset (const size_t nbr, hydro_real_t t[nbr], const hydro_real_t motif)
 }
 
 
+#define DABS(x) (hydro_real_t) fabs((x))
 #ifndef HMPP
 #define CFLOPS(c) /*{flops+=c;}*/
 #else
-//#define MAX(x,y) fmaxf(x,y)
+#define MAX(x,y) fmax(x,y)
 #define CFLOPS(c)
 #endif
 
 /* For CAL/IL */
+/* #define sqrt(x) ((double) sqrtf((float)x)) */
 /* #define DABS(x) (x > 0.0 ? x : -x) */
 
 void
@@ -128,7 +130,7 @@ riemann (const int narray,
 	          hydro_real_t wr_i = sqrt (cr_i);
 	          hydro_real_t pstar_i =
 	            MAX (((wr_i * pl_i + wl_i * pr_i) +
-		          wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), zero);
+		          wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), 0.0);
 	          CFLOPS (9);
 
 	          // Newton-Raphson iterations to find pstar at the required accuracy

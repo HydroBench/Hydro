@@ -15,6 +15,8 @@
 #include "slope.h"
 
 #ifndef HMPP
+
+#define DABS(x) (hydro_real_t) fabs((x))
 #define IDX(i,j,k) ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 
 void
@@ -67,14 +69,14 @@ hydro_real_t dlft, drgt, dcen, dsgn, slop, dlim;
             dlft = Hslope_type * (q[IDX (nbv, s, i)]      - q[IDX (nbv, s, i - 1)]);
             drgt = Hslope_type * (q[IDX (nbv, s, i + 1)]  - q[IDX (nbv, s, i)]);
             dcen = half * (dlft + drgt) / Hslope_type;
-            dsgn = (dcen > zero) ? one:-one;	// sign(one, dcen);
-            slop = MIN(DABS(dlft), DABS(drgt));
+            dsgn = (dcen > 0) ? (hydro_real_t) 1.0 : (hydro_real_t) -1.0;	// sign(one, dcen);
+            slop = fmin (fabs (dlft), fabs (drgt));
             dlim = slop;
             if ((dlft * drgt) <= zero){
 	            dlim = zero;
 	          }
           
-            dq[IDX(nbv, s, i)] = dsgn * MIN(dlim, DABS(dcen));
+            dq[IDX(nbv, s, i)] = dsgn * fmin (dlim, fabs (dcen));
 
            #ifdef FLOPS
             flops += 8;
