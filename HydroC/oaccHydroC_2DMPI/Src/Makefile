@@ -110,7 +110,7 @@ dos2unix:
 
 
 clean:
-	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d *.txt
+	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d 
 	rm -rf *.cu* *extracted* *hdpp* *translated* *.hmg* *.tif
 
 #EOF
