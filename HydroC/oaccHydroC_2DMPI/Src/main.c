@@ -100,7 +100,7 @@ main (int argc, char **argv)
   int time_output = 0;
 
   // double output_time = 0.0;
-  hydro_real_t next_output_time = 0;
+  hydro_real_t next_output_time = zero;
   double start_time = 0, start_time_2=0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
@@ -192,7 +192,7 @@ main (int argc, char **argv)
 	    end = cclock();
 	    functim[TIM_COMPDT] += ccelaps(start, end);
 	    if (H.nstep == 0){
-	      dt = dt / 2.0;
+	      dt = dt / two;
 	    }
 	    if (H.nproc > 1)
 	      {

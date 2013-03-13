@@ -40,7 +40,7 @@ trace (const hydro_real_t dtdx,
   //double apright, amright, azrright, azv1right, acmpright;
   //double apleft, amleft, azrleft, azv1left, acmpleft;
   
-  hydro_real_t zerol = 0.0, zeror = 0.0, project = 0.;
+  hydro_real_t zerol = zero, zeror = zero, project = zero;
 
   WHERE ("trace");
   //ijmin = 0;
