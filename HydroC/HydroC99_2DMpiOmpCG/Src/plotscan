@@ -1,0 +1,8 @@
+#!/bin/sh
+gnuplot -persist <<EOF
+
+set logscale xy
+plot "scan.dat" w l, "scanfg.dat" w l
+
+EOF
+#EOF

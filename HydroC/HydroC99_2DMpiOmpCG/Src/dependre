@@ -1,0 +1,12 @@
+#!/bin/sh
+
+for i in `cat $1` ; do
+echo $i >> lig$$.txt
+done
+
+egrep -v '^/|\\' lig$$.txt | tr '\n' ' ' > res$$.txt
+echo >> res$$.txt
+cat res$$.txt
+
+rm lig$$.txt res$$.txt
+#EOF

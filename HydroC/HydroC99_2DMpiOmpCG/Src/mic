@@ -1,0 +1,5 @@
+#!/bin/sh
+rm make.inc; ln -s make_mic_mpi make.inc
+make clean
+rm *.d
+#EOF
