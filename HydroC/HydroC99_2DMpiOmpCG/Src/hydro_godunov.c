@@ -153,32 +153,69 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, h
 #pragma omp parallel for private(j) shared(uold, u) 
     // schedule(static, 1) 
     for (j = Hmin; j < Hmax; j++) {
+      struct timespec start, end;
       int myThread = omp_get_thread_num();
       int slice = myThread;
       // fprintf(stderr, "Godunov slice=%d\n", slice);
       // fprintf(stderr, "Godunov idim=%d, j=%d %d \n", idim, j, slice);
 
+      start = cclock();
       gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slice, Hstep, uold, u); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_GATCON] += ccelaps(start, end);
 
       // Convert to primitive variables
+      start = cclock();
       constoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slice, Hstep, u, q, e); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_CONPRI] += ccelaps(start, end);
 
+      start = cclock();
       equation_of_state(0, Hdimsize, H.nxyt, H.nvar, H.smallc, H.gamma, slice, Hstep, e, q, c);
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_EOS] += ccelaps(start, end);
 
       // Characteristic tracing
       if (H.iorder != 1) {
+	start = cclock();
         slope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slice, Hstep, q, dq); // done
+	end = cclock();
+#pragma omp atomic
+	functim[TIM_SLOPE] += ccelaps(start, end);
       }
 
+      start = cclock();
       trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slice, Hstep, q, dq, c, qxm, qxp); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_TRACE] += ccelaps(start, end);
 
+      start = cclock();
       qleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slice, Hstep, qxm, qxp, qleft, qright); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_QLEFTR] += ccelaps(start, end);
 
+      start = cclock();
       riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slice, Hstep, qleft, qright, qgdnv, sgnm, Hw); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_RIEMAN] += ccelaps(start, end);
 
+      start = cclock();
       cmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slice, Hstep, qgdnv, flux); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_CMPFLX] += ccelaps(start, end);
 
+      start = cclock();
       updateConservativeVars(idim, j, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slice, Hstep, uold, u, flux); // done
+      end = cclock();
+#pragma omp atomic
+      functim[TIM_UPDCON] += ccelaps(start, end);
     }                           // for j
   }
   // fprintf(stderr, "Godunov end myThread=%d\n", myThread);

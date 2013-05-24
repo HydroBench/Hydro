@@ -314,6 +314,9 @@ main(int argc, char **argv) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
     fprintf(stdout, "    ");
   }
+
+  // Average timings according to number of threads
+  avgTimings(functim, TIM_END, omp_get_max_threads());
   if (H.nproc == 1) {
     int sizeFmt = sizeLabel(functim, TIM_END);
     printTimingsLabel(TIM_END, sizeFmt);
