@@ -24,9 +24,9 @@ void
 constoprim (const int n,
 	    const int Hnxyt,
 	    const int Hnvar,
-	    const double Hsmallr,
+	    const hydro_real_t Hsmallr,
 	    const int slices, const int Hstep,
-	    double *u, double *q, double *e)
+	    hydro_real_t *u, hydro_real_t *q, hydro_real_t *e)
 {
   //double u[Hnvar][Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]) {
   //int ijmin, ijmax, IN, i, s;
@@ -58,17 +58,17 @@ constoprim (const int n,
 #endif /* !GRIDIFY */
       for (int i = ijmin; i < ijmax; i++)
 	    {
-	      double qid = MAX (u[IDX (ID, s, i)], Hsmallr);
+	      hydro_real_t qid = MAX (u[IDX (ID, s, i)], Hsmallr);
 	      q[IDX (ID, s, i)] = qid;
 
-	      double qiu = u[IDX (IU, s, i)] / qid;
-	      double qiv = u[IDX (IV, s, i)] / qid;
+	      hydro_real_t qiu = u[IDX (IU, s, i)] / qid;
+	      hydro_real_t qiv = u[IDX (IV, s, i)] / qid;
 	      q[IDX (IU, s, i)] = qiu;
 	      q[IDX (IV, s, i)] = qiv;
 
-	      double eken = half * (Square (qiu) + Square (qiv));
+	      hydro_real_t eken = half * (Square (qiu) + Square (qiv));
 
-	      double qip = u[IDX (IP, s, i)] / qid - eken;
+	      hydro_real_t qip = u[IDX (IP, s, i)] / qid - eken;
 	      q[IDX (IP, s, i)] = qip;
 	      e[IDXE (s, i)] = qip;
 

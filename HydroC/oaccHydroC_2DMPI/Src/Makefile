@@ -2,7 +2,10 @@
 # GNU Makefile version
 ######################
 
-CFLAGS=-D__NO_INLINE__
+CFLAGS=-D__NO_INLINE__ 
+ifeq ($(PREC),DOUBLE)
+	CFLAGS=-D__NO_INLINE__ -DUSE_DOUBLE 
+endif
 
 #This variable can be overridden  from the command line
 TARGET=opencl
@@ -12,7 +15,7 @@ ifeq ($(VERBOSITY),)
 endif
 CC=mpicc
 
-CFLAGS:= $(CFLAGS) -std=c99 -I../common -w -O3 -Wno-unknown-pragmas -DGRIDIFY=1 -D_POSIX_C_SOURCE=199309L 
+CFLAGS:= $(CFLAGS) -std=c99 -I../common -w -O3 -Wno-unknown-pragmas -D_POSIX_C_SOURCE=199309L 
 LDFLAGS = ../common/hmpp_util.o ../common/getopt.o -lm -lrt
 
 export HMPPRT_LOG_LEVEL=$(VERBOSITY)
@@ -107,7 +110,7 @@ dos2unix:
 
 
 clean:
-	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d *.txt
+	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d 
 	rm -rf *.cu* *extracted* *hdpp* *translated* *.hmg* *.tif
 
 #EOF

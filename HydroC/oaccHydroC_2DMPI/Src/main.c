@@ -94,13 +94,13 @@ unsigned long flops = 0;
 int
 main (int argc, char **argv)
 {
-  double dt = 0;
+  hydro_real_t dt = 0;
   int nvtk = 0;
   char outnum[80];
   int time_output = 0;
 
   // double output_time = 0.0;
-  double next_output_time = 0;
+  hydro_real_t next_output_time = zero;
   double start_time = 0, start_time_2=0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
@@ -122,7 +122,6 @@ main (int argc, char **argv)
 
   if (H.dtoutput > 0)
     {
-
       // outputs are in physical time not in time steps
       time_output = 1;
       next_output_time = next_output_time + H.dtoutput;
@@ -134,19 +133,19 @@ main (int argc, char **argv)
     
     
   //Data management tweaking
-  double (*e)[H.nxyt];
-  double (*flux)[H.nxystep][H.nxyt];
-  double (*qleft)[H.nxystep][H.nxyt];
-  double (*qright)[H.nxystep][H.nxyt];
-  double (*c)[H.nxyt];
-  double *uold;
+  hydro_real_t (*e)[H.nxyt];
+  hydro_real_t (*flux)[H.nxystep][H.nxyt];
+  hydro_real_t (*qleft)[H.nxystep][H.nxyt];
+  hydro_real_t (*qright)[H.nxystep][H.nxyt];
+  hydro_real_t (*c)[H.nxyt];
+  hydro_real_t *uold;
   int (*sgnm)[H.nxyt];
-  double (*qgdnv)[H.nxystep][H.nxyt];
-  double (*u)[H.nxystep][H.nxyt];
-  double (*qxm)[H.nxystep][H.nxyt];
-  double (*qxp)[H.nxystep][H.nxyt];
-  double (*q)[H.nxystep][H.nxyt];
-  double (*dq)[H.nxystep][H.nxyt];
+  hydro_real_t (*qgdnv)[H.nxystep][H.nxyt];
+  hydro_real_t (*u)[H.nxystep][H.nxyt];
+  hydro_real_t (*qxm)[H.nxystep][H.nxyt];
+  hydro_real_t (*qxp)[H.nxystep][H.nxyt];
+  hydro_real_t (*q)[H.nxystep][H.nxyt];
+  hydro_real_t (*dq)[H.nxystep][H.nxyt];
   
   start = cclock();
   allocate_work_space (H.nxyt, H, &Hw, &Hvw);
@@ -155,18 +154,18 @@ main (int argc, char **argv)
   
   
   uold = Hv.uold;
-  qgdnv = (double (*)[H.nxystep][H.nxyt]) Hvw.qgdnv;
-  flux = (double (*)[H.nxystep][H.nxyt]) Hvw.flux;
-  c = (double (*)[H.nxyt]) Hw.c;
-  e = (double (*)[H.nxyt]) Hw.e;
-  qleft = (double (*)[H.nxystep][H.nxyt]) Hvw.qleft;
-  qright = (double (*)[H.nxystep][H.nxyt]) Hvw.qright;
+  qgdnv = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.qgdnv;
+  flux = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.flux;
+  c = (hydro_real_t (*)[H.nxyt]) Hw.c;
+  e = (hydro_real_t (*)[H.nxyt]) Hw.e;
+  qleft = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.qleft;
+  qright = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.qright;
   sgnm = (int (*)[H.nxyt]) Hw.sgnm;
-  q = (double (*)[H.nxystep][H.nxyt]) Hvw.q;
-  dq = (double (*)[H.nxystep][H.nxyt]) Hvw.dq;
-  u = (double (*)[H.nxystep][H.nxyt]) Hvw.u;
-  qxm = (double (*)[H.nxystep][H.nxyt]) Hvw.qxm;
-  qxp = (double (*)[H.nxystep][H.nxyt]) Hvw.qxp;
+  q = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.q;
+  dq = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.dq;
+  u = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.u;
+  qxm = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.qxm;
+  qxp = (hydro_real_t (*)[H.nxystep][H.nxyt]) Hvw.qxp;
   
   start = cclock();
 #pragma acc data						\
@@ -193,11 +192,11 @@ main (int argc, char **argv)
 	    end = cclock();
 	    functim[TIM_COMPDT] += ccelaps(start, end);
 	    if (H.nstep == 0){
-	      dt = dt / 2.0;
+	      dt = dt / two;
 	    }
 	    if (H.nproc > 1)
 	      {
-	      	volatile double dtmin;
+	      	volatile hydro_real_t dtmin;
 		start = cclock();
 	      	MPI_Allreduce (&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN,
 			       MPI_COMM_WORLD);
@@ -253,8 +252,8 @@ main (int argc, char **argv)
 	  }
 	}
 	if (H.mype == 0) {
-	  fprintf (stdout, "--> Step=%4d, %12.5e, %10.5e %s\n", H.nstep, H.t,
-		   dt, outnum);
+	  fprintf (stdout, "--> Step=%4d, %12.5e, %10.5e %f %s\n", H.nstep, H.t,
+		   dt, dt, outnum);
 	  fflush (stdout);
 	}
       }

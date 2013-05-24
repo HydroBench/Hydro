@@ -23,8 +23,8 @@ void
 cmpflx (const int narray,
 	const int Hnxyt,
 	const int Hnvar,
-	const double Hgamma,
-	const int slices, const int Hstep, double *qgdnv, double *flux)
+	const hydro_real_t Hgamma,
+	const int slices, const int Hstep, hydro_real_t *qgdnv, hydro_real_t *flux)
 {
   //       const int slices, const int Hstep, double qgdnv[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]) {
   //int nface, i, IN;
@@ -40,7 +40,7 @@ cmpflx (const int narray,
   // Compute fluxes
 #pragma acc kernels present(qgdnv[0:Hnvar*Hstep*Hnxyt]) present(flux[0:Hnvar*Hstep*Hnxyt])
 {
-  double entho, ekin, etot;
+  hydro_real_t entho, ekin, etot;
   int nface;
   nface = narray;
   entho = one / (Hgamma - one);
@@ -62,13 +62,13 @@ cmpflx (const int narray,
 #endif /* !GRIDIFY */
       for (int i = 0; i < nface; i++)
 	      {
-	        double qgdnvID = qgdnv[IDX (ID, s, i)];
-	        double qgdnvIU = qgdnv[IDX (IU, s, i)];
-	        double qgdnvIP = qgdnv[IDX (IP, s, i)];
-	        double qgdnvIV = qgdnv[IDX (IV, s, i)];
+	        hydro_real_t qgdnvID = qgdnv[IDX (ID, s, i)];
+	        hydro_real_t qgdnvIU = qgdnv[IDX (IU, s, i)];
+	        hydro_real_t qgdnvIP = qgdnv[IDX (IP, s, i)];
+	        hydro_real_t qgdnvIV = qgdnv[IDX (IV, s, i)];
 
 	        // Mass density
-	        double massDensity = qgdnvID * qgdnvIU;
+	        hydro_real_t massDensity = qgdnvID * qgdnvIU;
 	        flux[IDX (ID, s, i)] = massDensity;
 
 	        // Normal momentum

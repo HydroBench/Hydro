@@ -20,13 +20,13 @@
 #define IDXE(i,j) ( (i*Hnxyt) + j )
 
 void
-trace (const double dtdx,
+trace (const hydro_real_t dtdx,
        const int n,
        const int Hscheme,
        const int Hnvar,
        const int Hnxyt,
        const int slices, const int Hstep,
-       double *q, double *dq, double *c, double *qxm, double *qxp)
+       hydro_real_t *q, hydro_real_t *dq, hydro_real_t *c, hydro_real_t *qxm, hydro_real_t *qxp)
 {
   //double q[Hnvar][Hstep][Hnxyt],
   //double dq[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt], double qxm[Hnvar][Hstep][Hnxyt],
@@ -40,7 +40,7 @@ trace (const double dtdx,
   //double apright, amright, azrright, azv1right, acmpright;
   //double apleft, amleft, azrleft, azv1left, acmpleft;
   
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  hydro_real_t zerol = zero, zeror = zero, project = zero;
 
   WHERE ("trace");
   //ijmin = 0;
@@ -98,12 +98,12 @@ trace (const double dtdx,
 #endif /* !GRIDIFY */
       for (int i = ijmin + 1; i < ijmax - 1; i++)
 	    {
-    double cc, csq,r, u, v, p;
-    double dr, du, dv, dp;
-    double alpham, alphap, alpha0r, alpha0v;
-    double spminus, spplus, spzero;
-    double apright, amright, azrright, azv1right;
-    double apleft, amleft, azrleft, azv1left;
+    hydro_real_t cc, csq,r, u, v, p;
+    hydro_real_t dr, du, dv, dp;
+    hydro_real_t alpham, alphap, alpha0r, alpha0v;
+    hydro_real_t spminus, spplus, spzero;
+    hydro_real_t apright, amright, azrright, azv1right;
+    hydro_real_t apleft, amleft, azrleft, azv1left;
 
         cc = c[IDXE (s, i)];
         csq = Square (cc);
@@ -200,8 +200,8 @@ trace (const double dtdx,
 	      {
 	        for (int i = ijmin + 1; i < ijmax - 1; i++)
 		      {
-double  u, a, acmpleft;
-double  da, acmpright, spzero;
+hydro_real_t  u, a, acmpleft;
+hydro_real_t  da, acmpright, spzero;
 		        u = q[IDX (IU, s, i)];
 		        a = q[IDX (IN, s, i)];
 		        da = dq[IDX (IN, s, i)];

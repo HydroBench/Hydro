@@ -26,13 +26,13 @@
 #define HMPP
 #endif
 
-#define PRECISION 1e-6
+#define PRECISION autocast(1e-6)
 #define IDX(i,j,k)    ( (i*Hstep*Hnxyt) + (j*Hnxyt) + k )
 #define IDXE(i,j)    ( (i*Hnxyt) + j )
 
 
 void
-Dmemset (const size_t nbr, double t[nbr], const double motif)
+Dmemset (const size_t nbr, hydro_real_t t[nbr], const hydro_real_t motif)
 {
   //int i;
 #ifndef GRIDIFY
@@ -55,28 +55,26 @@ Dmemset (const size_t nbr, double t[nbr], const double motif)
 }
 
 
-#define DABS(x) (double) fabs((x))
 #ifndef HMPP
 #define CFLOPS(c) /*{flops+=c;}*/
 #else
-#define MAX(x,y) fmax(x,y)
+//#define MAX(x,y) fmaxf(x,y)
 #define CFLOPS(c)
 #endif
 
 /* For CAL/IL */
-/* #define sqrt(x) ((double) sqrtf((float)x)) */
 /* #define DABS(x) (x > 0.0 ? x : -x) */
 
 void
 riemann (const int narray,
-	 const double Hsmallr,
-	 const double Hsmallc,
-	 const double Hgamma,
+	 const hydro_real_t Hsmallr,
+	 const hydro_real_t Hsmallc,
+	 const hydro_real_t Hgamma,
 	 const int Hniter_riemann,
 	 const int Hnvar,
 	 const int Hnxyt,
 	 const int slices, const int Hstep,
-	 double *qleft, double *qright, double *qgdnv, int *sgnm)
+	 hydro_real_t *qleft, hydro_real_t *qright, hydro_real_t *qgdnv, int *sgnm)
 {
   //double qleft[Hnvar][Hstep][Hnxyt],
   //double qright[Hnvar][Hstep][Hnxyt], //
@@ -84,9 +82,9 @@ riemann (const int narray,
   //int sgnm[Hstep][Hnxyt]) {
   // #define IHVW(i, v) ((i) + (v) * Hnxyt)
   //int i, s;
-  const double smallp_ = Square (Hsmallc) / Hgamma;
-  const double gamma6_ = (Hgamma + one) / (two * Hgamma);
-  const double smallpp_ = Hsmallr * smallp_;
+  const hydro_real_t smallp_ = Square (Hsmallc) / Hgamma;
+  const hydro_real_t gamma6_ = (Hgamma + one) / (two * Hgamma);
+  const hydro_real_t smallpp_ = Hsmallr * smallp_;
 
   // Pressure, density and velocity
     #pragma acc kernels present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) present(qgdnv[0:Hnvar*Hstep*Hnxyt], sgnm[0:Hstep*Hnxyt]) 
@@ -108,29 +106,29 @@ riemann (const int narray,
 #endif /* !GRIDIFY */
           for (int i = 0; i < narray; i++)
 	        {
-	          double smallp = smallp_;
-	          double gamma6 = gamma6_;
-	          double smallpp = smallpp_;
-	          double rl_i = MAX (qleft[IDX (ID, s, i)], Hsmallr);
-	          double ul_i = qleft[IDX (IU, s, i)];
-	          double pl_i = MAX (qleft[IDX (IP, s, i)], (double) (rl_i * smallp));
-	          double rr_i = MAX (qright[IDX (ID, s, i)], Hsmallr);
-	          double ur_i = qright[IDX (IU, s, i)];
-	          double pr_i =
-	            MAX (qright[IDX (IP, s, i)], (double) (rr_i * smallp));
+	          hydro_real_t smallp = smallp_;
+	          hydro_real_t gamma6 = gamma6_;
+	          hydro_real_t smallpp = smallpp_;
+	          hydro_real_t rl_i = MAX (qleft[IDX (ID, s, i)], Hsmallr);
+	          hydro_real_t ul_i = qleft[IDX (IU, s, i)];
+	          hydro_real_t pl_i = MAX (qleft[IDX (IP, s, i)], (hydro_real_t) (rl_i * smallp));
+	          hydro_real_t rr_i = MAX (qright[IDX (ID, s, i)], Hsmallr);
+	          hydro_real_t ur_i = qright[IDX (IU, s, i)];
+	          hydro_real_t pr_i =
+	            MAX (qright[IDX (IP, s, i)], (hydro_real_t) (rr_i * smallp));
 	          CFLOPS (2);
 
 	          // Lagrangian sound speed
-	          double cl_i = Hgamma * pl_i * rl_i;
-	          double cr_i = Hgamma * pr_i * rr_i;
+	          hydro_real_t cl_i = Hgamma * pl_i * rl_i;
+	          hydro_real_t cr_i = Hgamma * pr_i * rr_i;
 	          CFLOPS (4);
 	          // First guess
 
-	          double wl_i = sqrt (cl_i);
-	          double wr_i = sqrt (cr_i);
-	          double pstar_i =
+	          hydro_real_t wl_i = sqrt (cl_i);
+	          hydro_real_t wr_i = sqrt (cr_i);
+	          hydro_real_t pstar_i =
 	            MAX (((wr_i * pl_i + wl_i * pr_i) +
-		          wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), 0.0);
+		          wl_i * wr_i * (ul_i - ur_i)) / (wl_i + wr_i), zero);
 	          CFLOPS (9);
 
 	          // Newton-Raphson iterations to find pstar at the required accuracy
@@ -141,18 +139,18 @@ riemann (const int narray,
 	              {
 		        if (goon)
 		          {
-		            double wwl, wwr;
+		            hydro_real_t wwl, wwr;
 		            wwl =
 		              sqrt (cl_i * (one + gamma6 * (pstar_i - pl_i) / pl_i));
 		            wwr =
 		              sqrt (cr_i * (one + gamma6 * (pstar_i - pr_i) / pr_i));
-		            double ql =
+		            hydro_real_t ql =
 		              two * wwl * Square (wwl) / (Square (wwl) + cl_i);
-		            double qr =
+		            hydro_real_t qr =
 		              two * wwr * Square (wwr) / (Square (wwr) + cr_i);
-		            double usl = ul_i - (pstar_i - pl_i) / wwl;
-		            double usr = ur_i + (pstar_i - pr_i) / wwr;
-		            double delp_i =
+		            hydro_real_t usl = ul_i - (pstar_i - pl_i) / wwl;
+		            hydro_real_t usr = ur_i + (pstar_i - pr_i) / wwr;
+		            hydro_real_t delp_i =
 		              MAX ((qr * ql / (qr + ql) * (usl - usr)), (-pstar_i));
 		            CFLOPS (38);
 
@@ -161,7 +159,7 @@ riemann (const int narray,
 		            CFLOPS (1);
 
 		            // Convergence indicator
-		            double uo_i = DABS (delp_i / (pstar_i + smallpp));
+		            hydro_real_t uo_i = DABS (delp_i / (pstar_i + smallpp));
 		            CFLOPS (2);
 
 		            goon = uo_i > PRECISION;
@@ -176,13 +174,13 @@ riemann (const int narray,
 	              CFLOPS (10);
 	            }
 
-	          double ustar_i =
+	          hydro_real_t ustar_i =
 	            half * (ul_i + (pl_i - pstar_i) / wl_i + ur_i -
 		            (pr_i - pstar_i) / wr_i);
 	          CFLOPS (8);
 
 	          int left = ustar_i > 0;
-	          double ro_i, uo_i, po_i, wo_i;
+	          hydro_real_t ro_i, uo_i, po_i, wo_i;
 
 	          if (left)
 	            {
@@ -201,22 +199,22 @@ riemann (const int narray,
 	              wo_i = wr_i;
 	            }
 
-	          double co_i = sqrt (DABS (Hgamma * po_i / ro_i));
+	          hydro_real_t co_i = sqrt (DABS (Hgamma * po_i / ro_i));
 	          co_i = MAX (Hsmallc, co_i);
 	          CFLOPS (2);
 
-	          double rstar_i =
+	          hydro_real_t rstar_i =
 	            ro_i / (one + ro_i * (po_i - pstar_i) / Square (wo_i));
 	          rstar_i = MAX (rstar_i, Hsmallr);
 	          CFLOPS (6);
 
-	          double cstar_i = sqrt (DABS (Hgamma * pstar_i / rstar_i));
+	          hydro_real_t cstar_i = sqrt (DABS (Hgamma * pstar_i / rstar_i));
 	          cstar_i = MAX (Hsmallc, cstar_i);
 	          CFLOPS (2);
 
-	          double spout_i = co_i - sgnm[IDXE (s, i)] * uo_i;
-	          double spin_i = cstar_i - sgnm[IDXE (s, i)] * ustar_i;
-	          double ushock_i = wo_i / ro_i - sgnm[IDXE (s, i)] * uo_i;
+	          hydro_real_t spout_i = co_i - sgnm[IDXE (s, i)] * uo_i;
+	          hydro_real_t spin_i = cstar_i - sgnm[IDXE (s, i)] * ustar_i;
+	          hydro_real_t ushock_i = wo_i / ro_i - sgnm[IDXE (s, i)] * uo_i;
 	          CFLOPS (7);
 
 	          if (pstar_i >= po_i)
@@ -225,18 +223,18 @@ riemann (const int narray,
 	              spout_i = ushock_i;
 	            }
 
-	          double scr_i = MAX ((double) (spout_i - spin_i),
-			              (double) (Hsmallc + DABS (spout_i + spin_i)));
+	          hydro_real_t scr_i = MAX ((hydro_real_t) (spout_i - spin_i),
+			              (hydro_real_t) (Hsmallc + DABS (spout_i + spin_i)));
 	          CFLOPS (3);
 
-	          double frac_i = (one + (spout_i + spin_i) / scr_i) * half;
-	          frac_i = MAX (zero, (double) (MIN (one, frac_i)));
+	          hydro_real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
+	          frac_i = MAX (zero, (hydro_real_t) (MIN (one, frac_i)));
 	          CFLOPS (4);
 
 	          int addSpout = spout_i < zero;
 	          int addSpin = spin_i > zero;
-	          // double originalQgdnv = !addSpout & !addSpin;
-	          double qgdnv_ID, qgdnv_IU, qgdnv_IP;
+	          // hydro_real_t originalQgdnv = !addSpout & !addSpin;
+	          hydro_real_t qgdnv_ID, qgdnv_IU, qgdnv_IP;
 
 	          if (addSpout)
 	            {

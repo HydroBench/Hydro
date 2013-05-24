@@ -26,7 +26,7 @@ qleftright (const int idim,
 	    const int Hnxyt,
 	    const int Hnvar,
 	    const int slices, const int Hstep,
-	    double *qxm, double *qxp, double *qleft, double *qright)
+	    hydro_real_t *qxm, hydro_real_t *qxp, hydro_real_t *qleft, hydro_real_t *qright)
 {
   //double qxm[Hnvar][Hstep][Hnxyt],
   //double qxp[Hnvar][Hstep][Hnxyt], double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt]) {
