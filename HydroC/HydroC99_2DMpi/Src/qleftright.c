@@ -66,7 +66,7 @@ qleftright(const int idim,
     bmax = Hny + 1;
   }
 
-#pragma omp parallel for schedule(auto) private(nvar, i, s), shared(qleft, qright) COLLAPSE
+#pragma omp parallel for private(nvar, i, s), shared(qleft, qright) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (nvar = 0; nvar < Hnvar; nvar++) {
 #pragma simd

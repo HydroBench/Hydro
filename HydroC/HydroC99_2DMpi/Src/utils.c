@@ -41,7 +41,6 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
-#include <numa.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -67,6 +66,9 @@ allocate(int imin, int imax, int nvar) {
 #define MEMSET 1
 #else
 #define MEMSET 0
+#endif
+#if NUMA_ALLOC==1
+#include <numa.h>
 #endif
 
 void DFree(real_t ** adr, size_t n)
@@ -102,7 +104,7 @@ DMalloc(size_t n) {
   memset(r, 1, n * sizeof(real_t));
 #else
 #ifndef NOTOUCHPAGE
-#pragma omp parallel for schedule(auto) private(i) shared(r) 
+#pragma omp parallel for private(i) shared(r) 
   for (i = 0; i < n; i++)
     r[i] = 0.0L;
 #endif
@@ -123,7 +125,7 @@ IMalloc(size_t n) {
 #if MEMSET == 1
   memset(r, 1, n * sizeof(int));
 #else
-#pragma omp parallel for schedule(auto) private(i) shared(r) 
+#pragma omp parallel for private(i) shared(r) 
   for (i = 0; i < n; i++)
     r[i] = 0;
 #endif

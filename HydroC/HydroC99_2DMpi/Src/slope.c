@@ -64,7 +64,7 @@ slope(const int n,
 
   // #define OLDSTYLE
 
-#pragma omp parallel for schedule(auto) private(nbv, s, i) shared(dq) COLLAPSE
+#pragma omp parallel for private(nbv, s, i) shared(dq) COLLAPSE
     for (s = 0; s < slices; s++) {
       for (nbv = 0; nbv < Hnvar; nbv++) {
 #pragma ivdep

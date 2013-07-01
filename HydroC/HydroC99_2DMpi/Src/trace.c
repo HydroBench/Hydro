@@ -84,7 +84,7 @@ trace(const real_t dtdx,
     project = zero;
   }
 
-#pragma omp parallel for schedule(auto) private(s,i), shared(qxp, qxm) COLLAPSE
+#pragma omp parallel for private(s,i), shared(qxp, qxm) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (i = ijmin + 1; i < ijmax - 1; i++) {
       real_t cc, csq, r, u, v, p;
