@@ -157,15 +157,17 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
 #ifdef MPI
   MPI_Request requests[4];
   MPI_Status status[4];
+  MPI_Datatype mpiFormat = MPI_DOUBLE;
 #endif
   int reqcnt = 0;
-  MPI_Datatype mpiFormat = MPI_DOUBLE;
 
   static FILE *fic = NULL;
 
   WHERE("make_boundary");
 
+#ifdef MPI
   if (sizeof(real_t) == sizeof(float))  mpiFormat = MPI_FLOAT;
+#endif
 
   if (idim == 1) {
 #ifdef MPI

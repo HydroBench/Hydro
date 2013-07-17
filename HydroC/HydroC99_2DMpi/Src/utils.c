@@ -41,7 +41,6 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
-#include <numa.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -67,6 +66,9 @@ allocate(int imin, int imax, int nvar) {
 #define MEMSET 1
 #else
 #define MEMSET 0
+#endif
+#if NUMA_ALLOC==1
+#include <numa.h>
 #endif
 
 void DFree(real_t ** adr, size_t n)
