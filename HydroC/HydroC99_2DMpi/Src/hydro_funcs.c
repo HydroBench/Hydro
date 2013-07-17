@@ -153,7 +153,7 @@ hydro_finish(const hydroparam_t H, hydrovar_t * Hv) {
 static void touchPage(real_t *adr, int lg) {
   int i;
 #ifndef NOTOUCHPAGE
-#pragma omp parallel for private(i) schedule(auto) shared(adr) 
+#pragma omp parallel for private(i) shared(adr) 
   for(i = 0; i < lg; i++) {
     adr[i] = 0.0l;
   }
