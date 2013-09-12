@@ -68,7 +68,7 @@ equation_of_state(int imin,
 #ifdef _OPENMP
 	inpar = omp_in_parallel();
 	//#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q), collapse(2)
-#pragma omp parallel for  private(s,k), shared(c,q) COLLAPSE
+#pragma omp parallel for private(s,k), shared(c,q) COLLAPSE
 #endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {

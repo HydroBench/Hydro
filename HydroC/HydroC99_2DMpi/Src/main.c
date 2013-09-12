@@ -149,11 +149,6 @@ main(int argc, char **argv) {
   double elaps = 0;
   struct timespec start, end;
 
-  double start_runtime =0, end_runtime = 0;
-  double elaps_run =0;  
-  char outnum_run[80];
-  start_runtime = dcclock();
-
   // array of timers to profile the code
   memset(functim, 0, TIM_END * sizeof(functim[0]));
 
@@ -402,12 +397,5 @@ main(int argc, char **argv) {
 #endif
   MPI_Finalize();
 #endif
-
-  end_runtime = dcclock();
-  elaps_run = (double) (end_runtime - start_runtime);
-  timeToString(outnum_run, elaps_run);
-    if (H.mype == 0)
-      fprintf(stdout, "runtime in %ss (%.3lf) \n", outnum_run, elaps_run);
-
   return 0;
 }

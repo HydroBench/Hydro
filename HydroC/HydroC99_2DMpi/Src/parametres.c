@@ -255,8 +255,6 @@ process_input(char *datafile, hydroparam_t * H)
       continue;
     }
   }
-
-  //close?
   // exit(0);
 }
 
