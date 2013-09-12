@@ -61,3 +61,13 @@ LDFLAGS_OMP = -openmp
 # MPI link options
 #--------------------
 LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+
+
+# FTI C compilation options
+#---------------------------
+FTIROOT= /path/to/fti/install/directory
+CFLAGS_FTI = -DFTI=0 -I$(FTIROOT)/include
+
+# FTI link options
+#--------------------
+LDFLAGS_FTI = -L$(FTIROOT)/lib -lfti
