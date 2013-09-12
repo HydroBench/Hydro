@@ -7,9 +7,11 @@ include make.inc
 #---------------
 CFLAGS += $(CFLAGS_MPI)
 CFLAGS += $(CFLAGS_OMP)
+CFLAGS += $(CFLAGS_FTI)
 CFLAGS += -vec-report3
 LDFLAGS += $(LDFLAGS_MPI)
 LDFLAGS += $(LDFLAGS_OMP)
+LDFLAGS += $(LDFLAGS_FTI)
 LDFLAGS += -lrt
 
 # Sources directories

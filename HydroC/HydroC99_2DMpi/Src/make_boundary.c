@@ -34,6 +34,12 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef MPI
+#include <mpi.h>
+#if FTI>0
+#include <fti.h>
+#endif
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
@@ -41,9 +47,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <string.h>
 #include <strings.h>
 #include <assert.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
+
 
 #include "parametres.h"
 #include "make_boundary.h"
@@ -175,7 +179,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
     size = pack_arrayv(i, H, Hv, sendbufld);
     i = H.nx;
     size = pack_arrayv(i, H, Hv, sendbufru);
-
+#if FTI==0
     if (H.box[RIGHT_BOX] != -1) {
       MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
@@ -192,7 +196,25 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
       MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
-
+#endif
+#if FTI>0
+    if (H.box[RIGHT_BOX] != -1) {
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[RIGHT_BOX] != -1) {
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+#endif
     err = MPI_Waitall(reqcnt, requests, status);
     assert(err == MPI_SUCCESS);
 
@@ -286,7 +308,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
       fprintf(fic, "%d prep %d\n", H.mype, j);
       print_bufferh(fic, j, H, Hv, sendbufru);
     }
-
+#if FTI==0
     if (H.box[DOWN_BOX] != -1) {
       MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
@@ -303,7 +325,25 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
       MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
-
+#endif
+#if FTI>0
+    if (H.box[DOWN_BOX] != -1) {
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[DOWN_BOX] != -1) {
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+#endif
     err = MPI_Waitall(reqcnt, requests, status);
     assert(err == MPI_SUCCESS);
 

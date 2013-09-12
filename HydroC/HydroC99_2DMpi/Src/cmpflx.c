@@ -66,7 +66,7 @@ cmpflx(const int narray,
   FLOPS(1, 1, 0, 0);
 
   // Compute fluxes
-#pragma omp parallel for private(s, i, ekin, etot), shared(flux) COLLAPSE
+#pragma omp parallel for private(s, i, ekin, etot), shared(flux), collapse(2)
   for (s = 0; s < slices; s++) {
     for (i = 0; i < nface; i++) {
       real_t qgdnvID = qgdnv[ID][s][i];

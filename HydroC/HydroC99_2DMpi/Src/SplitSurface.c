@@ -34,6 +34,12 @@ The fact that you are presently reading this means that you have had
 knowledge of the CeCILL license and that you accept its terms.
 
 */
+#ifdef MPI
+#if FTI>0
+#include <fti.h>
+#endif
+#include <mpi.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
@@ -45,9 +51,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <sys/time.h>
 #include <float.h>
 #include <math.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
+
 //
 #include "SplitSurface.h"
 
@@ -177,7 +181,13 @@ CalcSubSurface(int xmin, int xmax,
 	fprintf(stderr, "\tERROR: please adapt the number of process\n");
       }
 #ifdef MPI
+#if FTI==0
       MPI_Finalize();
+#endif
+#if FTI>0
+      FTI_Finalize();
+      MPI_Finalize();
+#endif
 #endif
       exit(1);
     }

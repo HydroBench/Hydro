@@ -33,12 +33,15 @@
   knowledge of the CeCILL license and that you accept its terms.
 
 */
+#ifdef MPI
+#include <mpi.h>
+#if FTI>0
+#include <fti.h>
+#endif
+#endif
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -146,6 +149,11 @@ main(int argc, char **argv) {
   double elaps = 0;
   struct timespec start, end;
 
+  double start_runtime =0, end_runtime = 0;
+  double elaps_run =0;  
+  char outnum_run[80];
+  start_runtime = dcclock();
+
   // array of timers to profile the code
   memset(functim, 0, TIM_END * sizeof(functim[0]));
 
@@ -179,7 +187,12 @@ main(int argc, char **argv) {
   // PRINTUOLD(H, &Hv);
 #ifdef MPI
   if (H.nproc > 1)
+#if FTI>0
+    MPI_Barrier(FTI_COMM_WORLD);
+#endif
+#if FTI==0
     MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #endif
 
   if (H.dtoutput > 0) {
@@ -201,6 +214,19 @@ main(int argc, char **argv) {
   allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
   compute_deltat_init_mem(H, &Hw_deltat, &Hvw_deltat);
   end = cclock();
+#ifdef MPI
+#if FTI==1
+  FTI_Protect(0,functim, TIM_END,FTI_DBLE);
+  FTI_Protect(1,&nvtk,1,FTI_INTG);
+  FTI_Protect(2,&next_output_time,1,FTI_DBLE);
+  FTI_Protect(3,&dt,1,FTI_DBLE);
+  FTI_Protect(4,&MflopsSUM,1,FTI_DBLE);
+  FTI_Protect(5,&nbFLOPS,1,FTI_LONG);
+  FTI_Protect(6,&(H.nstep),1,FTI_INTG);
+  FTI_Protect(7,&(H.t),1,FTI_DBLE);
+  FTI_Protect(8,Hv.uold,H.nvar * H.nxt * H.nyt,FTI_DBLE);
+#endif
+#endif
   if (H.mype == 0) fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
   // we start timings here to avoid the cost of initial memory allocation
   start_time = dcclock();
@@ -224,11 +250,20 @@ main(int argc, char **argv) {
       if (H.nproc > 1) {
         real_t dtmin;
         // printf("pe=%4d\tdt=%lg\n",H.mype, dt);
+#if FTI==0
 	if (sizeof(real_t) == sizeof(double)) {
 	    MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 	  } else {
 	    MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
 	  }
+#endif
+#if FTI>0
+	if (sizeof(real_t) == sizeof(double)) {
+	  MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, FTI_COMM_WORLD);
+	} else {
+	  MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN, FTI_COMM_WORLD);
+	}
+#endif
         dt = dtmin;
       }
 #endif
@@ -249,10 +284,18 @@ main(int argc, char **argv) {
 #ifdef MPI
       long flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t;
       start = cclock();
+#if FTI==0
       MPI_Allreduce(&flopsAri, &flopsAri_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(&flopsSqr, &flopsSqr_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(&flopsMin, &flopsMin_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(&flopsTra, &flopsTra_t, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+#endif
+#if FTI>0
+      MPI_Allreduce(&flopsAri, &flopsAri_t, 1, MPI_LONG, MPI_SUM, FTI_COMM_WORLD);
+      MPI_Allreduce(&flopsSqr, &flopsSqr_t, 1, MPI_LONG, MPI_SUM, FTI_COMM_WORLD);
+      MPI_Allreduce(&flopsMin, &flopsMin_t, 1, MPI_LONG, MPI_SUM, FTI_COMM_WORLD);
+      MPI_Allreduce(&flopsTra, &flopsTra_t, 1, MPI_LONG, MPI_SUM, FTI_COMM_WORLD);
+#endif
       //       if (H.mype == 1)
       //        printf("%ld %ld %ld %ld %ld %ld %ld %ld \n", flopsAri, flopsSqr, flopsMin, flopsTra, flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t);
       flops = flopsAri_t * FLOPSARI + flopsSqr_t * FLOPSSQR + flopsMin_t * FLOPSMIN + flopsTra_t * FLOPSTRA;
@@ -289,6 +332,11 @@ main(int argc, char **argv) {
       fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
       fflush(stdout);
     }
+#ifdef MPI
+#if FTI==1
+    FTI_Snapshot();     
+#endif
+#endif
   } // while
   end_time = dcclock();
 
@@ -320,9 +368,16 @@ main(int argc, char **argv) {
     double timMAX[TIM_END];
     double timMIN[TIM_END];
     double timSUM[TIM_END];
+#if FTI==0
     MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#endif
+#if FTI>0
+    MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX, FTI_COMM_WORLD);
+    MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, FTI_COMM_WORLD);
+    MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, FTI_COMM_WORLD);
+#endif
     if (H.mype == 0) {
       int sizeFmt = sizeLabel(timMAX, TIM_END);
       printTimingsLabel(TIM_END, sizeFmt);
@@ -342,7 +397,17 @@ main(int argc, char **argv) {
 #endif
 
 #ifdef MPI
+#if FTI>0
+  FTI_Finalize();
+#endif
   MPI_Finalize();
 #endif
+
+  end_runtime = dcclock();
+  elaps_run = (double) (end_runtime - start_runtime);
+  timeToString(outnum_run, elaps_run);
+    if (H.mype == 0)
+      fprintf(stdout, "runtime in %ss (%.3lf) \n", outnum_run, elaps_run);
+
   return 0;
 }

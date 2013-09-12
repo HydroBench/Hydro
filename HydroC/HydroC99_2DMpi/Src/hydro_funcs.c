@@ -209,7 +209,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   domainVarM *= pageMD + PAGEOFFSET;
   domainM = (domain + pageMD - 1) / pageMD;
   domainM *= pageMD + PAGEOFFSET;
-
+ 
   oneBlock = 9 * domainVarM + 12 * domainM;  // expressed in term of pages of double
   assert(oneBlock >= (9 * domainVar + 12 * domain));
 
