@@ -402,6 +402,7 @@ Loop1KcuGather(__global real_t *uold,
   size_t i, s;
 
   i = get_global_id(0);
+  s = get_global_id(1);
   // s = get_global_id(1);
 
   if (i < Himin)
@@ -409,12 +410,12 @@ Loop1KcuGather(__global real_t *uold,
   if (i >= Himax)
     return;
 
-  for (s = 0; s < slices; s++) {
+  // for (s = 0; s < slices; s++) {
     u[IHVWS_(i, s, ID, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, ID, Hnxt, Hnyt)];
     u[IHVWS_(i, s, IU, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IU, Hnxt, Hnyt)];
     u[IHVWS_(i, s, IV, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IV, Hnxt, Hnyt)];
     u[IHVWS_(i, s, IP, Hnxyt, Hnxystep)] = uold[IHU(i, rowcol + s, IP, Hnxt, Hnyt)];
-  }
+    // }
 }
 
 __kernel void
@@ -423,13 +424,14 @@ Loop2KcuGather(__global real_t *uold,
                const long rowcol, const long Hnxt, const long Himin, const long Himax, const long Hnyt,
                const long Hnxyt, const int slices, const int Hnxystep) {
   size_t s, i = get_global_id(0);
+  s = get_global_id(1);
 
   if (i < Himin)
     return;
   if (i >= Himax)
     return;
 
-  for (s = 0; s < slices; s++) {
+  // for (s = 0; s < slices; s++) {
     size_t idxID = IHVWS_(i, s, ID, Hnxyt, Hnxystep);
     size_t idxIP = IHVWS_(i, s, IP, Hnxyt, Hnxystep);
     size_t idxIU = IHVWS_(i, s, IU, Hnxyt, Hnxystep);
@@ -439,7 +441,7 @@ Loop2KcuGather(__global real_t *uold,
     u[idxIV] = uold[IHU(rowcol + s, i, IU, Hnxt, Hnyt)];
     u[idxIU] = uold[IHU(rowcol + s, i, IV, Hnxt, Hnyt)];
     u[idxIP] = uold[IHU(rowcol + s, i, IP, Hnxt, Hnyt)];
-  }
+    // }
 }
 
 __kernel void

@@ -1,6 +1,6 @@
 # C compiler
 #------------------
-CC = /usr/lib64/openmpi/bin/mpicc -DINTEL 
+CC = icc -DINTEL 
 
 # Cuda compiler
 #------------------

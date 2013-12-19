@@ -1,7 +1,7 @@
 # C compiler
 #------------------
 CC = icc -mmic
-CC = icc
+CC = icc -mavx
 
 # Cuda compiler
 #------------------
@@ -22,7 +22,7 @@ MPIF90 = mpif90
 # C compilation options
 #-----------------------------
 # PROF=-pg
-CFLAGS = -O3 $(PROF)
+CFLAGS = -O3 $(PROF) 
 # -no-vec 
 
 # Fortran compilation options
@@ -31,11 +31,11 @@ FFLAGS = -O3
 
 # Linker options
 #---------------
-LDFLAGS = -O3 $(PROF)
+LDFLAGS = -O3 $(PROF) -lnuma 
 
 # OpenMP C compilation options
 #---------------------------
-CFLAGS_OMP = -openmp -openmp-report1
+CFLAGS_OMP = -openmp -openmp-report1 -vec-report1
 
 # Cuda compilation options
 #---------------------------
@@ -47,10 +47,11 @@ FFLAGS_OMP = -openmp
 
 # MPI C compilation options
 #---------------------------
-MPIROOT=/opt/intel/impi/4.1.0.018/mic
-MPIROOT=/opt/intel/impi/4.1.0.018/intel64
+#MPIROOT=/opt/intel/impi/4.1.0.024/mic
+MPIROOT=/opt/intel/impi/4.1.0.024/intel64
+# MPIROOT=$(MPI_ROOT)
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
-NVCFLAGS_MPI = -I$(MPIROOT)/include
+#NVCFLAGS_MPI = -I$(MPIROOT)/include
 
 
 # MPI Fortran compilation options
@@ -63,4 +64,5 @@ LDFLAGS_OMP = -openmp
 
 # MPI link options
 #--------------------
-LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi -Wl,-rpath,$(MPIROOT)/lib
+

@@ -20,7 +20,25 @@ MPIF90 =
 
 # C compilation options
 #-----------------------------
-CFLAGS = -O3 -mavx -vec-report1 -openmp-report1
+ifeq ($(MMACH),)
+CFLAGS = -O3 -xHost -vec-report1 -openmp-report1
+endif
+
+ifeq ($(MMACH),NVC)
+CFLAGS = -O3 -no-vec
+endif
+ifeq ($(MMACH),SE4)
+CFLAGS = -O3 -msse4
+endif
+ifeq ($(MMACH),AVX)
+CFLAGS = -O3 -mavx
+endif
+ifeq ($(MMACH),AV2)
+CFLAGS = -O3 -march=core-avx2
+endif
+ifeq ($(MMACH),AVI)
+CFLAGS = -O3 -march=core-avx-i
+endif
 
 # Fortran compilation options
 #-----------------------------
@@ -59,4 +77,4 @@ LDFLAGS_OMP = -openmp -lm
 
 # MPI link options
 #--------------------
-LDFLAGS_MPI =
+LDFLAGS_MPI = -lnuma
