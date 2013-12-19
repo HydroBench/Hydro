@@ -36,6 +36,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -203,7 +204,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 #endif
 
 #ifdef ONEBLOCK
-  if (H.mype == 0) fprintf(stderr, "Page offset %d\n", (int) PAGEOFFSET);
+  if (H.mype == 0) fprintf(stdout, "Page offset %d\n", (int) PAGEOFFSET);
   // determine the right amount of pages to fit all arrays
   domainVarM = (domainVar + pageMD - 1) / pageMD;
   domainVarM *= pageMD + PAGEOFFSET;
@@ -212,8 +213,12 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
 
   oneBlock = 9 * domainVarM + 12 * domainM;  // expressed in term of pages of double
   assert(oneBlock >= (9 * domainVar + 12 * domain));
-
+#pragma message "ONE BLOCK option"
   blockD = (real_t *) malloc(oneBlock * sizeof(real_t));
+  assert(blockD != NULL);
+  if (((uint64_t) (&blockD[0]) & 63) == 0) {
+    fprintf(stderr, "ONE block allocated is not aligned \n");
+  }
   Hvw->u      = blockD;                   touchPage(Hvw->u, domainVar);     
   Hvw->q      = Hvw->u      + domainVarM; touchPage(Hvw->q, domainVar);     
   Hvw->dq     = Hvw->q      + domainVarM; touchPage(Hvw->dq, domainVar);    
