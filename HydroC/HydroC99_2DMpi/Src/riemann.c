@@ -73,6 +73,32 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 #define MAX(x,y) fmax(x,y)
 #endif
 
+inline double
+MySqrt(double a) {
+  double v = 0;
+  double vn = 0;
+  float x0 = (float) a;
+  // double error = (double) 1.e-8;
+  // double prec = (double) 1.;
+  
+  // initial value: to speedup the process we take the float approximation
+  x0 = sqrtf(x0);
+  v = (double) x0;
+  // v = (double) 0.5 * (vn + a / vn);
+  // vn = v;
+  // v = (double) 0.5 * (vn + a / vn);
+  // vn = v;
+  // v = (double) 0.5 * (vn + a / vn);
+  // vn = v;
+  // v = (double) 0.5 * (vn + a / vn);
+  // vn = v;
+  // v = (double) 0.5 * (vn + a / vn);
+  return v;
+}
+
+#define MYSQRT sqrt
+// #define MYSQRT MySqrt
+
 void
 riemann(int narray, const real_t Hsmallr, 
 	const real_t Hsmallc, const real_t Hgamma, 
@@ -109,7 +135,7 @@ riemann(int narray, const real_t Hsmallr,
   real_t smallpp = smallpp_;
 
   // fprintf(stderr, "%d\n", __ICC );
-#warning "active pragma simd " __ICC
+#pragma message "active pragma simd "
 #define SIMDNEEDED 1
 #if __ICC < 1300
 #define SIMD ivdep
@@ -158,8 +184,8 @@ riemann(int narray, const real_t Hsmallr,
       cr[i] = Hgamma * pr[i] * rr[i];
       // First guess
 
-      real_t wl_i = sqrt(cl[i]);
-      real_t wr_i = sqrt(cr[i]);
+      real_t wl_i = MYSQRT(cl[i]);
+      real_t wr_i = MYSQRT(cr[i]);
       pstar[i] = fmax(((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), 0.0);
       goon[i] = 1;
     }
@@ -176,13 +202,15 @@ riemann(int narray, const real_t Hsmallr,
 #pragma SIMD
 #endif
 #endif
+#pragma unroll(16)
       for (i = 0; i < narray; i++) {
 	if (goon[i]) {
 	  real_t pst = pstar[i];
 	  // Newton-Raphson iterations to find pstar at the required accuracy
-	  real_t wwl = sqrt(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
-	  real_t wwr = sqrt(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
-	  real_t ql = two * wwl * Square(wwl) / (Square(wwl) + cl[i]);
+	  real_t wwl = MYSQRT(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
+	  real_t wwr = MYSQRT(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
+	  real_t swwl = Square(wwl);
+	  real_t ql = two * wwl * swwl / (swwl + cl[i]);
 	  real_t qr = two * wwr * Square(wwr) / (Square(wwr) + cr[i]);
 	  real_t usl = ul[i] - (pst - pl[i]) / wwl;
 	  real_t usr = ur[i] + (pst - pr[i]) / wwr;
@@ -204,11 +232,11 @@ riemann(int narray, const real_t Hsmallr,
 #pragma SIMD
 #endif
     for (i = 0; i < narray; i++) {
-      real_t wl_i = sqrt(cl[i]);
-      real_t wr_i = sqrt(cr[i]);
+      real_t wl_i = MYSQRT(cl[i]);
+      real_t wr_i = MYSQRT(cr[i]);
 
-      wr_i = sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
-      wl_i = sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
+      wr_i = MYSQRT(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
+      wl_i = MYSQRT(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
 
       real_t ustar_i = half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
 
@@ -230,13 +258,13 @@ riemann(int narray, const real_t Hsmallr,
 	wo_i = wr_i;
       }
 
-      real_t co_i = sqrt(fabs(Hgamma * po_i / ro_i));
+      real_t co_i = MYSQRT(fabs(Hgamma * po_i / ro_i));
       co_i = fmax(Hsmallc, co_i);
 
       real_t rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
       rstar_i = fmax(rstar_i, Hsmallr);
 
-      real_t cstar_i = sqrt(fabs(Hgamma * pstar[i] / rstar_i));
+      real_t cstar_i = MYSQRT(fabs(Hgamma * pstar[i] / rstar_i));
       cstar_i = fmax(Hsmallc, cstar_i);
 
       real_t spout_i = co_i - sgnm[s][i] * uo_i;
