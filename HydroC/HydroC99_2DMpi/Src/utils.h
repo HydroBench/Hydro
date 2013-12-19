@@ -97,11 +97,12 @@ void timeToString(char *buf, const double timeInS);
 #define RESTRICT __restrict
 #endif /*  */
 
-#ifdef __MIC__
+// #ifndef __MIC__
+// #pragma message "collapse activated (2)"
+// #define COLLAPSE collapse(2)
+// #else
+// #pragma message "collapse deactivated on MIC"
 #define COLLAPSE 
-//  collapse(2)
-#else
-#define COLLAPSE 
-#endif
+// #endif
 
 #endif // UTILS_H_INCLUDED

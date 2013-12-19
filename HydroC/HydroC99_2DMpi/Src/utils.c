@@ -134,7 +134,7 @@ IMalloc(size_t n) {
 
 
 #include "parametres.h"
-#define VALPERLINE 11
+#define VALPERLINE 16
 void
 printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv) {
   int i, j, nvar;
@@ -143,7 +143,7 @@ printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv) {
     for (j = 0; j < H.nyt; j++) {
       int nbr = 1;
       for (i = 0; i < H.nxt; i++) {
-        fprintf(fic, "%13.6e ", Hv->uold[IHv(i, j, nvar)]);
+        fprintf(fic, "%12.4e ", Hv->uold[IHv(i, j, nvar)]);
         nbr++;
         if (nbr == VALPERLINE) {
           fprintf(fic, "\n");
@@ -153,7 +153,7 @@ printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv) {
       }
       if (nbr != 1)
         fprintf(fic, "\n");
-      fprintf(fic, "%%\n");
+      // fprintf(fic, "%%\n");
       fflush(fic);
     }
   }
@@ -167,7 +167,7 @@ printarray(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H) 
   for (j = 0; j < H.nxystep; j++) {
     nbr = 1;
     for (i = 0; i < n; i++) {
-      fprintf(fic, "%13.6e ", ptr[j][i]);
+      fprintf(fic, "%12.4e ", ptr[j][i]);
       nbr++;
       if (nbr == VALPERLINE) {
         fprintf(fic, "\n");
@@ -205,7 +205,7 @@ printarrayv(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H)
   for (nvar = 0; nvar < H.nvar; nvar++) {
     nbr = 1;
     for (i = 0; i < n; i++) {
-      fprintf(fic, "%13.6e ", ptr[nvar][i]);
+      fprintf(fic, "%12.4e ", ptr[nvar][i]);
       nbr++;
       if (nbr == VALPERLINE) {
         fprintf(fic, "\n");
@@ -228,7 +228,7 @@ printarrayv2(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H
     for (j = 0; j < H.nxystep; j++) {
       nbr = 1;
       for (i = 0; i < n; i++) {
-        fprintf(fic, "%13.6le ", ptr[nvar][j][i]);
+        fprintf(fic, "%12.4le ", ptr[nvar][j][i]);
         nbr++;
         if (nbr == VALPERLINE) {
           fprintf(fic, "\n#");
