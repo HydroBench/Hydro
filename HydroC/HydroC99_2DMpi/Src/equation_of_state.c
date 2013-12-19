@@ -65,6 +65,9 @@ equation_of_state(int imin,
    FLOPS(1, 1, 0, 0);
 
   // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
+#pragma prefetch q
+#pragma prefetch eint
+#pragma prefetch c
 #ifdef _OPENMP
 	inpar = omp_in_parallel();
 	//#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q), collapse(2)
@@ -72,8 +75,8 @@ equation_of_state(int imin,
 #endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {
-      real_t rhok = q[ID][s][k];
-      real_t base = (Hgamma - one) * rhok * eint[s][k];
+      register real_t rhok = q[ID][s][k];
+      register real_t base = (Hgamma - one) * rhok * eint[s][k];
       base = MAX(base, (real_t) (rhok * smallp));
 
       q[IP][s][k] = base;

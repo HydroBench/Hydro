@@ -3,7 +3,7 @@
 # This script scan all the source files to generate the dependencies
 
 for i in *.c ; do
-    gcc $CFLAGS -M  $i -o cc$$.txt
+    icc $CFLAGS -M  -o cc$$.txt $i 
     ./dependre cc$$.txt
 done
 

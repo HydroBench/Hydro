@@ -6,31 +6,31 @@
 */
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -44,6 +44,10 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 #include "conservar.h"
 #include "perfcnt.h"
+
+#define BLOCKING 1
+#define SSST 32
+#define JJST 32
 
 void
 gatherConservativeVars(const int idim,
@@ -95,23 +99,51 @@ gatherConservativeVars(const int idim,
     }
     //
   } else {
+    int ss, jj, ssmx, jjmx;
+    // const int ssst = 16;
+    // const int jjst = 32;
+    jjmx = Hjmax - Hjmax % JJST;
+    ssmx = slices - slices % SSST;
+
+#ifdef BLOCKING
     // Gather conservative variables
-#pragma omp parallel for private(j, s), shared(u) COLLAPSE
-    for (s = 0; s < slices; s++) {
-      for (j = Hjmin; j < Hjmax; j++) {
-        u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
-        u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
-        u[IV][s][j] = uold[IHU(rowcol + s, j, IU)];
-        u[IP][s][j] = uold[IHU(rowcol + s, j, IP)];
+#pragma omp parallel for private(ss, jj, j, s), shared(u) collapse(2)
+    for (ss = 0; ss < ssmx; ss += SSST) {
+      for (jj = Hjmin; jj < jjmx; jj += JJST) {
+#pragma loop count(SSST)
+	for (s = ss; s < ss + SSST; s++) {
+#pragma loop count(JJST)
+	  for (j = jj; j < jj + JJST; j++) {
+	    u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
+	    u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
+	    u[IV][s][j] = uold[IHU(rowcol + s, j, IU)];
+	    u[IP][s][j] = uold[IHU(rowcol + s, j, IP)];
+	  }
+	}
       }
     }
+#else
+    ssmx = 0;
+    jjmx = Hjmin;
+#endif
+    // remainder loop
+#pragma omp parallel for private(j, s), shared(u) collapse(2)
+    for (s = ssmx; s < slices; s++) {
+      for (j = jjmx; j < Hjmax; j++) {
+	u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
+	u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
+	u[IV][s][j] = uold[IHU(rowcol + s, j, IU)];
+	u[IP][s][j] = uold[IHU(rowcol + s, j, IP)];
+      }
+    }
+
     if (Hnvar > IP) {
       for (ivar = IP + 1; ivar < Hnvar; ivar++) {
-        for (s = 0; s < slices; s++) {
-          for (j = Hjmin; j < Hjmax; j++) {
-            u[ivar][s][j] = uold[IHU(rowcol + s, j, ivar)];
-          }
-        }
+	for (s = 0; s < slices; s++) {
+	  for (j = Hjmin; j < Hjmax; j++) {
+	    u[ivar][s][j] = uold[IHU(rowcol + s, j, ivar)];
+	  }
+	}
       }
     }
   }
@@ -143,10 +175,10 @@ updateConservativeVars(const int idim,
 
     // Update conservative variables
 #pragma omp parallel for private(ivar, s,i), shared(uold) COLLAPSE
-      for (s = 0; s < slices; s++) {
-	for (ivar = 0; ivar <= IP; ivar++) {
-	  for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
-	    uold[IHU(i, rowcol + s, ivar)] = u[ivar][s][i] + (flux[ivar][s][i - 2] - flux[ivar][s][i - 1]) * dtdx;
+    for (s = 0; s < slices; s++) {
+      for (ivar = 0; ivar <= IP; ivar++) {
+	for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
+	  uold[IHU(i, rowcol + s, ivar)] = u[ivar][s][i] + (flux[ivar][s][i - 2] - flux[ivar][s][i - 1]) * dtdx;
         }
       }
     }
@@ -165,12 +197,42 @@ updateConservativeVars(const int idim,
       }
     }
   } else {
+    int ss, jj, ssmx, jjmx;
+    // int ssst = 16, jjst = 32;
+    jjmx = (Hjmax - ExtraLayer) - (Hjmax - ExtraLayer) % JJST;
+    ssmx = slices - slices % SSST;
+
+#ifdef BLOCKING
     // Update conservative variables
-#pragma omp parallel for private(j, s), shared(uold)
-    for (s = 0; s < slices; s++) {
-#pragma simd
-      for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
-        uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
+#pragma omp parallel for private(ss, jj, j, s), shared(uold) collapse(2)
+    for (ss = 0; ss < ssmx; ss += SSST) {
+      for (jj = (Hjmin + ExtraLayer); jj < jjmx; jj += JJST) {
+#pragma loop count(SSST)
+	for (s = ss; s < ss + SSST; s++) {
+#pragma loop count(JJST)
+	  for (j = jj; j < jj + JJST; j++) {
+	    uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
+	  }
+	  for (j = jj; j < jj + JJST; j++) {
+	    uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;
+	  }
+	  for (j = jj; j < jj + JJST; j++) {
+	    uold[IHU(rowcol + s, j, IU)] = u[IV][s][j] + (flux[IV][s][j - 2] - flux[IV][s][j - 1]) * dtdx;
+	  }
+	  for (j = jj; j < jj + JJST; j++) {
+	    uold[IHU(rowcol + s, j, IP)] = u[IP][s][j] + (flux[IP][s][j - 2] - flux[IP][s][j - 1]) * dtdx;
+	  }
+	}
+      }
+    }
+#else
+    ssmx = 0;
+    jjmx = (Hjmin + ExtraLayer);
+#endif
+#pragma omp parallel for private(j, s), shared(uold) collapse(2)
+    for (s = ssmx; s < slices; s++) {
+      for (j = jjmx; j < (Hjmax - ExtraLayer); j++) {
+	uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IU)] = u[IV][s][j] + (flux[IV][s][j - 2] - flux[IV][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IP)] = u[IP][s][j] + (flux[IP][s][j - 2] - flux[IP][s][j - 1]) * dtdx;
