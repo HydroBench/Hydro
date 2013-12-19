@@ -38,7 +38,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #define PARAMETRES_H_INCLUDED
 extern unsigned long flops;
 
+#ifndef PREC_SP
 typedef double real_t;
+#else
+typedef float real_t;
+#endif
 
 typedef enum {
   XMIN_BOX, XMAX_BOX,
