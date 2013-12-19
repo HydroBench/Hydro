@@ -33,6 +33,7 @@
   knowledge of the CeCILL license and that you accept its terms.
 
 */
+#include <unistd.h>
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
@@ -99,7 +100,7 @@ void printTimings(double *tim, const int N, const int sizeFmt)
   int i;
   char fmt[256];
 
-  sprintf(fmt, "%%-%dlf ", sizeFmt);
+  sprintf(fmt, "%%-%d.4lf ", sizeFmt);
 
   for (i = 0; i < N; i++) 
     fprintf(stdout, fmt, tim[i]);
@@ -133,6 +134,7 @@ void printTimingsLabel(const int N, const int fmtSize)
 
 int
 main(int argc, char **argv) {
+  char myhost[256];
   real_t dt = 0;
   int nvtk = 0;
   char outnum[80];
@@ -158,6 +160,10 @@ main(int argc, char **argv) {
 
   if (H.mype == 0)
     fprintf(stdout, "Hydro starts in %s precision.\n", ((sizeof(real_t) == sizeof(double))? "double": "single"));
+  gethostname(myhost, 255);
+  if (H.mype == 0) {
+    fprintf(stdout, "Hydro: Main process running on %s\n", myhost);
+  }
 
 #ifdef _OPENMP
   if (H.mype == 0) {
@@ -206,6 +212,7 @@ main(int argc, char **argv) {
   start_time = dcclock();
 
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
+    //system("top -b -n1");
     // reset perf counter for this iteration
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
     start_iter = dcclock();
@@ -219,6 +226,7 @@ main(int argc, char **argv) {
       functim[TIM_COMPDT] += ccelaps(start, end);
       if (H.nstep == 0) {
         dt = dt / 2.0;
+	if (H.mype == 0) fprintf(stdout, "Hydro computes initial deltat: %le\n", dt);
       }
 #ifdef MPI
       if (H.nproc > 1) {
@@ -233,6 +241,7 @@ main(int argc, char **argv) {
       }
 #endif
     }
+    // dt = 1.e-3;
     // if (H.mype == 1) fprintf(stdout, "Hydro starts godunov.\n");
     if ((H.nstep % 2) == 0) {
       hydro_godunov(1, dt, H, &Hv, &Hw_godunov, &Hvw_godunov);
@@ -301,16 +310,20 @@ main(int argc, char **argv) {
   timeToString(outnum, elaps);
   if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
-    fprintf(stdout, "    ");
+    fprintf(stdout, "       ");
   }
   if (H.nproc == 1) {
     int sizeFmt = sizeLabel(functim, TIM_END);
     printTimingsLabel(TIM_END, sizeFmt);
     fprintf(stdout, "\n");
-    fprintf(stdout, "PE0 ");
+    if (sizeof(real_t) == sizeof(double)) {
+      fprintf(stdout, "PE0_DP ");
+    } else {
+      fprintf(stdout, "PE0_SP ");
+    }
     printTimings(functim, TIM_END, sizeFmt);
     fprintf(stdout, "\n");
-    fprintf(stdout, "%%   ");
+    fprintf(stdout, "%%      ");
     percentTimings(functim, TIM_END);
     printTimings(functim, TIM_END, sizeFmt);
     fprintf(stdout, "\n");

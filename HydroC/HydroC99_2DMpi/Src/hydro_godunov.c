@@ -102,7 +102,7 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, h
 
     // Update boundary conditions
     if (H.prt) {
-      fprintf(fic, "godunov %d\n", idim);
+      fprintf(fic, "godunov %d %le %le\n", idim, dt, H.t);
       PRINTUOLD(fic, H, Hv);
     }
     // if (H.mype == 1) fprintf(fic, "Hydro makes boundary.\n");
@@ -235,7 +235,7 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, h
     }                           // for j
 
     if (H.prt) {
-      // printf("[%d] After pass %d\n", H.mype, idim);
+      fprintf(fic, "[%d] After pass %d\n", H.mype, idim);
       PRINTUOLD(fic, H, Hv);
     }
   }
