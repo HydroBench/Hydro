@@ -46,9 +46,6 @@
 #include "perfcnt.h"
 
 #ifndef HMPP
-#define BLOCKING 1
-#define SSST 32
-#define IIST 32
 
 void
 trace(const real_t dtdx,
@@ -63,13 +60,10 @@ trace(const real_t dtdx,
   int ijmin, ijmax;
   int i, IN, s;
   real_t zerol = 0.0, zeror = 0.0, project = 0.;
-  int ss, ii, ssmx, iimx;
 
   WHERE("trace");
   ijmin = 0;
   ijmax = n;
-  iimx = (ijmax - 1) - (ijmax - 1) % IIST;
-  ssmx = slices - slices % SSST;
 
   // if (strcmp(Hscheme, "muscl") == 0) {       // MUSCL-Hancock method
   if (Hscheme == HSCHEME_MUSCL) {       // MUSCL-Hancock method
@@ -90,88 +84,9 @@ trace(const real_t dtdx,
     project = zero;
   }
 
-#ifdef BLOCKING
-#ifdef __MIC__
-#pragma omp parallel for private(ss,ii,s,i), shared(qxp, qxm) collapse(2)
-#else
-#pragma omp parallel for private(ss,ii,s,i), shared(qxp, qxm)
-#endif
-  for (ss = 0; ss < ssmx; ss += SSST) {
-    for (ii = ijmin + 1; ii < iimx; ii += IIST) {
-
-#pragma loop count(SSST)
-      for (s = ss; s < ss + SSST; s++) {
-#pragma loop count(IIST)
-	for (i = ii; i < ii + IIST; i++) {
-	  real_t cc, csq, r, u, v, p;
-	  real_t dr, du, dv, dp;
-	  real_t alpham, alphap, alpha0r, alpha0v;
-	  real_t spminus, spplus, spzero;
-	  real_t apright, amright, azrright, azv1right;
-	  real_t apleft, amleft, azrleft, azv1left;
-
-	  real_t upcc, umcc, upccx, umccx, ux;
-	  real_t rOcc, OrOcc, dprcc;
-
-	  cc = c[s][i];
-	  csq = Square(cc);
-	  r = q[ID][s][i];
-	  u = q[IU][s][i];
-	  v = q[IV][s][i];
-	  p = q[IP][s][i];
-	  dr = dq[ID][s][i];
-	  du = dq[IU][s][i];
-	  dv = dq[IV][s][i];
-	  dp = dq[IP][s][i];
-	  rOcc = r / cc;
-	  OrOcc = 1. / rOcc;
-	  dprcc = dp / (r * cc);
-	  alpham = half * (dprcc - du) * rOcc;
-	  alphap = half * (dprcc + du) * rOcc;
-	  alpha0r = dr - dp / csq;
-	  alpha0v = dv;
-	  upcc = u + cc;
-	  umcc = u - cc;
-	  upccx = upcc * dtdx;
-	  umccx = umcc * dtdx;
-	  ux = u * dtdx;
-
-	  // Right state
-	  spminus = (umcc >= zeror) ? (project) : umccx + one;
-	  spplus  = (upcc >= zeror) ? (project) : upccx + one;
-	  spzero  = (u >= zeror)    ? (project) : ux + one;
-	  apright = -half * spplus * alphap;
-	  amright = -half * spminus * alpham;
-	  azrright = -half * spzero * alpha0r;
-	  azv1right = -half * spzero * alpha0v;
-	  qxp[ID][s][i] = r + (apright + amright + azrright);
-	  qxp[IU][s][i] = u + (apright - amright) * OrOcc;
-	  qxp[IV][s][i] = v + (azv1right);
-	  qxp[IP][s][i] = p + (apright + amright) * csq;
-
-	  // Left state
-	  spminus = (umcc <= zerol) ? (-project) : umccx - one;
-	  spplus  = (upcc <= zerol) ? (-project) : upccx - one;
-	  spzero  = (u <= zerol)    ? (-project) : ux - one;
-	  apleft = -half * spplus * alphap;
-	  amleft = -half * spminus * alpham;
-	  azrleft = -half * spzero * alpha0r;
-	  azv1left = -half * spzero * alpha0v;
-	  qxm[ID][s][i] = r + (apleft + amleft + azrleft);
-	  qxm[IU][s][i] = u + (apleft - amleft) * OrOcc;
-	  qxm[IV][s][i] = v + (azv1left);
-	  qxm[IP][s][i] = p + (apleft + amleft) * csq;
-	}
-      }
-    }
-  }
-#else
-  ssmx = 0;
-  iimx = ijmin + 1;
-#endif
 #pragma omp parallel for private(s,i), shared(qxp, qxm) 
-  for (s = ssmx; s < slices; s++) {
-    for (i = iimx; i < ijmax - 1; i++) {
+  for (s = 0; s < slices; s++) {
+    for (i = ijmin + 1; i < ijmax - 1; i++) {
       real_t cc, csq, r, u, v, p;
       real_t dr, du, dv, dp;
       real_t alpham, alphap, alpha0r, alpha0v;

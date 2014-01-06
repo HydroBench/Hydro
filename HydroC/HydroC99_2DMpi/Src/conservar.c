@@ -45,7 +45,7 @@
 #include "conservar.h"
 #include "perfcnt.h"
 
-#define BLOCKING 1
+#define BLOCKING 0
 #define SSST 32
 #define JJST 32
 
@@ -99,37 +99,10 @@ gatherConservativeVars(const int idim,
     }
     //
   } else {
-    int ss, jj, ssmx, jjmx;
-    // const int ssst = 16;
-    // const int jjst = 32;
-    jjmx = Hjmax - Hjmax % JJST;
-    ssmx = slices - slices % SSST;
-
-#ifdef BLOCKING
     // Gather conservative variables
-#pragma omp parallel for private(ss, jj, j, s), shared(u) collapse(2)
-    for (ss = 0; ss < ssmx; ss += SSST) {
-      for (jj = Hjmin; jj < jjmx; jj += JJST) {
-#pragma loop count(SSST)
-	for (s = ss; s < ss + SSST; s++) {
-#pragma loop count(JJST)
-	  for (j = jj; j < jj + JJST; j++) {
-	    u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
-	    u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
-	    u[IV][s][j] = uold[IHU(rowcol + s, j, IU)];
-	    u[IP][s][j] = uold[IHU(rowcol + s, j, IP)];
-	  }
-	}
-      }
-    }
-#else
-    ssmx = 0;
-    jjmx = Hjmin;
-#endif
-    // remainder loop
-#pragma omp parallel for private(j, s), shared(u) collapse(2)
-    for (s = ssmx; s < slices; s++) {
-      for (j = jjmx; j < Hjmax; j++) {
+#pragma omp parallel for private(j, s), shared(u) 
+    for (s = 0; s < slices; s++) {
+      for (j = Hjmin; j < Hjmax; j++) {
 	u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
 	u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
 	u[IV][s][j] = uold[IHU(rowcol + s, j, IU)];
@@ -197,41 +170,10 @@ updateConservativeVars(const int idim,
       }
     }
   } else {
-    int ss, jj, ssmx, jjmx;
-    // int ssst = 16, jjst = 32;
-    jjmx = (Hjmax - ExtraLayer) - (Hjmax - ExtraLayer) % JJST;
-    ssmx = slices - slices % SSST;
-
-#ifdef BLOCKING
     // Update conservative variables
-#pragma omp parallel for private(ss, jj, j, s), shared(uold) collapse(2)
-    for (ss = 0; ss < ssmx; ss += SSST) {
-      for (jj = (Hjmin + ExtraLayer); jj < jjmx; jj += JJST) {
-#pragma loop count(SSST)
-	for (s = ss; s < ss + SSST; s++) {
-#pragma loop count(JJST)
-	  for (j = jj; j < jj + JJST; j++) {
-	    uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
-	  }
-	  for (j = jj; j < jj + JJST; j++) {
-	    uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;
-	  }
-	  for (j = jj; j < jj + JJST; j++) {
-	    uold[IHU(rowcol + s, j, IU)] = u[IV][s][j] + (flux[IV][s][j - 2] - flux[IV][s][j - 1]) * dtdx;
-	  }
-	  for (j = jj; j < jj + JJST; j++) {
-	    uold[IHU(rowcol + s, j, IP)] = u[IP][s][j] + (flux[IP][s][j - 2] - flux[IP][s][j - 1]) * dtdx;
-	  }
-	}
-      }
-    }
-#else
-    ssmx = 0;
-    jjmx = (Hjmin + ExtraLayer);
-#endif
-#pragma omp parallel for private(j, s), shared(uold) collapse(2)
-    for (s = ssmx; s < slices; s++) {
-      for (j = jjmx; j < (Hjmax - ExtraLayer); j++) {
+#pragma omp parallel for private(j, s), shared(uold) 
+    for (s = 0; s < slices; s++) {
+      for (j = (Hjmin + ExtraLayer); j < (Hjmax - ExtraLayer); j++) {
 	uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IU)] = u[IV][s][j] + (flux[IV][s][j - 2] - flux[IV][s][j - 1]) * dtdx;

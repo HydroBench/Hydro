@@ -73,31 +73,7 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 #define MAX(x,y) fmax(x,y)
 #endif
 
-inline double
-MySqrt(double a) {
-  double v = 0;
-  double vn = 0;
-  float x0 = (float) a;
-  // double error = (double) 1.e-8;
-  // double prec = (double) 1.;
-  
-  // initial value: to speedup the process we take the float approximation
-  x0 = sqrtf(x0);
-  v = (double) x0;
-  // v = (double) 0.5 * (vn + a / vn);
-  // vn = v;
-  // v = (double) 0.5 * (vn + a / vn);
-  // vn = v;
-  // v = (double) 0.5 * (vn + a / vn);
-  // vn = v;
-  // v = (double) 0.5 * (vn + a / vn);
-  // vn = v;
-  // v = (double) 0.5 * (vn + a / vn);
-  return v;
-}
-
 #define MYSQRT sqrt
-// #define MYSQRT MySqrt
 
 void
 riemann(int narray, const real_t Hsmallr, 
@@ -202,7 +178,6 @@ riemann(int narray, const real_t Hsmallr,
 #pragma SIMD
 #endif
 #endif
-#pragma unroll(16)
       for (i = 0; i < narray; i++) {
 	if (goon[i]) {
 	  real_t pst = pstar[i];
