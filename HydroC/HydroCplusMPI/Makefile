@@ -108,7 +108,11 @@ Archiv:
 	tar czvf Archiv_$(DATEHOUR).tgz Makefile *.hpp *.cpp *.h *.c input.nml
 
 indent:
-	indent *.cpp *.hpp
+	indent *.cpp *.hpp *.c *.h
+
+#
+# - - - section to launch runs easily through a songle make command. They should be tailored to YOUR needs - - -
+#
 
 run: 
 	if [ -f .wasmic ] ; then make clean ; fi
@@ -255,6 +259,10 @@ maqmic:
 	rm -rf toto/* maqao_funcs.lst maqao_loopslist.lst maqao_loopsdetail.lst
 	env OMP_NUM_THREADS=240 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive ccc_mprun -p knc -n1 maqaophi perf -mIOMP -t=SX -xp=toto -g=small -uarch=KNC -- hydroc -i input.nml | tee maqao_run.lst
 	# make maqmicrep
+
+#
+# - - - end of runs section - - -
+#
 
 listing:
 	a2ps --medium=A4dj -C -1 -R -l90 --toc -E --prologue=color --file-align=fill -o listing.ps *.hpp *.cpp Makefile
