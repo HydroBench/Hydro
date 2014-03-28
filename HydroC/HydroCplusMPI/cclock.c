@@ -57,14 +57,14 @@ void convertToHuman(char *s, double t)
 	double curt = t;
 
 	s[0] = 0;
-	days = int(curt / (3600 * 24));
+	days = (int)(curt / (3600 * 24));
 	curt -= (days * 3600 * 24);
-	hours = int(curt / 3600);
+	hours = (int)(curt / 3600);
 	curt -= (hours * 3600);
-	minutes = int(curt / 60);
+	minutes = (int)(curt / 60);
 	curt -= (minutes * 60);
-	secondes = int(curt);
-	subsec = int((float(curt) - float(secondes))  * 100);
+	secondes = (int)(curt);
+	subsec = (int)(((float)(curt) - (float)(secondes))  * 100);
 	if (days) sprintf(s, "[%d:]", days);
 	sprintf(s, "%s%02d:%02d:%02d.%d", s, hours, minutes, secondes, subsec);
 }
