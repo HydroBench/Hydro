@@ -51,7 +51,7 @@
 
 void
 oclCmpflx(const long narray, const long Hnxyt, const long Hnvar, 
-	  const double Hgamma, 
+	  const real_t Hgamma, 
 	  const int slices, const int Hstep,
 	  cl_mem qgdnv, cl_mem flux)
 {
@@ -66,14 +66,8 @@ oclCmpflx(const long narray, const long Hnxyt, const long Hnvar,
 
   // Compute fluxes
   OCLSETARG07(ker[Loop1KcuCmpflx], qgdnv, flux, narray, Hnxyt, Hgamma, slices, Hstep);
-
-  err = clEnqueueNDRangeKernel(cqueue, ker[Loop1KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
-  oclCheckErr(err, "clEnqueueNDRangeKernel Loop1KcuCmpflx");
-  err = clWaitForEvents(1, &event);
-  oclCheckErr(err, "clWaitForEvents");
-  elapsk = oclChronoElaps(event);
-  err = clReleaseEvent(event);
-  oclCheckErr(err, "clReleaseEvent");
+  // err = clEnqueueNDRangeKernel(cqueue, ker[Loop1KcuCmpflx], 1, NULL, gws, lws, 0, NULL, &event);
+  oclLaunchKernel2D(ker[Loop1KcuCmpflx], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 
   // Other advected quantities
   if (Hnvar > IP + 1) {

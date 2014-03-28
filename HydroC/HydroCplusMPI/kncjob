@@ -1,0 +1,50 @@
+#!/bin/bash
+#MSUB -s /bin/bash
+#MSUB -T 7000
+#MSUB -N 12
+#MSUB -n 12
+#MSUB -e tst.%I.err
+#MSUB -o tst.%I.out
+#MSUB -r kncjob
+#MSUB -q knc
+
+set -x
+module load mic
+cd ~/Cplus
+
+export r=$PWD
+
+# cd $SCRATCHDIR
+
+# export OMP_NUM_THREADS=240
+CMD1="gdb -x runcmd $r/tst"
+CMD1="./tst -i $r/inputknc.nml"
+
+mkdir -p valknc
+cd valknc
+
+if [ ! -f tst ]; then
+    cp -p $r/tst .
+fi
+pwd
+# rm -f STOP Continue.dump *.png
+cat > runcmd <<EOF 
+run -i $r/inputknc.nml
+where
+quit
+EOF
+
+date 1>&2
+
+R=0
+time ccc_mprun $CMD1
+R=$?
+if [ ! -f STOP ] ; then
+    if [ $R -eq 0 ] ; then
+	ccc_msub ~/Cplus/kncjob
+    fi
+fi
+
+date 1>&2
+
+# EOF

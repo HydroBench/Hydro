@@ -63,7 +63,7 @@ hydro_init(hydroparam_t * H, hydrovar_t * Hv)
   H->arVarSz = (H->nxyt + 2) * H->nvar;
   H->arUoldSz = H->nvar * H->nxt * H->nyt;
   // allocate uold for each conservative variable
-  Hv->uold = (double *) calloc(H->arUoldSz, sizeof(double));
+  Hv->uold = (real_t *) calloc(H->arUoldSz, sizeof(real_t));
 
   // wind tunnel with point explosion
   for (j = H->jmin + ExtraLayer; j < H->jmax - ExtraLayer; j++) {

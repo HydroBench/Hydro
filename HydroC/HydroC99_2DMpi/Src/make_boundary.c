@@ -3,6 +3,7 @@
   (C) Romain Teyssier : CEA/IRFU           -- original F90 code
   (C) Pierre-Francois Lavallee : IDRIS      -- original F90 code
   (C) Guillaume Colin de Verdiere : CEA/DAM -- for the C version
+  (C) Adèle Villiermet : CINES            -- for FTI integration
 */
 /*
 
@@ -34,6 +35,12 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef MPI
+#include <mpi.h>
+#if FTI>0
+#include <fti.h>
+#endif
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
@@ -41,9 +48,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <string.h>
 #include <strings.h>
 #include <assert.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
+
 
 #include "parametres.h"
 #include "make_boundary.h"
@@ -51,16 +56,16 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "utils.h"
 
 static int
-pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-pack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+pack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 static int
-unpack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer);
+unpack_arrayh(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer);
 
 int
-pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
@@ -74,7 +79,7 @@ pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffe
 }
 
 int
-unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
@@ -88,7 +93,7 @@ unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, double *buf
 }
 
 int
-pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = ymin; j < ymin + ExtraLayer; j++) {
@@ -103,7 +108,7 @@ pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffe
 }
 
 int
-unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0;
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = ymin; j < ymin + ExtraLayer; j++) {
@@ -118,7 +123,7 @@ unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buf
 
 #define VALPERLINE 11
 int
-print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, double *buffer) {
+print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffer) {
   int ivar, i, j, p = 0, nbr = 1;
   for (ivar = 3; ivar < H.nvar; ivar++) {
     fprintf(fic, "BufferH v=%d\n", ivar);
@@ -147,16 +152,17 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
   // des index depuis fortran.
   // - - - - - - - - - - - - - - - - - - -
   int i, ivar, i0, j, j0, err, size;
-  double sign;
-  double sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
-  double sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  //   double *sendbufru, *sendbufld;
-  double recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
-  double recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
-  //   double *recvbufru, *recvbufld;
+  real_t sign;
+  real_t sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  real_t sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  //   real_t *sendbufru, *sendbufld;
+  real_t recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
+  real_t recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
+  //   real_t *recvbufru, *recvbufld;
 #ifdef MPI
   MPI_Request requests[4];
   MPI_Status status[4];
+  MPI_Datatype mpiFormat = MPI_DOUBLE;
 #endif
   int reqcnt = 0;
 
@@ -164,30 +170,52 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
 
   WHERE("make_boundary");
 
+#ifdef MPI
+  if (sizeof(real_t) == sizeof(float))  mpiFormat = MPI_FLOAT;
+#endif
+
   if (idim == 1) {
 #ifdef MPI
     i = ExtraLayer;
     size = pack_arrayv(i, H, Hv, sendbufld);
     i = H.nx;
     size = pack_arrayv(i, H, Hv, sendbufru);
-
+#if FTI==0
     if (H.box[RIGHT_BOX] != -1) {
-      MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[LEFT_BOX] != -1) {
-      MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[RIGHT_BOX] != -1) {
-      MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[LEFT_BOX] != -1) {
-      MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
-
+#endif
+#if FTI>0
+    if (H.box[RIGHT_BOX] != -1) {
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[RIGHT_BOX] != -1) {
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+#endif
     err = MPI_Waitall(reqcnt, requests, status);
     assert(err == MPI_SUCCESS);
 
@@ -221,7 +249,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             i0 = H.nx + i;
           }
-#pragma simd
+// #pragma simd
           for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i0, j, ivar)] * sign;
           }
@@ -248,11 +276,11 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             i0 = i - H.nx;
           }
-#pragma simd
+// #pragma simd
           for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
-            Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i0, j, ivar)] * sign;
-          }
-        }
+		  Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i0, j, ivar)] * sign;
+          } // for j
+        } // for i
       }
       { 
 	int nops = H.nvar * ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer)) * ((H.nx + ExtraLayerTot) - (H.nx + ExtraLayer));
@@ -281,24 +309,42 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
       fprintf(fic, "%d prep %d\n", H.mype, j);
       print_bufferh(fic, j, H, Hv, sendbufru);
     }
-
+#if FTI==0
     if (H.box[DOWN_BOX] != -1) {
-      MPI_Isend(sendbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[UP_BOX] != -1) {
-      MPI_Isend(sendbufru, size, MPI_DOUBLE, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[DOWN_BOX] != -1) {
-      MPI_Irecv(recvbufld, size, MPI_DOUBLE, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
     if (H.box[UP_BOX] != -1) {
-      MPI_Irecv(recvbufru, size, MPI_DOUBLE, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123, MPI_COMM_WORLD, &requests[reqcnt]);
       reqcnt++;
     }
-
+#endif
+#if FTI>0
+    if (H.box[DOWN_BOX] != -1) {
+      MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+      MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[DOWN_BOX] != -1) {
+      MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+      MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123, FTI_COMM_WORLD, &requests[reqcnt]);
+      reqcnt++;
+    }
+#endif
     err = MPI_Waitall(reqcnt, requests, status);
     assert(err == MPI_SUCCESS);
 
@@ -348,7 +394,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             j0 = H.ny + j;
           }
-#pragma simd
+// #pragma simd
           for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i, j0, ivar)] * sign;
           }
@@ -374,7 +420,7 @@ make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv) {
           } else {
             j0 = j - H.ny;
           }
-#pragma simd
+// #pragma simd
           for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
             Hv->uold[IHv(i, j, ivar)] = Hv->uold[IHv(i, j0, ivar)] * sign;
           }

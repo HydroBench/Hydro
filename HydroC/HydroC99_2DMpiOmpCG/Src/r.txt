@@ -1,0 +1,35 @@
+ssh inti9001-mic0 "cd /cea/ghome/ocre/coling/Github/Hydro/HydroC/HydroC99_2DMpiOmpCG/Src; env OMP_NUM_THREADS=240 KMP_AFFINITY=compact mpiexec -np 1 ./hydro -i input.nml" 
++-------------------+
+|GlobNx=2560        |
+|GlobNy=2560        |
+|nx=2560            |
+|ny=2560            |
+|nxystep=240        |
+|tend=100.000       |
+|nstepmax=10        |
+|noutput=0          |
+|dtoutput=0.000     |
++-------------------+
+Centered test case : 1282 1282
+Hydro starts in double precision.
+Hydro:    OpenMP mode ON
+Hydro: OpenMP 240 max threads
+Hydro: OpenMP 1 num threads
+Hydro: OpenMP 244 num procs
+Hydro: MPI run with 1 procs
+Hydro starts main loop.
+Hydro: init mem 0.447362s
+--> step=   1,  1.33631e-03, 1.33631e-03  {192141.74 Mflops 86790557914 Ops} (0.452s)
+--> step=   2,  2.67261e-03, 1.33631e-03  {227742.52 Mflops 92721517842 Ops} (0.407s)
+--> step=   3,  5.70914e-03, 3.03653e-03  {209819.73 Mflops 95000879147 Ops} (0.453s)
+--> step=   4,  8.74568e-03, 3.03653e-03  {227108.39 Mflops 94446525611 Ops} (0.416s)
+--> step=   5,  1.24942e-02, 3.74854e-03  {217927.84 Mflops 97262242708 Ops} (0.446s)
+--> step=   6,  1.62428e-02, 3.74854e-03  {232445.03 Mflops 96042882994 Ops} (0.413s)
+--> step=   7,  2.06309e-02, 4.38811e-03  {217345.83 Mflops 97369055041 Ops} (0.448s)
+--> step=   8,  2.50190e-02, 4.38811e-03  {240281.98 Mflops 97542141751 Ops} (0.406s)
+--> step=   9,  2.95700e-02, 4.55100e-03  {212540.57 Mflops 95145754743 Ops} (0.448s)
+--> step=  10,  3.41210e-02, 4.55100e-03  {233608.05 Mflops 95480674791 Ops} (0.409s)
+Hydro ends in 00:00:04.301s (4.301) <221096.17 MFlops>.
+    GATCON    CONPRI    EOS       SLOPE     TRACE     QLEFTR    RIEMAN    CMPFLX    UPDCON    COMPDT    MAKBOU    ALLRED    
+PE0 0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.189159  0.261935  0.000629  
+%   0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000  41.874995 57.985843 0.139162  

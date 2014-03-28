@@ -20,13 +20,13 @@
 #define IDXE(i,j) ( (i*Hnxyt) + j )
 
 void
-trace (const double dtdx,
+trace (const hydro_real_t dtdx,
        const int n,
        const int Hscheme,
        const int Hnvar,
        const int Hnxyt,
        const int slices, const int Hstep,
-       double *q, double *dq, double *c, double *qxm, double *qxp)
+       hydro_real_t *q, hydro_real_t *dq, hydro_real_t *c, hydro_real_t *qxm, hydro_real_t *qxp)
 {
   //double q[Hnvar][Hstep][Hnxyt],
   //double dq[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt], double qxm[Hnvar][Hstep][Hnxyt],
@@ -40,7 +40,7 @@ trace (const double dtdx,
   //double apright, amright, azrright, azv1right, acmpright;
   //double apleft, amleft, azrleft, azv1left, acmpleft;
   
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  hydro_real_t zerol = zero, zeror = zero, project = zero;
 
   WHERE ("trace");
   //ijmin = 0;
@@ -71,21 +71,40 @@ trace (const double dtdx,
 
   #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], dq[0:Hnvar*Hstep*Hnxyt], c[0:Hstep*Hnxyt]) present(qxm[0:Hnvar*Hstep*Hnxyt], qxp[0:Hnvar*Hstep*Hnxyt]) 
   {
-    double cc, csq,r, u, v, p;
+/*    double cc, csq,r, u, v, p;
     double dr, du, dv, dp;
     double alpham, alphap, alpha0r, alpha0v;
     double spminus, spplus, spzero;
     double apright, amright, azrright, azv1right;
     double apleft, amleft, azrleft, azv1left;
+*/
     int ijmin=0, ijmax=n;
 
 
-    #pragma acc loop independent
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 256x1
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int s = 0; s < slices; s++)
     {
-      #pragma acc loop independent private(  r, u, v, p, dr, du, dv, dp, alpham, alphap, alpha0r, alpha0v, spminus, spplus, spzero, apright, amright, azrright, azv1right, apleft, amleft, azrleft, azv1left, cc ,csq)
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int i = ijmin + 1; i < ijmax - 1; i++)
 	    {
+    hydro_real_t cc, csq,r, u, v, p;
+    hydro_real_t dr, du, dv, dp;
+    hydro_real_t alpham, alphap, alpha0r, alpha0v;
+    hydro_real_t spminus, spplus, spzero;
+    hydro_real_t apright, amright, azrright, azv1right;
+    hydro_real_t apleft, amleft, azrleft, azv1left;
+
         cc = c[IDXE (s, i)];
         csq = Square (cc);
         r = q[IDX (ID, s, i)];
@@ -159,17 +178,30 @@ trace (const double dtdx,
   {
     #pragma acc kernels present(q[0:Hnvar*Hstep*Hnxyt], dq[0:Hnvar*Hstep*Hnxyt]) present(qxp[0:Hnvar*Hstep*Hnxyt], qxm[0:Hnvar*Hstep*Hnxyt])
     {
-      double  u, a, acmpleft;
-      double  da, acmpright, spzero;
+///      double  u, a, acmpleft;
+///      double  da, acmpright, spzero;
       int ijmin=0, ijmax=n;
-      #pragma acc loop independent 
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(IN*s,i)
+#else
+#pragma hmppcg gridify(IN*s,i), blocksize 256x1
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int IN = IP + 1; IN < Hnvar; IN++)
 	    {
-        #pragma acc loop independent private (u,a,da,spzero,acmpright,acmpleft)
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++)
 	      {
 	        for (int i = ijmin + 1; i < ijmax - 1; i++)
 		      {
+hydro_real_t  u, a, acmpleft;
+hydro_real_t  da, acmpright, spzero;
 		        u = q[IDX (IU, s, i)];
 		        a = q[IDX (IN, s, i)];
 		        da = dq[IDX (IN, s, i)];

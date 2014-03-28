@@ -60,7 +60,7 @@
 #define PRECISION 1e-6
 
 void
-Dmemset(size_t nbr, double t[nbr], double motif) {
+Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
   int i;
   for (i = 0; i < nbr; i++) {
     t[i] = motif;
@@ -68,48 +68,50 @@ Dmemset(size_t nbr, double t[nbr], double motif) {
 }
 
 
-#define DABS(x) (double) fabs((x))
+#define DABS(x) (real_t) fabs((x))
 #ifdef HMPP
 #define MAX(x,y) fmax(x,y)
 #endif
 
+#define MYSQRT sqrt
+
 void
-riemann(int narray, const double Hsmallr, 
-	const double Hsmallc, const double Hgamma, 
+riemann(int narray, const real_t Hsmallr, 
+	const real_t Hsmallc, const real_t Hgamma, 
 	const int Hniter_riemann, const int Hnvar, 
 	const int Hnxyt, const int slices, 
 	const int Hstep, 
-	double qleft[Hnvar][Hstep][Hnxyt], 
-	double qright[Hnvar][Hstep][Hnxyt],      //
-	double qgdnv[Hnvar][Hstep][Hnxyt],      //
+	real_t qleft[Hnvar][Hstep][Hnxyt], 
+	real_t qright[Hnvar][Hstep][Hnxyt],      //
+	real_t qgdnv[Hnvar][Hstep][Hnxyt],      //
 	int sgnm[Hstep][Hnxyt], 
 	hydrowork_t * Hw) 
 {
   int i, s, ii, iimx;
-  double smallp_ = Square(Hsmallc) / Hgamma;
-  double gamma6_ = (Hgamma + one) / (two * Hgamma);
-  double smallpp_ = Hsmallr * smallp_;
+  real_t smallp_ = Square(Hsmallc) / Hgamma;
+  real_t gamma6_ = (Hgamma + one) / (two * Hgamma);
+  real_t smallpp_ = Hsmallr * smallp_;
 
   FLOPS(4, 2, 0, 0);
   // __declspec(align(256)) thevariable
 
   int *Fgoon = Hw->goon;
-  double *Fpstar = Hw->pstar;
-  double *Frl = Hw->rl;
-  double *Ful = Hw->ul;
-  double *Fpl = Hw->pl;
-  double *Fur = Hw->ur;
-  double *Fpr = Hw->pr;
-  double *Fcl = Hw->cl;
-  double *Fcr = Hw->cr;
-  double *Frr = Hw->rr;
+  real_t *Fpstar = Hw->pstar;
+  real_t *Frl = Hw->rl;
+  real_t *Ful = Hw->ul;
+  real_t *Fpl = Hw->pl;
+  real_t *Fur = Hw->ur;
+  real_t *Fpr = Hw->pr;
+  real_t *Fcl = Hw->cl;
+  real_t *Fcr = Hw->cr;
+  real_t *Frr = Hw->rr;
 
-  double smallp = smallp_;
-  double gamma6 = gamma6_;
-  double smallpp = smallpp_;
+  real_t smallp = smallp_;
+  real_t gamma6 = gamma6_;
+  real_t smallpp = smallpp_;
 
   // fprintf(stderr, "%d\n", __ICC );
-#warning "active pragma simd " __ICC
+#pragma message "active pragma simd "
 #define SIMDNEEDED 1
 #if __ICC < 1300
 #define SIMD ivdep
@@ -119,11 +121,11 @@ riemann(int narray, const double Hsmallr,
   // #define SIMD novector
 
   // Pressure, density and velocity
-#pragma omp parallel for  schedule(static), private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
+#pragma omp parallel for private(s, i), shared(qgdnv, sgnm) reduction(+:flopsAri), reduction(+:flopsSqr), reduction(+:flopsMin), reduction(+:flopsTra)
   for (s = 0; s < slices; s++) {
     int ii, iimx;
     int *goon;
-    double *pstar, *rl, *ul, *pl, *rr, *ur, *pr, *cl, *cr;
+    real_t *pstar, *rl, *ul, *pl, *rr, *ur, *pr, *cl, *cr;
     int iter;
     pstar = &Fpstar[s * narray];
     rl = &Frl[s * narray];
@@ -148,18 +150,18 @@ riemann(int narray, const double Hsmallr,
     for (i = 0; i < narray; i++) {
       rl[i] = fmax(qleft[ID][s][i], Hsmallr);
       ul[i] = qleft[IU][s][i];
-      pl[i] = fmax(qleft[IP][s][i], (double) (rl[i] * smallp));
+      pl[i] = fmax(qleft[IP][s][i], (real_t) (rl[i] * smallp));
       rr[i] = fmax(qright[ID][s][i], Hsmallr);
       ur[i] = qright[IU][s][i];
-      pr[i] = fmax(qright[IP][s][i], (double) (rr[i] * smallp));
+      pr[i] = fmax(qright[IP][s][i], (real_t) (rr[i] * smallp));
 
       // Lagrangian sound speed
       cl[i] = Hgamma * pl[i] * rl[i];
       cr[i] = Hgamma * pr[i] * rr[i];
       // First guess
 
-      double wl_i = sqrt(cl[i]);
-      double wr_i = sqrt(cr[i]);
+      real_t wl_i = MYSQRT(cl[i]);
+      real_t wr_i = MYSQRT(cr[i]);
       pstar[i] = fmax(((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), 0.0);
       goon[i] = 1;
     }
@@ -178,21 +180,22 @@ riemann(int narray, const double Hsmallr,
 #endif
       for (i = 0; i < narray; i++) {
 	if (goon[i]) {
-	  double pst = pstar[i];
+	  real_t pst = pstar[i];
 	  // Newton-Raphson iterations to find pstar at the required accuracy
-	  double wwl = sqrt(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
-	  double wwr = sqrt(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
-	  double ql = two * wwl * Square(wwl) / (Square(wwl) + cl[i]);
-	  double qr = two * wwr * Square(wwr) / (Square(wwr) + cr[i]);
-	  double usl = ul[i] - (pst - pl[i]) / wwl;
-	  double usr = ur[i] + (pst - pr[i]) / wwr;
-	  double tmp = (qr * ql / (qr + ql) * (usl - usr));
-	  double delp_i = Fmax(tmp, (-pst));
+	  real_t wwl = MYSQRT(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
+	  real_t wwr = MYSQRT(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
+	  real_t swwl = Square(wwl);
+	  real_t ql = two * wwl * swwl / (swwl + cl[i]);
+	  real_t qr = two * wwr * Square(wwr) / (Square(wwr) + cr[i]);
+	  real_t usl = ul[i] - (pst - pl[i]) / wwl;
+	  real_t usr = ur[i] + (pst - pr[i]) / wwr;
+	  real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
+	  real_t delp_i = Fmax(tmp, (-pst));
 	  // pstar[i] = pstar[i] + delp_i;
 	  pst += delp_i;
 	  // Convergence indicator
-	  double tmp2 = delp_i / (pst + smallpp);
-	  double uo_i = Fabs(tmp2);
+	  real_t tmp2 = delp_i / (pst + smallpp);
+	  real_t uo_i = Fabs(tmp2);
 	  goon[i] = uo_i > PRECISION;
 	  // FLOPS(29, 10, 2, 0);
 	  pstar[i] = pst;
@@ -204,17 +207,17 @@ riemann(int narray, const double Hsmallr,
 #pragma SIMD
 #endif
     for (i = 0; i < narray; i++) {
-      double wl_i = sqrt(cl[i]);
-      double wr_i = sqrt(cr[i]);
+      real_t wl_i = MYSQRT(cl[i]);
+      real_t wr_i = MYSQRT(cr[i]);
 
-      wr_i = sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
-      wl_i = sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
+      wr_i = MYSQRT(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
+      wl_i = MYSQRT(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
 
-      double ustar_i = half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
+      real_t ustar_i = half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
 
       int left = ustar_i > 0;
 
-      double ro_i, uo_i, po_i, wo_i;
+      real_t ro_i, uo_i, po_i, wo_i;
 
       if (left) {
 	sgnm[s][i] = 1;
@@ -230,33 +233,33 @@ riemann(int narray, const double Hsmallr,
 	wo_i = wr_i;
       }
 
-      double co_i = sqrt(fabs(Hgamma * po_i / ro_i));
+      real_t co_i = MYSQRT(fabs(Hgamma * po_i / ro_i));
       co_i = fmax(Hsmallc, co_i);
 
-      double rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
+      real_t rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
       rstar_i = fmax(rstar_i, Hsmallr);
 
-      double cstar_i = sqrt(fabs(Hgamma * pstar[i] / rstar_i));
+      real_t cstar_i = MYSQRT(fabs(Hgamma * pstar[i] / rstar_i));
       cstar_i = fmax(Hsmallc, cstar_i);
 
-      double spout_i = co_i - sgnm[s][i] * uo_i;
-      double spin_i = cstar_i - sgnm[s][i] * ustar_i;
-      double ushock_i = wo_i / ro_i - sgnm[s][i] * uo_i;
+      real_t spout_i = co_i - sgnm[s][i] * uo_i;
+      real_t spin_i = cstar_i - sgnm[s][i] * ustar_i;
+      real_t ushock_i = wo_i / ro_i - sgnm[s][i] * uo_i;
 
       if (pstar[i] >= po_i) {
 	spin_i = ushock_i;
 	spout_i = ushock_i;
       }
 
-      double scr_i = fmax((double) (spout_i - spin_i), (double) (Hsmallc + fabs(spout_i + spin_i)));
+      real_t scr_i = fmax((real_t) (spout_i - spin_i), (real_t) (Hsmallc + fabs(spout_i + spin_i)));
 
-      double frac_i = (one + (spout_i + spin_i) / scr_i) * half;
-      frac_i = fmax(zero, (double) (fmin(one, frac_i)));
+      real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
+      frac_i = fmax(zero, (real_t) (fmin(one, frac_i)));
 
       int addSpout = spout_i < zero;
       int addSpin = spin_i > zero;
-      // double originalQgdnv = !addSpout & !addSpin;
-      double qgdnv_ID, qgdnv_IU, qgdnv_IP;
+      // real_t originalQgdnv = !addSpout & !addSpin;
+      real_t qgdnv_ID, qgdnv_IU, qgdnv_IP;
 
       if (addSpout) {
 	qgdnv_ID = ro_i;

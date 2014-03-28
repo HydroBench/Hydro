@@ -1,7 +1,7 @@
 # Link make.inc with the targeted architecture in Arch directory
 # For example : ln -s make_sp6 make.inc
 #--------------------------------------
-include ../../../Arch/make.inc
+include make.inc
 
 # OpenMP options
 #---------------
@@ -48,3 +48,7 @@ include alldeps.d
 
 #alldeps.d: $(SRC)
 #	env CFLAGS='$(CFLAGS)' NVCFLAGS='$(NVCFLAGS)' makedeps > alldeps.d
+
+
+run: hydro
+	ccc_mprun -p hybrid -x ./hydro -i input.nml

@@ -40,12 +40,14 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include <cuda.h>
 
 #include "GetDevice.h"
 #include "gridfuncs.h"
-#ifdef WITHMPI
+#if defined(WITHMPI) || defined(MPI)
 
 typedef struct _hosts {
   char hostname[256];

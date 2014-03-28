@@ -39,7 +39,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <malloc.h>
 // #include <unistd.h>
 #include <math.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include <cuda.h>
 
 #include "parametres.h"

@@ -67,7 +67,7 @@ oclGatherConservativeVars(const long idim,
   if (idim == 1) {
     // Gather conservative variables
     OCLSETARG10(ker[Loop1KcuGather], uold, u, rowcol, Hnxt, Himin, Himax, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop1KcuGather], cqueue, (Himax - Himin), THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop1KcuGather], cqueue, (Himax - Himin), slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG11(ker[Loop3KcuGather], uold, u, rowcol, Hnxt, Himin, Himax, Hnyt, Hnxyt, Hnvar, slices, Hnxystep);
       oclLaunchKernel(ker[Loop3KcuGather], cqueue, (Himax - Himin), THREADSSZ, __FILE__, __LINE__);
@@ -75,7 +75,7 @@ oclGatherConservativeVars(const long idim,
   } else {
     // Gather conservative variables
     OCLSETARG10(ker[Loop2KcuGather], uold, u, rowcol, Hnxt, Hjmin, Hjmax, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop2KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop2KcuGather], cqueue, (Hjmax - Hjmin), slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG11(ker[Loop4KcuGather], uold, u, rowcol, Hnxt, Hjmin, Hjmax, Hnyt, Hnxyt, Hnvar, slices, Hnxystep);
       oclLaunchKernel(ker[Loop4KcuGather], cqueue, (Hjmax - Hjmin), THREADSSZ, __FILE__, __LINE__);
@@ -87,7 +87,7 @@ oclGatherConservativeVars(const long idim,
 void
 oclUpdateConservativeVars(const long idim,
 			  const long rowcol,
-			  const double dtdx,
+			  const real_t dtdx,
 			  const long Himin,
 			  const long Himax,
 			  const long Hjmin,
@@ -106,14 +106,14 @@ oclUpdateConservativeVars(const long idim,
 
   if (idim == 1) {
     OCLSETARG12(ker[Loop1KcuUpdate], rowcol, dtdx, uold, u, flux, Himin, Himax, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop1KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop1KcuUpdate], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG13(ker[Loop2KcuUpdate], rowcol, dtdx, uold, u, flux, Himin, Himax, Hnvar, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
       oclLaunchKernel(ker[Loop2KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
     }
   } else {
     OCLSETARG12(ker[Loop3KcuUpdate], rowcol, dtdx, uold, u, flux, Hjmin, Hjmax, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
-    oclLaunchKernel(ker[Loop3KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+    oclLaunchKernel2D(ker[Loop3KcuUpdate], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
     if (Hnvar > IP + 1) {
       OCLSETARG13(ker[Loop4KcuUpdate], rowcol, dtdx, uold, u, flux, Hjmin, Hjmax, Hnvar, Hnxt, Hnyt, Hnxyt, slices, Hnxystep);
       oclLaunchKernel(ker[Loop4KcuUpdate], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);

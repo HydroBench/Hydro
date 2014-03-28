@@ -41,7 +41,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include <assert.h>
 
 #include "parametres.h"
@@ -277,8 +279,10 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   double *recvbufruDEV, *recvbufldDEV;
   // MPI_Status st;
   // MPI_Win winld, winru;
+#ifdef MPI
   MPI_Request requests[4];
   MPI_Status status[4];
+#endif
   int reqcnt = 0;
   int nops;
 
@@ -286,6 +290,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   char fname[256];
 
   if (H.nproc > 1) {
+#ifdef MPI
     cudaMalloc(&recvbufruDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
     CheckErr("recvbufruDEV");
     cudaMalloc(&recvbufldDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
@@ -294,10 +299,12 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
     CheckErr("recvbufldDEV");
     cudaMalloc(&sendbufruDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
     CheckErr("recvbufldDEV");
+#endif
   }
   WHERE("make_boundary");
   if (idim == 1) {
     if (H.nproc > 1) {
+#ifdef MPI
       SetBlockDims(H.nyt, THREADSSZ, block, grid);
       i = ExtraLayer;
       pack_arrayv <<< grid, block >>> (i, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
@@ -358,6 +365,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       }
       cudaThreadSynchronize();
       CheckErr("cudaThreadSynchronize unpack_arrayv");
+#endif
     }
     // Left boundary
     n = ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer));
@@ -407,6 +415,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);    }
   } else {
     if (H.nproc > 1) {
+#ifdef MPI
       SetBlockDims(H.nxt, THREADSSZ, block, grid);
       j = ExtraLayer;
       pack_arrayh <<< grid, block >>> (j, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
@@ -471,7 +480,8 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       }
       cudaThreadSynchronize();
       CheckErr("cudaThreadSynchronize unpack_arrayv");
-    }
+ #endif
+   }
 
     n = ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
     SetBlockDims(n * H.nvar, THREADSSZ, block, grid);
@@ -521,10 +531,12 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
     }
   }
   if (H.nproc > 1) {
+#ifdef MPI
     cudaFree(sendbufruDEV);
     cudaFree(sendbufldDEV);
     cudaFree(recvbufldDEV);
     cudaFree(recvbufruDEV);
+#endif
   }
 }                               // make_boundary
 

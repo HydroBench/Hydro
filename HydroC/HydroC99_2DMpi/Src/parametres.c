@@ -3,6 +3,7 @@
   (C) Romain Teyssier : CEA/IRFU           -- original F90 code
   (C) Pierre-Francois Lavallee : IDRIS      -- original F90 code
   (C) Guillaume Colin de Verdiere : CEA/DAM -- for the C version
+  (C) Adèle Villiermet : CINES            -- for FTI integration
 */
 /*
 
@@ -34,14 +35,18 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef MPI
+#include <mpi.h>
+#if FTI>0
+#include <fti.h>
+#endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <values.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
 
 #include "parametres.h"
 #include "SplitSurface.h"
@@ -51,6 +56,7 @@ usage(void) {
   fprintf(stderr, "--help");
   fprintf(stderr, "-i input");
   fprintf(stderr, "-v :: to increase verbosity");
+  fprintf(stderr, "-c :: configuration file for fti");
   fprintf(stderr, "------------------------------------");
   exit(1);
 }
@@ -137,6 +143,14 @@ process_input(char *datafile, hydroparam_t * H)
   FILE *fd = NULL;
   char buffer[1024];
   char *pval, *pkey;
+  char *realFmt;
+
+  if (sizeof(real_t) == sizeof(double)) {
+    realFmt = "%lf";
+  } else {
+    realFmt = "%f";
+  }
+  
   fd = fopen(datafile, "r");
   if (fd == NULL) {
     fprintf(stderr, "can't read input file\n");
@@ -196,31 +210,31 @@ process_input(char *datafile, hydroparam_t * H)
     }
     // float parameters
     if (strcmp(pkey, "slope_type") == 0) {
-      sscanf(pval, "%lf", &H->slope_type);
+      sscanf(pval, realFmt, &H->slope_type);
       continue;
     }
     if (strcmp(pkey, "tend") == 0) {
-      sscanf(pval, "%lf", &H->tend);
+      sscanf(pval, realFmt, &H->tend);
       continue;
     }
     if (strcmp(pkey, "dx") == 0) {
-      sscanf(pval, "%lf", &H->dx);
+      sscanf(pval, realFmt, &H->dx);
       continue;
     }
     if (strcmp(pkey, "courant_factor") == 0) {
-      sscanf(pval, "%lf", &H->courant_factor);
+      sscanf(pval, realFmt, &H->courant_factor);
       continue;
     }
     if (strcmp(pkey, "smallr") == 0) {
-      sscanf(pval, "%lf", &H->smallr);
+      sscanf(pval, realFmt, &H->smallr);
       continue;
     }
     if (strcmp(pkey, "smallc") == 0) {
-      sscanf(pval, "%lf", &H->smallc);
+      sscanf(pval, realFmt, &H->smallc);
       continue;
     }
     if (strcmp(pkey, "dtoutput") == 0) {
-      sscanf(pval, "%lf", &H->dtoutput);
+      sscanf(pval, realFmt, &H->dtoutput);
       continue;
     }
     if (strcmp(pkey, "testcase") == 0) {
@@ -242,27 +256,6 @@ process_input(char *datafile, hydroparam_t * H)
       continue;
     }
   }
-
-  if (H->nxystep == -1) {
-    // default = full slab
-    H->nxystep = (H->nx < H->ny) ? H->nx: H->ny;
-  } else {
-    if (H->nxystep > H->nx) H->nxystep = H->nx;
-    if (H->nxystep > H->ny) H->nxystep = H->ny;
-  }
-
-  // small summary of the run conditions
-  if (H->mype == 0) {
-    printf("+-------------------+\n");
-    printf("|nx=%-7d         |\n", H->nx);
-    printf("|ny=%-7d         |\n", H->ny);
-    printf("|nxystep=%-2d         |\n", H->nxystep);
-    printf("|tend=%-10.3f    |\n", H->tend);
-    printf("|nstepmax=%-7d   |\n", H->nstepmax);
-    printf("|noutput=%-7d    |\n", H->noutput);
-    printf("|dtoutput=%-10.3f|\n", H->dtoutput);
-    printf("+-------------------+\n");
-  }
   // exit(0);
 }
 
@@ -270,7 +263,9 @@ void
 process_args(int argc, char **argv, hydroparam_t * H) {
   int n = 1;
   char donnees[512];
+  char config[512];
 
+#if FTI==0
   default_values(H);
 
 #ifdef MPI
@@ -298,6 +293,12 @@ process_args(int argc, char **argv, hydroparam_t * H) {
       n++;
       continue;
     }
+    if (strcmp(argv[n], "-c") == 0) {
+      n++;
+      fprintf(stderr, "FTI is not available\n");
+      n++;
+      continue;
+    }
     fprintf(stderr, "Key %s is unkown\n", argv[n]);
     n++;
   }
@@ -307,6 +308,65 @@ process_args(int argc, char **argv, hydroparam_t * H) {
     fprintf(stderr, "Option -i is missing\n");
     exit(1);
   }
+#endif
+#if FTI>0
+  H->prt=0;
+
+  while (n < argc) {
+    if (strcmp(argv[n], "--help") == 0) {
+      usage();
+      n++;
+      continue;
+    }
+    if (strcmp(argv[n], "-v") == 0) {
+      n++;
+      H->prt++;
+      continue;
+    }
+    if (strcmp(argv[n], "-i") == 0) {
+      n++;
+      strncpy(donnees, argv[n], 512);
+      donnees[511] = 0;         // security
+      n++;
+      continue;
+    }
+    if (strcmp(argv[n], "-c") == 0) {
+      n++;
+      strncpy(config, argv[n], 512);
+      config[511] = 0;         // security
+      n++;
+      continue;
+      }
+    fprintf(stderr, "Key %s is unkown\n", argv[n]);
+    n++;
+  }
+  if (config != NULL) {
+#ifdef MPI
+    //FTI initialization
+    FTI_Init(config, MPI_COMM_WORLD);
+#else
+    fprintf(stderr, "FTI need MPI\n", argv[n]);
+#endif
+  } else {
+    fprintf(stderr, "Option -c is missing\n");
+    exit(1);
+  }
+  default_values(H);
+
+#ifdef MPI
+  MPI_Comm_size(FTI_COMM_WORLD, &H->nproc);
+  MPI_Comm_rank(FTI_COMM_WORLD, &H->mype);
+#else
+  H->nproc = 1;
+  H->mype = 0;
+#endif
+  if (donnees != NULL) {
+    process_input(donnees, H);
+  } else {
+    fprintf(stderr, "Option -i is missing\n");
+    exit(1);
+  }
+#endif
 
   H->globnx = H->nx;
   H->globny = H->ny;
@@ -317,7 +377,12 @@ process_args(int argc, char **argv, hydroparam_t * H) {
 
 #ifdef MPI
   if (H->nproc > 1) {
+#if FTI==0
     MPI_Barrier(MPI_COMM_WORLD);
+#endif
+#if FTI>0
+    MPI_Barrier(FTI_COMM_WORLD);
+#endif
     // first pass : determin our actual sub problem size
     CalcSubSurface(0, H->globnx, 0, H->globny, 0, H->nproc - 1, 0, H->box, H->mype, 0);
     // second pass : determin our neighbours
@@ -336,7 +401,12 @@ process_args(int argc, char **argv, hydroparam_t * H) {
     }
 
     if (H->nx == 0 || H->ny == 0) {
+#if FTI==0
       MPI_Abort(MPI_COMM_WORLD, 123);
+#endif
+#if FTI>0
+      MPI_Abort(FTI_COMM_WORLD, 123);
+#endif
     }
 
     // adapt the boundary conditions 
@@ -355,4 +425,27 @@ process_args(int argc, char **argv, hydroparam_t * H) {
   }
   fflush(stdout);
 #endif
+
+  if (H->nxystep == -1) {
+    // default = full slab
+    H->nxystep = (H->nx < H->ny) ? H->nx: H->ny;
+  } else {
+    if (H->nxystep > H->nx) H->nxystep = H->nx;
+    if (H->nxystep > H->ny) H->nxystep = H->ny;
+  }
+
+  // small summary of the run conditions
+  if (H->mype == 0) {
+    printf("+-------------------+\n");
+    printf("|GlobNx=%-7d     |\n", H->globnx);
+    printf("|GlobNy=%-7d     |\n", H->globny);
+    printf("|nx=%-7d         |\n", H->nx);
+    printf("|ny=%-7d         |\n", H->ny);
+    printf("|nxystep=%-7d    |\n", H->nxystep);
+    printf("|tend=%-10.3f    |\n", H->tend);
+    printf("|nstepmax=%-7d   |\n", H->nstepmax);
+    printf("|noutput=%-7d    |\n", H->noutput);
+    printf("|dtoutput=%-10.3f|\n", H->dtoutput);
+    printf("+-------------------+\n");
+  }
 }

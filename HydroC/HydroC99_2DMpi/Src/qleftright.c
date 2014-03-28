@@ -53,9 +53,9 @@ qleftright(const int idim,
            const int Hnxyt,
            const int Hnvar,
            const int slices, const int Hstep,
-           double qxm[Hnvar][Hstep][Hnxyt],
-           double qxp[Hnvar][Hstep][Hnxyt], double qleft[Hnvar][Hstep][Hnxyt],
-           double qright[Hnvar][Hstep][Hnxyt]) {
+           real_t qxm[Hnvar][Hstep][Hnxyt],
+           real_t qxp[Hnvar][Hstep][Hnxyt], real_t qleft[Hnvar][Hstep][Hnxyt],
+           real_t qright[Hnvar][Hstep][Hnxyt]) {
   // #define IHVW(i,v) ((i) + (v) * Hnxyt)
   int nvar, i, s;
   int bmax;
@@ -66,7 +66,7 @@ qleftright(const int idim,
     bmax = Hny + 1;
   }
 
-#pragma omp parallel for schedule(static), private(nvar, i, s), shared(qleft, qright) collapse(2)
+#pragma omp parallel for private(nvar, i, s), shared(qleft, qright) 
   for (s = 0; s < slices; s++) {
     for (nvar = 0; nvar < Hnvar; nvar++) {
 #pragma simd

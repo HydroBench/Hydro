@@ -7,31 +7,31 @@
 
 /*
 
-This software is governed by the CeCILL license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+  This software is governed by the CeCILL license under French law and
+  abiding by the rules of distribution of free software.  You can  use, 
+  modify and/ or redistribute the software under the terms of the CeCILL
+  license as circulated by CEA, CNRS and INRIA at the following URL
+  "http://www.cecill.info". 
 
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
+  As a counterpart to the access to the source code and  rights to copy,
+  modify and redistribute granted by the license, users are provided only
+  with a limited warranty  and the software's author,  the holder of the
+  economic rights,  and the successive licensors  have only  limited
+  liability. 
 
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
+  In this respect, the user's attention is drawn to the risks associated
+  with loading,  using,  modifying and/or developing or reproducing the
+  software by the user in light of its specific status of free software,
+  that may mean  that it is complicated to manipulate,  and  that  also
+  therefore means  that it is reserved for developers  and  experienced
+  professionals having in-depth computer knowledge. Users are therefore
+  encouraged to load and test the software's suitability as regards their
+  requirements in conditions enabling the security of their systems and/or 
+  data to be ensured and,  more generally, to use and operate it in the 
+  same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL license and that you accept its terms.
+  The fact that you are presently reading this means that you have had
+  knowledge of the CeCILL license and that you accept its terms.
 
 */
 
@@ -48,18 +48,18 @@ knowledge of the CeCILL license and that you accept its terms.
 #ifndef HMPP
 
 void
-trace(const double dtdx,
+trace(const real_t dtdx,
       const int n,
       const int Hscheme,
       const int Hnvar,
       const int Hnxyt,
       const int slices, const int Hstep,
-      double q[Hnvar][Hstep][Hnxyt],
-      double dq[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt], double qxm[Hnvar][Hstep][Hnxyt],
-      double qxp[Hnvar][Hstep][Hnxyt]) {
+      real_t q[Hnvar][Hstep][Hnxyt],
+      real_t dq[Hnvar][Hstep][Hnxyt], real_t c[Hstep][Hnxyt], real_t qxm[Hnvar][Hstep][Hnxyt],
+      real_t qxp[Hnvar][Hstep][Hnxyt]) {
   int ijmin, ijmax;
   int i, IN, s;
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  real_t zerol = 0.0, zeror = 0.0, project = 0.;
 
   WHERE("trace");
   ijmin = 0;
@@ -84,15 +84,19 @@ trace(const double dtdx,
     project = zero;
   }
 
-#pragma omp parallel for schedule(static), private(s,i), shared(qxp, qxm)
+#pragma omp parallel for private(s,i), shared(qxp, qxm) 
   for (s = 0; s < slices; s++) {
     for (i = ijmin + 1; i < ijmax - 1; i++) {
-      double cc, csq, r, u, v, p;
-      double dr, du, dv, dp;
-      double alpham, alphap, alpha0r, alpha0v;
-      double spminus, spplus, spzero;
-      double apright, amright, azrright, azv1right;
-      double apleft, amleft, azrleft, azv1left;
+      real_t cc, csq, r, u, v, p;
+      real_t dr, du, dv, dp;
+      real_t alpham, alphap, alpha0r, alpha0v;
+      real_t spminus, spplus, spzero;
+      real_t apright, amright, azrright, azv1right;
+      real_t apleft, amleft, azrleft, azv1left;
+
+      real_t upcc, umcc, upccx, umccx, ux;
+      real_t rOcc, OrOcc, dprcc;
+
       cc = c[s][i];
       csq = Square(cc);
       r = q[ID][s][i];
@@ -103,52 +107,42 @@ trace(const double dtdx,
       du = dq[IU][s][i];
       dv = dq[IV][s][i];
       dp = dq[IP][s][i];
-      alpham = half * (dp / (r * cc) - du) * r / cc;
-      alphap = half * (dp / (r * cc) + du) * r / cc;
+      rOcc = r / cc;
+      OrOcc = cc / r;
+      dprcc = dp / (r * cc);
+      alpham = half * (dprcc - du) * rOcc;
+      alphap = half * (dprcc + du) * rOcc;
       alpha0r = dr - dp / csq;
       alpha0v = dv;
+      upcc = u + cc;
+      umcc = u - cc;
+      upccx = upcc * dtdx;
+      umccx = umcc * dtdx;
+      ux = u * dtdx;
 
       // Right state
-      spminus = (u - cc) * dtdx + one;
-      spplus = (u + cc) * dtdx + one;
-      spzero = u * dtdx + one;
-      if ((u - cc) >= zeror) {
-        spminus = project;
-      }
-      if ((u + cc) >= zeror) {
-        spplus = project;
-      }
-      if (u >= zeror) {
-        spzero = project;
-      }
+      spminus = (umcc >= zeror) ? (project) : umccx + one;
+      spplus  = (upcc >= zeror) ? (project) : upccx + one;
+      spzero  = (u >= zeror)    ? (project) : ux + one;
       apright = -half * spplus * alphap;
       amright = -half * spminus * alpham;
       azrright = -half * spzero * alpha0r;
       azv1right = -half * spzero * alpha0v;
       qxp[ID][s][i] = r + (apright + amright + azrright);
-      qxp[IU][s][i] = u + (apright - amright) * cc / r;
+      qxp[IU][s][i] = u + (apright - amright) * OrOcc;
       qxp[IV][s][i] = v + (azv1right);
       qxp[IP][s][i] = p + (apright + amright) * csq;
 
       // Left state
-      spminus = (u - cc) * dtdx - one;
-      spplus = (u + cc) * dtdx - one;
-      spzero = u * dtdx - one;
-      if ((u - cc) <= zerol) {
-        spminus = -project;
-      }
-      if ((u + cc) <= zerol) {
-        spplus = -project;
-      }
-      if (u <= zerol) {
-        spzero = -project;
-      }
+      spminus = (umcc <= zerol) ? (-project) : umccx - one;
+      spplus  = (upcc <= zerol) ? (-project) : upccx - one;
+      spzero  = (u <= zerol)    ? (-project) : ux - one;
       apleft = -half * spplus * alphap;
       amleft = -half * spminus * alpham;
       azrleft = -half * spzero * alpha0r;
       azv1left = -half * spzero * alpha0v;
       qxm[ID][s][i] = r + (apleft + amleft + azrleft);
-      qxm[IU][s][i] = u + (apleft - amleft) * cc / r;
+      qxm[IU][s][i] = u + (apleft - amleft) * OrOcc;
       qxm[IV][s][i] = v + (azv1left);
       qxm[IP][s][i] = p + (apleft + amleft) * csq;
     }
@@ -163,11 +157,11 @@ trace(const double dtdx,
     for (IN = IP + 1; IN < Hnvar; IN++) {
       for (s = 0; s < slices; s++) {
         for (i = ijmin + 1; i < ijmax - 1; i++) {
-	  double u, a;
-	  double da;
-	  double spzero;
-	  double acmpright;
-	  double acmpleft;
+	  real_t u, a;
+	  real_t da;
+	  real_t spzero;
+	  real_t acmpright;
+	  real_t acmpleft;
           u = q[IU][s][i];
           a = q[IN][s][i];
           da = dq[IN][s][i];

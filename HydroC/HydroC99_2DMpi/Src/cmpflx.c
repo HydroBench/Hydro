@@ -51,13 +51,13 @@ void
 cmpflx(const int narray,
        const int Hnxyt,
        const int Hnvar,
-       const double Hgamma,
+       const real_t Hgamma,
        const int slices, 
        const int Hstep, 
-       double qgdnv[Hnvar][Hstep][Hnxyt], 
-       double flux[Hnvar][Hstep][Hnxyt]) {
+       real_t qgdnv[Hnvar][Hstep][Hnxyt], 
+       real_t flux[Hnvar][Hstep][Hnxyt]) {
   int nface, i, IN;
-  double entho, ekin, etot;
+  real_t entho, ekin, etot;
   WHERE("cmpflx");
   int s;
 
@@ -66,16 +66,16 @@ cmpflx(const int narray,
   FLOPS(1, 1, 0, 0);
 
   // Compute fluxes
-#pragma omp parallel for schedule(static), private(s, i), shared(flux)
+#pragma omp parallel for private(s, i, ekin, etot), shared(flux) 
   for (s = 0; s < slices; s++) {
     for (i = 0; i < nface; i++) {
-      double qgdnvID = qgdnv[ID][s][i];
-      double qgdnvIU = qgdnv[IU][s][i];
-      double qgdnvIP = qgdnv[IP][s][i];
-      double qgdnvIV = qgdnv[IV][s][i];
+      real_t qgdnvID = qgdnv[ID][s][i];
+      real_t qgdnvIU = qgdnv[IU][s][i];
+      real_t qgdnvIP = qgdnv[IP][s][i];
+      real_t qgdnvIV = qgdnv[IV][s][i];
 
       // Mass density
-      double massDensity = qgdnvID * qgdnvIU;
+      real_t massDensity = qgdnvID * qgdnvIU;
       flux[ID][s][i] = massDensity;
 
       // Normal momentum

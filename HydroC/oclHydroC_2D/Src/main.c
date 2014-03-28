@@ -45,6 +45,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "oclComputeDeltat.h"
 #include "oclHydroGodunov.h"
 #include "utils.h"
+#include "cclock.h"
 #include "oclInit.h"
 
 #ifdef NVIDIA
@@ -58,26 +59,100 @@ hydrovarwork_t Hvw;             // nvar
 hydrowork_t Hw;
 unsigned long flops = 0;
 
+double functim[TIM_END];
+
+int sizeLabel(double *tim, const int N) {
+  double maxi = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    if (maxi < tim[i]) maxi = tim[i];
+
+  // if (maxi < 100) return 8;
+  // if (maxi < 1000) return 9;
+  // if (maxi < 10000) return 10;
+  return 9;
+}
+void percentTimings(double *tim, const int N)
+{
+  double sum = 0;
+  int i;
+
+  for (i = 0; i < N; i++) 
+    sum += tim[i];
+
+  for (i = 0; i < N; i++)
+    tim[i] = 100.0 * tim[i] / sum;
+}
+
+void avgTimings(double *tim, const int N, const int nbr)
+{
+  int i;
+
+  for (i = 0; i < N; i++)
+    tim[i] = tim[i] / nbr;
+}
+
+void printTimings(double *tim, const int N, const int sizeFmt)
+{
+  double sum = 0;
+  int i;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%dlf ", sizeFmt);
+
+  for (i = 0; i < N; i++) 
+    fprintf(stdout, fmt, tim[i]);
+}
+void printTimingsLabel(const int N, const int fmtSize)
+{
+  int i;
+  char *txt;
+  char fmt[256];
+
+  sprintf(fmt, "%%-%ds ", fmtSize);
+  for (i = 0; i < N; i++) {
+    switch(i) {
+    case TIM_COMPDT: txt = "COMPDT"; break;
+    case TIM_MAKBOU: txt = "MAKBOU"; break;
+    case TIM_GATCON: txt = "GATCON"; break;
+    case TIM_CONPRI: txt = "CONPRI"; break;
+    case TIM_EOS: txt = "EOS"; break;
+    case TIM_SLOPE: txt = "SLOPE"; break;
+    case TIM_TRACE: txt = "TRACE"; break;
+    case TIM_QLEFTR: txt = "QLEFTR"; break;
+    case TIM_RIEMAN: txt = "RIEMAN"; break;
+    case TIM_CMPFLX: txt = "CMPFLX"; break;
+    case TIM_UPDCON: txt = "UPDCON"; break;
+    case TIM_ALLRED: txt = "ALLRED"; break;
+    default:;
+    }
+    fprintf(stdout, fmt, txt);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
-  double dt = 0;
+  real_t dt = 0;
   long nvtk = 0;
   char outnum[80];
   long time_output = 0;
 
   // double output_time = 0.0;
-  double next_output_time = 0;
-  double start_time = 0, end_time = 0;
+  real_t next_output_time = 0;
+  double start_time = 0, start_time_2 = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
   char cdt;
-  start_time = cclock();
+  struct timespec start, end;
+
 
   MPI_Init(&argc, &argv);
+  start_time = dcclock ();
   process_args(argc, argv, &H);
   if (H.mype == 0) {
-    fprintf(stdout, "Hydro starts.\n");
+    fprintf(stdout, "Hydro starts in %s.\n", (sizeof(real_t) == sizeof(double))? "double precision": "single precision");
     fflush(stdout);
   }
   
@@ -91,6 +166,7 @@ main(int argc, char **argv)
 
   // Allocate work space for 1D sweeps
   allocate_work_space(H, &Hw, &Hvw);
+  start = cclock();
   oclAllocOnDevice(H);
 
   // vtkfile(nvtk, H, &Hv);
@@ -101,6 +177,8 @@ main(int argc, char **argv)
     next_output_time = next_output_time + H.dtoutput;
   }
   oclPutUoldOnDevice(H, &Hv);
+  end = cclock();
+  fprintf(stdout, "Hydro %d: initialize acc %lfs\n", H.mype, ccelaps(start, end));
 
   if (H.dtoutput > 0 || H.noutput > 0)
     vtkfile(++nvtk, H, &Hv);
@@ -108,22 +186,31 @@ main(int argc, char **argv)
   if (H.mype == 1)
     fprintf(stdout, "Hydro starts main loop.\n");
 
+  start_time_2 = dcclock();
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
-    start_iter = cclock();
+    start_iter = dcclock();
     outnum[0] = 0;
     flops = 0;
     cdt = ' ';
     if ((H.nstep % 2) == 0) {
+      start = cclock();
       oclComputeDeltat(&dt, H, &Hw, &Hv, &Hvw);
+      end = cclock();
+      functim[TIM_COMPDT] += ccelaps(start, end);
       cdt = '*';
       // fprintf(stdout, "dt=%lg\n", dt);
       if (H.nstep == 0) {
         dt = dt / 2.0;
       }
       if (H.nproc > 1) {
-	double dtmin;
+	real_t dtmin;
 	int uno = 1;
-	MPI_Allreduce(&dt, &dtmin, uno, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	start = cclock();
+	MPI_Allreduce(&dt, &dtmin, uno, 
+		      (sizeof(real_t) == sizeof(double))? MPI_DOUBLE: MPI_FLOAT, 
+		       MPI_MIN, MPI_COMM_WORLD);
+	end = cclock();
+	functim[TIM_ALLRED] += ccelaps(start, end);
 	dt = dtmin;
       }
     }
@@ -132,7 +219,7 @@ main(int argc, char **argv)
     } else {
       oclHydroGodunov(2, dt, H, &Hv, &Hw, &Hvw);
     }
-    end_iter = cclock();
+    end_iter = dcclock();
     H.nstep++;
     H.t += dt;
     if (flops > 0) {
@@ -159,17 +246,61 @@ main(int argc, char **argv)
         sprintf(outnum, "%s [%04ld]", outnum, nvtk);
       }
     }
-    if (H.mype == 0) fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s %c\n", H.nstep, H.t, dt, outnum, cdt);
+    if (H.mype == 0) {
+      fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s %c\n", H.nstep, H.t, dt, outnum, cdt);
+    }
   }
 
   hydro_finish(H, &Hv);
+  end_time = dcclock();
+  elaps = (double) (end_time - start_time);
+  timeToString(outnum, elaps);  
+  if (H.mype == 0) {
+    fprintf(stdout, "Hydro ends in %ss(%.3lf) without init: %.3lfs. [%s]\n", outnum, elaps, (double) (end_time - start_time_2), (sizeof(real_t) == sizeof(double))? "DP": "SP");
+    fprintf(stdout, "    ");
+  }
+  if (H.nproc == 1) {
+    int sizeFmt = sizeLabel(functim, TIM_END);
+    printTimingsLabel(TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "PE0 ");
+    printTimings(functim, TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "%%   ");
+    percentTimings(functim, TIM_END);
+    printTimings(functim, TIM_END, sizeFmt);
+    fprintf(stdout, "\n");
+  }
+
+  if (H.nproc > 1) {
+    double timMAX[TIM_END];
+    double timMIN[TIM_END];
+    double timSUM[TIM_END];
+    MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    if (H.mype == 0) {
+      int sizeFmt = sizeLabel(timMAX, TIM_END);
+      printTimingsLabel(TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "MIN ");
+      printTimings(timMIN, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "MAX ");
+      printTimings(timMAX, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "AVG ");
+      avgTimings(timSUM, TIM_END, H.nproc);
+      printTimings(timSUM, TIM_END, sizeFmt);
+      fprintf(stdout, "\n");
+    }
+  }
+
   oclFreeOnDevice();
+  oclCloseupCode();
   // Deallocate work space
   deallocate_work_space(H, &Hw, &Hvw);
 
-  end_time = cclock();
-  elaps = (double) (end_time - start_time);
-  timeToString(outnum, elaps);
-  if (H.mype == 0) fprintf(stdout, "Hydro ends in %ss (%.3lf).\n", outnum, elaps);
+  MPI_Finalize();
   return 0;
 }

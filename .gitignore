@@ -11,4 +11,9 @@ hmpp*.cu
 *.tgz
 *.png
 *.dat
-
+*.pvd
+*.pdf
+*.*vtr
+*.hmf
+*.hmc
+*.d

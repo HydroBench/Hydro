@@ -99,6 +99,9 @@ oclPrintErr(cl_int rc, const char *msg, const char *file, const int line)
       case -12:
         strcat(message, "CL_MAP_FAILURE");;
         break;
+      case -13:
+        strcat(message, "CL_MISALIGNED_SUB_BUFFER_OFFSET");;
+        break;
       case -30:
         strcat(message, "CL_INVALID_VALUE");;
         break;

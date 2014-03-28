@@ -49,30 +49,30 @@ void
 constoprim(const int n,
            const int Hnxyt,
            const int Hnvar,
-           const double Hsmallr,
+           const real_t Hsmallr,
            const int slices, const int Hstep,
-           double u[Hnvar][Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]) {
+           real_t u[Hnvar][Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt], real_t e[Hstep][Hnxyt]) {
   int ijmin, ijmax, IN, i, s;
-  double eken;
+  real_t eken;
   // const int nxyt = Hnxyt;
   WHERE("constoprim");
   ijmin = 0;
   ijmax = n;
 
-#pragma omp parallel for schedule(static), private(i, s), shared(q,e)
+#pragma omp parallel for private(i, s, eken), shared(q,e) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (i = ijmin; i < ijmax; i++) {
-      double qid = MAX(u[ID][s][i], Hsmallr);
+      real_t qid = MAX(u[ID][s][i], Hsmallr);
       q[ID][s][i] = qid;
 
-      double qiu = u[IU][s][i] / qid;
-      double qiv = u[IV][s][i] / qid;
+      real_t qiu = u[IU][s][i] / qid;
+      real_t qiv = u[IV][s][i] / qid;
       q[IU][s][i] = qiu;
       q[IV][s][i] = qiv;
 
       eken = half * (Square(qiu) + Square(qiv));
 
-      double qip = u[IP][s][i] / qid - eken;
+      real_t qip = u[IP][s][i] / qid - eken;
       q[IP][s][i] = qip;
       e[s][i] = qip;
     }

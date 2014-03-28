@@ -1,0 +1,86 @@
+#!/bin/bash
+#set -x
+rm compile.log
+if [ `uname -n` = "cirrus50" ]; then
+    make MPI=O AVX=O PNG=O clean tst >> compile.log 2>&1
+    qlist="hybrid hybridk40"
+else
+    make MPI=O SSE=O PNG=O clean tst >> compile.log 2>&1
+    qlist="standard"
+fi
+module unload mic
+
+for Q in  $qlist ; do
+    rm -f ${Q}_*.dat
+done
+
+for Q in  $qlist ; do
+    nbsock=`nbsocket $Q`
+    nbcor=`nbcore $Q`
+    export th=`expr $nbcor \* $nbsock`
+    for s in `seq 1 $th`; do
+	if [ $s -eq 1 ] ; then MM="-M 4000" ; fi
+	if [ $s -gt 1 ] ; then MM="-M 3000" ; fi
+	if [ $s -gt 4 ] ; then MM="-M 2500" ; fi
+	(R=`env OMP_NUM_THREADS=$s KMP_AFFINITY=scatter ccc_mprun -p $Q -N1 -n1 -c$s $MM tst -i input.nml 2> /dev/null | grep Average | sed 's/.*: //g' `; if [ "$R" != "" ]; then echo $s $R >> ${Q}_${nbcor}.dat; fi )
+	echo $s
+    done
+    wait
+    case $Q in
+	hybrid) QQ="SNB";;
+	hybridk40) QQ="IVB";;
+	standard) QQ="NHM";;
+    esac
+    sort -n < ${Q}_${nbcor}.dat > ${QQ}${nbcor}.dat
+done
+
+
+
+if [ `uname -n` = "inti50" ]; then exit 0; fi
+
+Q="knc"
+
+module load mic
+make MIC=O clean tst >> compile.log 2>&1
+nbsock=4
+nbcor=`nbcore $Q`
+rm -f ${Q}_${nbcor}.dat
+
+export th=`expr $nbcor \* $nbsock `
+for s in `seq 2 2 $th`; do
+    (R=`env OMP_NUM_THREADS=$s KMP_AFFINITY=compact ccc_mprun -p $Q tst -i input.nml 2> /dev/null | grep Average | sed 's/.*: //g' `; echo $s $R  >> ${Q}_${nbcor}.dat) 
+    echo $s
+done
+wait
+sort -n < ${Q}_${nbcor}.dat > ${Q}${nbcor}.dat
+
+
+Q="atom"
+module unload mic
+make ATOM=O clean tst >> compile.log 2>&1
+nbsock=`nbsocket $Q`
+nbcor=`nbcore $Q`
+rm -f ${Q}_${nbcor}.dat
+
+export th=`expr $nbcor \* $nbsock`
+for s in `seq 1 $th`; do
+    (R=`env OMP_NUM_THREADS=$s KMP_AFFINITY=scatter ccc_mprun -p $Q tst -i input.nml 2> /dev/null | grep Average | sed 's/.*: //g' `; echo $s $R  >> ${Q}_${nbcor}.dat) 
+    echo $Q $th $R
+done
+wait
+sort -n < ${Q}_${nbcor}.dat > ${Q}${nbcor}.dat
+
+gnuplot <<EOF
+set output "scalearch.png"
+set term png font "/usr/share/fonts/default/ghostscript/putr.pfa" 12  size 1600,1130
+set logscale xy
+set title "Multithreading scaling # Million cells update /s "
+set ytics                      font "/usr/share/fonts/default/ghostscript/putr.pfa,20" 
+set xtics                      font "/usr/share/fonts/default/ghostscript/putr.pfa,20" 
+set xlabel "# of threads"         font "/usr/share/fonts/default/ghostscript/putr.pfa,20" 
+set ylabel "MCell/s" font "/usr/share/fonts/default/ghostscript/putr.pfa,20" 
+
+plot "NHM4.dat" w l, "SNB8.dat" w l, "IVB12.dat" w l, "knc60.dat" w l, "atom8.dat" w l
+EOF
+
+#EOF

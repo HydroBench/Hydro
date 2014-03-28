@@ -47,14 +47,14 @@
 #include "ocltools.h"
 
 void
-oclTrace(const double dtdx, const long n, const long Hscheme, 
+oclTrace(const real_t dtdx, const long n, const long Hscheme, 
 	 const long Hnvar, const long Hnxyt,
 	 const int slices, const int Hstep,
 	 cl_mem q, cl_mem dq, cl_mem c, cl_mem qxm, cl_mem qxp
 	 )
 {
   long ijmin, ijmax;
-  double zerol = 0.0, zeror = 0.0, project = 0.;
+  real_t zerol = 0.0, zeror = 0.0, project = 0.;
 
   WHERE("trace");
   ijmin = 0;
@@ -79,7 +79,8 @@ oclTrace(const double dtdx, const long n, const long Hscheme,
     project = zero;
   }
   OCLSETARG14(ker[Loop1KcuTrace], q, dq, c, qxm, qxp, dtdx, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
-  oclLaunchKernel(ker[Loop1KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuTrace], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
+  // oclLaunchKernel(ker[Loop1KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLSETARG14(ker[Loop2KcuTrace], q, dq, qxm, qxp, dtdx, Hnvar, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hstep);
     oclLaunchKernel(ker[Loop2KcuTrace], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);

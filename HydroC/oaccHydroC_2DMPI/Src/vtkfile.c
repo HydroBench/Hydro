@@ -263,7 +263,10 @@ vtkfile (int step, const hydroparam_t H, hydrovar_t * Hv)
 	       "    <DataArray Name=\"%s\" type=\"Float32\" format=\"binary\" encoding=\"base64\" NumberOfComponents=\"1\">\n",
 	       name);
       {
-	float tuold[H.nx * H.ny];
+	//float tuold[H.nx * H.ny];
+	float* tuold=NULL;
+	tuold= (float *) calloc(H.nx * H.ny +16, sizeof(float));
+	assert(tuold != NULL);
 	char *r64;
 	int p = 0, lst;
 	for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++)
@@ -279,10 +282,11 @@ vtkfile (int step, const hydroparam_t H, hydrovar_t * Hv)
 	lst = strlen (r64);
 	fwrite (r64, 1, lst, fic);
 	free (r64);
-	r64 = ToBase64 ((byte *) & tuold, p);
+	r64 = ToBase64 ((byte *) tuold, p);
 	lst = strlen (r64);
 	fwrite (r64, 1, lst, fic);
 	free (r64);
+	free (tuold);
       }
 #else
       fprintf (fic,

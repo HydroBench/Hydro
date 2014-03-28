@@ -2,7 +2,10 @@
 # GNU Makefile version
 ######################
 
-CFLAGS=-D__NO_INLINE__
+CFLAGS=-D__NO_INLINE__ 
+ifeq ($(PREC),DOUBLE)
+	CFLAGS=-D__NO_INLINE__ -DUSE_DOUBLE 
+endif
 
 #This variable can be overridden  from the command line
 TARGET=opencl
@@ -12,8 +15,8 @@ ifeq ($(VERBOSITY),)
 endif
 CC=mpicc
 
-CFLAGS:= $(CFLAGS) -std=c99 -I../common -w -O3 -Wno-unknown-pragmas
-LDFLAGS = ../common/hmpp_util.o ../common/getopt.o -lm
+CFLAGS:= $(CFLAGS) -std=c99 -I../common -w -O3 -Wno-unknown-pragmas -D_POSIX_C_SOURCE=199309L 
+LDFLAGS = ../common/hmpp_util.o ../common/getopt.o -lm -lrt
 
 export HMPPRT_LOG_LEVEL=$(VERBOSITY)
 
@@ -53,7 +56,7 @@ INPUT=input
 
 PGM=HydroC
 HEADER=$(wildcard *.h)
-SRC=cmpflx.c conservar.c equation_of_state.c hydro_godunov.c main.c parametres.c riemann.c trace.c vtkfile.c compute_deltat.c constoprim.c hydro_funcs.c hydro_utils.c make_boundary.c qleftright.c slope.c utils.c SplitSurface.c
+SRC=cmpflx.c conservar.c equation_of_state.c hydro_godunov.c main.c parametres.c riemann.c trace.c vtkfile.c compute_deltat.c constoprim.c hydro_funcs.c hydro_utils.c make_boundary.c qleftright.c slope.c utils.c SplitSurface.c cclock.c
 
 BCK_SRC=hydro_godunov.c riemann.c hggodunov_cuda.cu
 HOST=$(shell uname -n | sed 's/[0-9]//g')
@@ -67,7 +70,6 @@ all: HydroC.run HydroC-acc.run
 
 build: HydroC.exe HydroC-acc.exe
  
-
 ##################################################################
 
 HydroC.run: HydroC.exe
@@ -76,7 +78,7 @@ HydroC.run: HydroC.exe
 HydroC.exe: depend $(DEP) $(SRC)
 	@echo ""
 	@echo "ICC Version"
-	$(CC) $(CFLAGS) -o HydroC.exe $(OPT) $(SRC) -lm $(HMPPENDFLAGS)
+	$(CC) $(CFLAGS) -o HydroC.exe $(OPT) $(SRC) -lm -lrt $(HMPPENDFLAGS)
 
 ##################################################################
 
@@ -108,7 +110,7 @@ dos2unix:
 
 
 clean:
-	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d *.txt
+	rm -rf *~ *.so *.o *.exe *.bic *.linkinfo *.cu.* *.hmf* *.hmc* *.i *.d 
 	rm -rf *.cu* *extracted* *hdpp* *translated* *.hmg* *.tif
 
 #EOF

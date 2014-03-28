@@ -46,7 +46,7 @@
 #include "ocltools.h"
 
 void
-oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsmallr,
+oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const real_t Hsmallr,
 	      const int slices, const int Hnxystep, 
 	      cl_mem u, cl_mem q, cl_mem e)
 {
@@ -54,7 +54,7 @@ oclConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsm
   WHERE("constoprim");
 
   OCLSETARG08(ker[Loop1KcuConstoprim], n, u, q, e, Hnxyt, Hsmallr, slices, Hnxystep);
-  oclLaunchKernel(ker[Loop1KcuConstoprim], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuConstoprim], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
   if (Hnvar > IP + 1) {
     OCLSETARG07(ker[Loop2KcuConstoprim], n, u, q, Hnxyt, Hnvar, slices, Hnxystep);
     oclLaunchKernel(ker[Loop2KcuConstoprim], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);

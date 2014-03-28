@@ -39,7 +39,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #define OCLINIT_H
 #include <CL/cl.h>
 
-#define THREADSSZ 32
+#define THREADSSZ 2048
 
 // This enum list all the possible kernels that are created in one shot.
 
@@ -67,10 +67,11 @@ typedef enum {
   LoopKcuSlope,
   Loop1KcuTrace,
   Loop2KcuTrace,
-  LoopKredMaxDble,
+  LoopKredMaxReal,
   KernelMemset,
   KernelMemsetV4,
   kpack_arrayv, kunpack_arrayv, kpack_arrayh, kunpack_arrayh, 
+  LoopKComputeDeltat,
   LastEntryKernel
 } myKernel_t;
 
@@ -93,6 +94,7 @@ void oclMemset(cl_mem a, cl_int v, size_t lbyte);
 void oclMakeHydroKernels();
 
 void oclInitCode(const int nproc, const int mype);
+void oclCloseupCode();
 
 #endif // OCLINIT_H
 //EOF

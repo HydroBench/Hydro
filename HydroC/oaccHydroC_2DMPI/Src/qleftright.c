@@ -26,7 +26,7 @@ qleftright (const int idim,
 	    const int Hnxyt,
 	    const int Hnvar,
 	    const int slices, const int Hstep,
-	    double *qxm, double *qxp, double *qleft, double *qright)
+	    hydro_real_t *qxm, hydro_real_t *qxp, hydro_real_t *qleft, hydro_real_t *qright)
 {
   //double qxm[Hnvar][Hstep][Hnxyt],
   //double qxp[Hnvar][Hstep][Hnxyt], double qleft[Hnvar][Hstep][Hnxyt], double qright[Hnvar][Hstep][Hnxyt]) {
@@ -46,12 +46,26 @@ qleftright (const int idim,
   #pragma acc kernels present(qxm[0:Hnvar*Hstep*Hnxyt], qxp[0:Hnvar*Hstep*Hnxyt]) present(qleft[0:Hnvar*Hstep*Hnxyt], qright[0:Hnvar*Hstep*Hnxyt]) 
   {
 
-    #pragma acc loop independent 
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(nvar*s,i)
+#else
+#pragma hmppcg gridify(nvar*s,i), blocksize 512x1
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int nvar = 0; nvar < Hnvar; nvar++)
     {
-      #pragma acc loop independent
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
 	    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int i = 0; i < bmax; i++)
         {
           qleft[IDX (nvar, s, i)] = qxm[IDX (nvar, s, i + 1)];

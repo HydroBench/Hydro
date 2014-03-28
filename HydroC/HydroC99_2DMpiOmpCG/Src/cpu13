@@ -1,0 +1,5 @@
+#!/bin/sh
+rm make.inc; ln -s make_icc13_mpi make.inc
+make clean
+rm *.d
+#EOF

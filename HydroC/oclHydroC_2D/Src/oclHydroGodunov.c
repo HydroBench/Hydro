@@ -47,6 +47,7 @@
 #include "parametres.h"
 #include "hydro_funcs.h"
 #include "utils.h"
+#include "cclock.h"
 
 #include "oclInit.h"
 #include "ocltools.h"
@@ -80,7 +81,7 @@ oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
   cl_int err = 0;
   cl_event event;
-  err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
+  err = clEnqueueWriteBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(real_t), Hv->uold, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueWriteBuffer");
   err = clWaitForEvents(1, &event);
   oclCheckErr(err, "clWaitForEvents");
@@ -93,7 +94,7 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
 {
   cl_int err = 0;
   cl_event event;
-  err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(double), Hv->uold, 0, NULL, &event);
+  err = clEnqueueReadBuffer(cqueue, uoldDEV, CL_TRUE, 0, H.arUoldSz * sizeof(real_t), Hv->uold, 0, NULL, &event);
   oclCheckErr(err, "clEnqueueWriteBuffer");
   err = clWaitForEvents(1, &event);
   oclCheckErr(err, "clWaitForEvents");
@@ -101,13 +102,13 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clReleaseEvent");
 }
 
-static void ClearArrayDble(cl_mem array, size_t lgrBytes)
+static void ClearArrayDble(cl_mem array, size_t lgr)
 {
-  int lzero = 0;
-  long ldble = lgrBytes / sizeof(double);
+  real_t lzero = 0.;
   assert(array != NULL);
-  OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgrBytes, THREADSSZ, __FILE__, __LINE__);
+  assert(lgr > 0);
+  OCLSETARG03(ker[KernelMemset], array, lzero, lgr);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, THREADSSZ, __FILE__, __LINE__);
 }
 
 cl_mem  AllocClear(size_t lgrBytes) {
@@ -115,8 +116,18 @@ cl_mem  AllocClear(size_t lgrBytes) {
   cl_int status;
 
   tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
-  oclCheckErr(status, "");
-  ClearArrayDble(tab, lgrBytes);
+  oclCheckErr(status, "AllocClear");
+  ClearArrayDble(tab, lgrBytes / sizeof(real_t));
+  return tab;
+}
+
+cl_mem  AllocClearL(size_t lgrBytes) {
+  cl_mem tab;
+  cl_int status;
+
+  tab = clCreateBuffer(ctx, CL_MEM_READ_WRITE, lgrBytes, NULL, &status); 
+  oclCheckErr(status, "AllocClearL");
+  // ClearArrayDble(tab, lgrBytes / sizeof(real_t));
   return tab;
 }
 
@@ -124,25 +135,25 @@ void
 oclAllocOnDevice(const hydroparam_t H)
 {
   cl_int status = 0;
-
-  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
-  size_t lSz = H.arSz * H.nxystep * sizeof(double);
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(real_t);
+  size_t lUold = H.arUoldSz * sizeof(real_t);
+  size_t lSz = H.arSz * H.nxystep * sizeof(real_t);
   size_t lSzL = H.arSz * H.nxystep * sizeof(long);
-
-  uoldDEV = AllocClear(H.arUoldSz * sizeof(double));
-  uDEV = AllocClear(lVarSz);
-  qDEV = AllocClear(lVarSz);
-  dqDEV = AllocClear(lVarSz);
-  qxpDEV = AllocClear(lVarSz);
-  qleftDEV = AllocClear(lVarSz);
+                                  
+  uoldDEV = AllocClear(lUold);    
+  uDEV = AllocClear(lVarSz);      
+  qDEV = AllocClear(lVarSz);      
+  dqDEV = AllocClear(lVarSz);     
+  qxpDEV = AllocClear(lVarSz);    
+  qleftDEV = AllocClear(lVarSz); 
   qrightDEV = AllocClear(lVarSz);
-  qxmDEV = AllocClear(lVarSz);
+  qxmDEV = AllocClear(lVarSz);    
   qgdnvDEV = AllocClear(lVarSz);
-  fluxDEV = AllocClear(lVarSz);
+  fluxDEV = AllocClear(lVarSz);   
 
-  eDEV = AllocClear(lSz);
-  cDEV = AllocClear(lSz);
-  sgnmDEV = AllocClear(lSzL);
+  eDEV = AllocClear(lSz);         
+  cDEV = AllocClear(lSz);         
+  sgnmDEV = AllocClearL(lSzL);    
 }
 
 void
@@ -163,22 +174,24 @@ oclFreeOnDevice()
   OCLFREE(sgnmDEV);
 }
 
-#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
-#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARRV(vdev, v) do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARR(vdev, v)  do { cl_event event; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
 
 void
-oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
+oclHydroGodunov(long idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
   cl_int status;
   // Local variables
+  struct timespec start, end;
   int i, j, idim, idimIndex;
   int Hmin, Hmax, Hstep, Hnxystep;
   int Hdimsize;
   int Hndim_1;
   int slices, iend;
-  double dtdx;
-  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(double);
+  real_t dtdx;
+  size_t lVarSz = H.arVarSz * H.nxystep * sizeof(real_t);
   long Hnxyt = H.nxyt;
+  int clear = 0;
   static FILE *fic = NULL;
 
   if (fic == NULL && H.prt) {
@@ -202,7 +215,10 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       PRINTUOLD(fic, H, Hv);
     }
 #define GETUOLD oclGetUoldFromDevice(H, Hv)
+    start = cclock();
     oclMakeBoundary(idim, H, Hv, uoldDEV);
+    end = cclock();
+    functim[TIM_MAKBOU] += ccelaps(start, end);
     if (H.prt) {fprintf(fic, "MakeBoundary\n");}
     if (H.prt) {GETUOLD; PRINTUOLD(fic, H, Hv);}
 
@@ -228,52 +244,76 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       if (iend >= Hmax) iend = Hmax;
       slices = iend - i;
 
-      oclMemset(uDEV, 0, lVarSz);
+      if (clear) oclMemset(uDEV, 0, lVarSz);
+      start = cclock();
       oclGatherConservativeVars(idim, i, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, uoldDEV, uDEV);
+      end = cclock();
+      functim[TIM_GATCON] += ccelaps(start, end);
       if (H.prt) {fprintf(fic, "ConservativeVars %ld %ld %ld %ld %d %d\n", H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hstep);}
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
       PRINTARRAYV2(fic, Hvw->u, Hdimsize, "u", H);
 
       // Convert to primitive variables
+      start = cclock();
       oclConstoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hnxystep, uDEV, qDEV, eDEV);
+      end = cclock();
+      functim[TIM_CONPRI] += ccelaps(start, end);
       if (H.prt) { GETARR (eDEV, Hw->e); }
       if (H.prt) { GETARRV(qDEV, Hvw->q); }
       PRINTARRAY(fic, Hw->e, Hdimsize, "e", H);
       PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
+      start = cclock();
       oclEquationOfState(offsetIP, offsetID, 0, Hdimsize, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
+      end = cclock();
+      functim[TIM_EOS] += ccelaps(start, end);
       if (H.prt) { GETARR (cDEV, Hw->c); }
       PRINTARRAY(fic, Hw->c, Hdimsize, "c", H);
       if (H.prt) { GETARRV (qDEV, Hvw->q); }
       PRINTARRAYV2(fic, Hvw->q, Hdimsize, "q", H);
 
-      oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
+      if (clear) oclMemset(dqDEV, 0, H.arVarSz * H.nxystep);
       // Characteristic tracing
       if (H.iorder != 1) {
-	oclMemset(dqDEV, 0, H.arVarSz);
+	if (clear) oclMemset(dqDEV, 0, H.arVarSz);
+	start = cclock();
         oclSlope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep, qDEV, dqDEV);
+	end = cclock();
+	functim[TIM_SLOPE] += ccelaps(start, end);
 	if (H.prt) { GETARRV(dqDEV, Hvw->dq); }
 	PRINTARRAYV2(fic, Hvw->dq, Hdimsize, "dq", H);
       }
+      start = cclock();
       oclTrace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep, qDEV, dqDEV, cDEV, qxmDEV, qxpDEV);
+      end = cclock();
+      functim[TIM_TRACE] += ccelaps(start, end);
       if (H.prt) { GETARRV(qxmDEV, Hvw->qxm); }
       if (H.prt) { GETARRV(qxpDEV, Hvw->qxp); }
       PRINTARRAYV2(fic, Hvw->qxm, Hdimsize, "qxm", H);
       PRINTARRAYV2(fic, Hvw->qxp, Hdimsize, "qxp", H);
+      start = cclock();
       oclQleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
+      end = cclock();
+      functim[TIM_QLEFTR] += ccelaps(start, end);
       if (H.prt) { GETARRV(qleftDEV, Hvw->qleft); }
       if (H.prt) { GETARRV(qrightDEV, Hvw->qright); }
       PRINTARRAYV2(fic, Hvw->qleft, Hdimsize, "qleft", H);
       PRINTARRAYV2(fic, Hvw->qright, Hdimsize, "qright", H);
 
       // Solve Riemann problem at interfaces
+      start = cclock();
       oclRiemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann, H.nvar, H.nxyt, slices, Hstep,
 		 qleftDEV, qrightDEV, qgdnvDEV,sgnmDEV);
+      end = cclock();
+      functim[TIM_RIEMAN] += ccelaps(start, end);
       if (H.prt) { GETARRV(qgdnvDEV, Hvw->qgdnv); }
       PRINTARRAYV2(fic, Hvw->qgdnv, Hdimsize, "qgdnv", H);
       // Compute fluxes
-      oclMemset(fluxDEV, 0, H.arVarSz);
+      if (clear) oclMemset(fluxDEV, 0, H.arVarSz);
+      start = cclock();
       oclCmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hnxystep, qgdnvDEV, fluxDEV);
+      end = cclock();
+      functim[TIM_CMPFLX] += ccelaps(start, end);
       if (H.prt) { GETARRV(fluxDEV, Hvw->flux); }
       PRINTARRAYV2(fic, Hvw->flux, Hdimsize, "flux", H);
       if (H.prt) { GETARRV(uDEV, Hvw->u); }
@@ -282,8 +322,11 @@ oclHydroGodunov(long idimStart, double dt, const hydroparam_t H, hydrovar_t * Hv
       // 	GETUOLD; PRINTUOLD(fic, H, Hv);
       // }
       if (H.prt) fprintf(fic, "dxdt=%lg\n", dtdx);
+      start = cclock();
       oclUpdateConservativeVars(idim, i, dtdx, H.imin, H.imax, H.jmin, H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt, slices, Hnxystep, 
 				uoldDEV, uDEV, fluxDEV);
+      end = cclock();
+      functim[TIM_UPDCON] += ccelaps(start, end);
       if (H.prt) {
 	GETUOLD; PRINTUOLD(fic, H, Hv);
       }

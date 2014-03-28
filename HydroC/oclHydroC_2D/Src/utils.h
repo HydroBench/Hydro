@@ -55,8 +55,8 @@ knowledge of the CeCILL license and that you accept its terms.
 // Make sure that the pointer is unusable afterwards.
 #define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
 #endif /*  */
-double **allocate(long imin, long imax, long nvar);
-double *DMalloc(long n);
+real_t **allocate(long imin, long imax, long nvar);
+real_t *DMalloc(long n);
 long *IMalloc(long n);
 
 // 0 means perfect memory management from the code ;-)
@@ -65,12 +65,11 @@ static const long MallocGuard = 0;
 extern "C" {
 #endif
 void printuold(FILE * fic, const hydroparam_t H, hydrovar_t * Hv);
-void printarray(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H);
+void printarray(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H);
 void printarrayi(FILE * fic, long *a, long n, const char *nom);
-void printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H);
-void printarrayv2(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H);
+void printarrayv(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H);
+void printarrayv2(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H);
 void timeToString(char *buf, const double timeInS);
-double cclock(void);
 #ifdef __cplusplus
 };
 #endif

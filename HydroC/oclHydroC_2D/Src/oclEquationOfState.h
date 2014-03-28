@@ -43,7 +43,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <CL/cl.h>
 
 void oclEquationOfState(long offsetIP, long offsetID, long imin, long imax, 
-			const double Hsmallc, const double Hgamma,
+			const real_t Hsmallc, const real_t Hgamma,
 			const int slices, const int Hnxyt,
 			cl_mem qDEV, cl_mem eintDEV, cl_mem cDEV);
 

@@ -48,12 +48,12 @@
 static void
 usage(void)
 {
-  fprintf(stderr, "options of hydro");
-  fprintf(stderr, "--help");
-  fprintf(stderr, "-i input");
-  fprintf(stderr, "-v :: to increase verbosity");
-  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC ");
-  fprintf(stderr, "------------------------------------");
+  fprintf(stderr, "options of hydro\n");
+  fprintf(stderr, "--help | -h: this help\n");
+  fprintf(stderr, "-i input\n");
+  fprintf(stderr, "-v :: to increase verbosity\n");
+  fprintf(stderr, "-u T  :: type of compute unit to use T= c|g|a for CPU | GPU | ACC \n");
+  fprintf(stderr, "------------------------------------\n");
   exit(1);
 } 
 
@@ -140,6 +140,8 @@ process_input(char *datafile, hydroparam_t * H)
   FILE *fd = NULL;
   char buffer[1024];
   char *pval, *pkey;
+  char *rFmt = (sizeof(real_t) == sizeof(double))? "%lf": "%f";
+
   fd = fopen(datafile, "r");
   if (fd == NULL) {
     fprintf(stderr, "Input file not readable\n");
@@ -199,31 +201,31 @@ process_input(char *datafile, hydroparam_t * H)
     }
     // float parameters
     if (strcmp(pkey, "slope_type") == 0) {
-      sscanf(pval, "%lf", &H->slope_type);
+      sscanf(pval, rFmt, &H->slope_type);
       continue;
     }
     if (strcmp(pkey, "tend") == 0) {
-      sscanf(pval, "%lf", &H->tend);
+      sscanf(pval, rFmt, &H->tend);
       continue;
     }
     if (strcmp(pkey, "dx") == 0) {
-      sscanf(pval, "%lf", &H->dx);
+      sscanf(pval, rFmt, &H->dx);
       continue;
     }
     if (strcmp(pkey, "courant_factor") == 0) {
-      sscanf(pval, "%lf", &H->courant_factor);
+      sscanf(pval, rFmt, &H->courant_factor);
       continue;
     }
     if (strcmp(pkey, "smallr") == 0) {
-      sscanf(pval, "%lf", &H->smallr);
+      sscanf(pval, rFmt, &H->smallr);
       continue;
     }
     if (strcmp(pkey, "smallc") == 0) {
-      sscanf(pval, "%lf", &H->smallc);
+      sscanf(pval, rFmt, &H->smallc);
       continue;
     }
     if (strcmp(pkey, "dtoutput") == 0) {
-      sscanf(pval, "%lf", &H->dtoutput);
+      sscanf(pval, rFmt, &H->dtoutput);
       continue;
     }
     if (strcmp(pkey, "testcase") == 0) {
@@ -267,7 +269,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
   MPI_Comm_size(MPI_COMM_WORLD, &H->nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &H->mype);
   while (n < argc) {
-    if (strcmp(argv[n], "--help") == 0) {
+    if (strcmp(argv[n], "--help") == 0 || strcmp(argv[n], "-h") == 0) {
       usage();
       n++;
       continue;

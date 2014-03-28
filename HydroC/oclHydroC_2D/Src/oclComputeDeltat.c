@@ -40,6 +40,7 @@
 #include <malloc.h>
 // #include <unistd.h>
 #include <math.h>
+#include <float.h>
 #include <assert.h>
 
 #include "parametres.h"
@@ -53,44 +54,44 @@
 #include "oclReduce.h"
 
 static void
-ClearArrayDble(cl_mem array, size_t lgrBytes) {
-  int lzero = 0;
-  long ldble = lgrBytes / sizeof(double);
+ClearArrayDble(cl_mem array, long lgr) {
+  real_t lzero = 0.;
   assert(array != NULL);
-  OCLSETARG03(ker[KernelMemset], array, lzero, ldble);
-  oclLaunchKernel(ker[KernelMemset], cqueue, lgrBytes, THREADSSZ, __FILE__, __LINE__);
+  assert(lgr  >= 0);
+  OCLSETARG03(ker[KernelMemset], array, lzero, lgr);
+  oclLaunchKernel(ker[KernelMemset], cqueue, lgr, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
 oclComputeQEforRow(const long j, cl_mem uold, cl_mem q, cl_mem e,
-                   const double Hsmallr, const long Hnx, const long Hnxt,
+                   const real_t Hsmallr, const long Hnx, const long Hnxt,
                    const long Hnyt, const long Hnxyt, const int slices, const int Hstep) {
   cl_int err = 0;
   dim3 gws, lws;
   double elapsk;
 
   OCLSETARG11(ker[LoopKQEforRow], j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, Hnx, slices, Hstep);
-  elapsk = oclLaunchKernel(ker[LoopKQEforRow], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  elapsk = oclLaunchKernel2D(ker[LoopKQEforRow], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }
 
 void
 oclCourantOnXY(cl_mem courant, const long Hnx, const long Hnxyt, cl_mem c, cl_mem q,
-               double Hsmallc, const int slices, const int Hstep) {
+               real_t Hsmallc, const int slices, const int Hstep) {
   double elapsk;
   OCLSETARG08(ker[LoopKcourant], q, courant, Hsmallc, c, Hnxyt, Hnx, slices, Hstep);
-  elapsk = oclLaunchKernel(ker[LoopKcourant], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  elapsk = oclLaunchKernel2D(ker[LoopKcourant], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }
 
-#define GETARRV(vdev, v) do { cl_event event;   cl_int status; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
-#define GETARR(vdev, v)  do { cl_event event;   cl_int status; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(double), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARRV(vdev, v) do { cl_event event;   cl_int status; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * H.nvar * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
+#define GETARR(vdev, v)  do { cl_event event;   cl_int status; status = clEnqueueReadBuffer(cqueue, (vdev), CL_TRUE, 0, Hstep * H.nxyt * sizeof(real_t), (v), 0, NULL, &event); oclCheckErr(status, ""); status = clReleaseEvent(event); oclCheckErr(status, ""); } while(0);
 
 void
-oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
+oclComputeDeltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
   long j;
   cl_mem uoldDEV, qDEV, eDEV, cDEV, courantDEV;
-  double *lcourant;
-  double maxCourant;
-  double lmaxCourant;
+  real_t *lcourant;
+  real_t maxCourant = -1.0 * FLT_MAX;
+  real_t lmaxCourant = -1.0 * FLT_MAX;
   long Hnxyt = H.nxyt;
   cl_int err = 0;
   int slices = 1, jend, Hstep, Hnxystep, i;
@@ -116,37 +117,29 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   // reuse of already allocated buffers
   oclGetUoldQECDevicePtr(&uoldDEV, &qDEV, &eDEV, &cDEV);
 
-  lcourant = (double *) calloc(Hnxyt * H.nxystep, sizeof(double));
+  lcourant = (real_t *) calloc(Hnxyt * H.nxystep, sizeof(real_t));
   // the buffer is created and filled by zeros immediately
-  courantDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.nxyt * H.nxystep * sizeof(double), NULL, &err);
+  courantDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, H.nxyt * H.nxystep * sizeof(real_t), NULL, &err);
   oclCheckErr(err, "clCreateBuffer");
-  ClearArrayDble(courantDEV, H.nxyt * H.nxystep * sizeof(double));
+  ClearArrayDble(courantDEV, H.nxyt * H.nxystep);
 
   long offsetIP = IHVWS(0, 0, IP);
   long offsetID = IHVWS(0, 0, ID);
 
 
   for (j = Hmin; j < Hmax; j += Hstep) {
+    int par10;
     jend = j + Hstep;
     if (jend >= Hmax)
       jend = Hmax;
     slices = jend - j;
-    // fprintf(stdout, "(%02d) slices=%d\n", H.mype, slices);
 
-    // ClearArrayDble(eDEV, Hnxyt * H.nxystep * sizeof(double));
-    // ClearArrayDble(cDEV, Hnxyt * H.nxystep * sizeof(double));
-    // ClearArrayDble(qDEV, Hnxyt * H.nxystep * H.nvar * sizeof(double));
-
-    oclComputeQEforRow(j, uoldDEV, qDEV, eDEV, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, slices, H.nxystep);
-    // GETARR (eDEV, Hw->e);
-    // PRINTARRAY(fic, Hw->e, H.nx, "e", H);
-    // GETARRV (qDEV, Hvw->q);
-    // PRINTARRAYV2(fic, Hvw->q, H.nx, "q", H);
-
-    oclEquationOfState(offsetIP, offsetID, 0, H.nx, H.smallc, H.gamma, slices, H.nxyt, qDEV, eDEV, cDEV);
-    // GETARR (cDEV, Hw->c);
-    // PRINTARRAY(fic, Hw->c, H.nx, "c", H);
-    oclCourantOnXY(courantDEV, H.nx, H.nxyt, cDEV, qDEV, H.smallc, slices, H.nxystep);
+    //merged 3 kernel calls into one
+    par10 = (int)H.nxystep;
+    OCLSETARG17( ker[LoopKComputeDeltat], j, uoldDEV, qDEV, eDEV, H.nxt, H.nyt, H.nxyt, H.nx, slices, par10,
+		 offsetIP, offsetID, H.smallc, H.gamma, H.smallr, cDEV, courantDEV );
+    oclLaunchKernel2D(ker[LoopKComputeDeltat], cqueue, H.nxyt, slices, THREADSSZ, __FILE__, __LINE__);
+    
     if (H.prt) {
       GETARR(courantDEV, lcourant);
       PRINTARRAY(fic, lcourant, H.nx, "lcourant", H);
@@ -159,7 +152,7 @@ oclComputeDeltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t 
   // PRINTARRAY(fic, lcourant, H.nx, "lcourant avant reduction", H);
   maxCourant = oclReduceMax(courantDEV, H.nxyt * H.nxystep);
 
-  lmaxCourant = 0.;
+  lmaxCourant = -1.0 * FLT_MAX;
   for (i = 0; i < H.nxyt * H.nxystep; i++) {
     lmaxCourant = fmax(lmaxCourant, lcourant[i]);
   }

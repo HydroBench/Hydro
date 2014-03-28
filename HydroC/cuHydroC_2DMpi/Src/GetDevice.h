@@ -41,7 +41,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #ifndef GETDEVICE_H
 #define GETDEVICE_H
 
+#ifdef MPI
 #define WITHMPI
+#endif
 
 #ifdef WITHMPI
 

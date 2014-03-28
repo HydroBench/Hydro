@@ -29,7 +29,7 @@ gatherConservativeVars (const int idim,
 			const int Hnyt,
 			const int Hnxyt,
 			const int slices, const int Hstep,
-			double uold[Hnvar * Hnxt * Hnyt], double *u
+			hydro_real_t *uold, hydro_real_t *u
 			//double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt]
   )
 {
@@ -45,10 +45,21 @@ gatherConservativeVars (const int idim,
 
   #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar], u[0:Hnvar * Hstep * Hnxyt]) 
   {
-    #pragma acc loop independent
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(s,i)
+#else
+#pragma hmppcg gridify(s,i), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int s = 0; s < slices; s++)
 	  {
-      #pragma acc loop independent  
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	    for (int i = Himin; i < Himax; i++)
 	      {
 	        int idxuoID = IHU (i, rowcol + s, ID);
@@ -70,12 +81,26 @@ gatherConservativeVars (const int idim,
   {   
     #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt]) 
 	  {
-      #pragma acc loop independent  
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int ivar = IP + 1; ivar < Hnvar; ivar++)
 	    {
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++)
 		    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 		      for (int i = Himin; i < Himax; i++)
 		      {
 		        u[IDX (ivar, s, i)] = uold[IHU (i, rowcol + s, ivar)];
@@ -89,11 +114,23 @@ gatherConservativeVars (const int idim,
   else
     {
       // Gather conservative variables
-#pragma acc kernels loop independent present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
-	
+#pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
+      {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(s,j)
+#else
+#pragma hmppcg gridify(s,j), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
   for (int s = 0; s < slices; s++)
 	{
-    #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	  for (int j = Hjmin; j < Hjmax; j++)
 	    {
 	      u[IDX (ID, s, j)] = uold[IHU (rowcol + s, j, ID)];
@@ -102,13 +139,26 @@ gatherConservativeVars (const int idim,
 	      u[IDX (IP, s, j)] = uold[IHU (rowcol + s, j, IP)];
 	    }
 	}
-  
+      }
   if (Hnvar > IP)
 	{
-    #pragma acc kernels loop independent  present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
+    #pragma acc kernels present(uold[0:Hnxt*Hnyt*Hnvar]) present(u[0:Hnvar * Hstep * Hnxyt])
+	  {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,j)
+#else
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	  for (int ivar = IP + 1; ivar < Hnvar; ivar++)
 	  {
-      #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int s = 0; s < slices; s++)
 	    {
 	      for (int j = Hjmin; j < Hjmax; j++)
@@ -116,7 +166,8 @@ gatherConservativeVars (const int idim,
 	       u[IDX (ivar, s, j)] = uold[IHU (rowcol + s, j, ivar)];
 	      }
 	    }
-    }
+	  }
+	  }
 	}
     }
 }
@@ -127,7 +178,7 @@ gatherConservativeVars (const int idim,
 void
 updateConservativeVars (const int idim,
 			const int rowcol,
-			const double dtdx,
+			const hydro_real_t dtdx,
 			const int Himin,
 			const int Himax,
 			const int Hjmin,
@@ -137,8 +188,8 @@ updateConservativeVars (const int idim,
 			const int Hnyt,
 			const int Hnxyt,
 			const int slices, const int Hstep,
-			double *uold, double *u,
-			double *flux
+			hydro_real_t *uold, hydro_real_t *u,
+			hydro_real_t *flux
 			//double uold[Hnvar * Hnxt * Hnyt], double u[Hnvar][Hstep][Hnxyt], double flux[Hnvar][Hstep][Hnxyt]
   )
 {
@@ -152,12 +203,28 @@ updateConservativeVars (const int idim,
     {
 
       // Update conservative variables
-    #pragma acc kernels loop independent present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar]) 
+    #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+      {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int ivar = 0; ivar <= IP; ivar++)
 	  {
-      #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	    for (int s = 0; s < slices; s++)
 	    {
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++)
 		    {
 		      uold[IHU (i, rowcol + s, ivar)] =
@@ -167,11 +234,28 @@ updateConservativeVars (const int idim,
 		    }
 	    }
 	  }
+      }
     if (Hnvar > IP){
-    #pragma acc kernels loop independent present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar]) 
+    #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+      {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,i)
+#else
+#pragma hmppcg gridify(ivar*s,i), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	    for (int ivar = IP + 1; ivar < Hnvar; ivar++){
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	      for (int s = 0; s < slices; s++){
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 		      for (int i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++){
 		        uold[IHU (i, rowcol + s, ivar)] =
 			            u[IDX (ivar, s, i)] + (flux[IDX (ivar, s, i - 2)] -
@@ -180,12 +264,26 @@ updateConservativeVars (const int idim,
 		      }
 		    }
 	    }
-	  }
+      }
+    }
   }else{
       // Update conservative variables
-    #pragma acc kernels loop independent  present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar]) 
+    #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+    {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(s,j)
+#else
+#pragma hmppcg gridify(s,j), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
     for (int s = 0; s < slices; s++){
-      #pragma acc loop independent
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
       for (int j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++){
         uold[IHU (rowcol + s, j, ID)] =
 	            u[IDX (ID, s, j)] + (flux[IDX (ID, s, j - 2)] -
@@ -208,13 +306,29 @@ updateConservativeVars (const int idim,
         CFLOPS (3);
 	    }
 	  }
-
+    }
     if (Hnvar > IP){
     
-      #pragma acc kernels loop independent present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar]) 
+      #pragma acc kernels present(u[0:Hnvar * Hstep * Hnxyt], flux[0:Hnvar*Hstep*Hnxyt]) present(uold[0:Hnxt*Hnyt*Hnvar])
+      {
+#ifdef GRIDIFY
+#ifndef GRIDIFY_TUNE_PHI
+#pragma hmppcg gridify(ivar*s,j)
+#else
+#pragma hmppcg gridify(ivar*s,j), blocksize 32x16
+#endif
+#endif /* GRIDIFY */
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	    for (int ivar = IP + 1; ivar < Hnvar; ivar++){
-        #pragma acc loop independent 
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
         for (int s = 0; s < slices; s++){
+#ifndef GRIDIFY
+#pragma acc loop independent
+#endif /* !GRIDIFY */
 	        for (int j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++){
 	            uold[IHU (rowcol + s, j, ivar)] =
 		            u[IDX (ivar, s, j)] + (flux[IDX (ivar, s, j - 2)] -
@@ -223,6 +337,7 @@ updateConservativeVars (const int idim,
 	        }
 	      }
 	    }
+      }
     }
   }
 }

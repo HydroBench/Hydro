@@ -30,7 +30,8 @@ FFLAGS = -g
 # Linker options
 #---------------
 OCLLIB=/usr/lib64/nvidia 
-LDFLAGS = -g -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
+LDFLAGS = -g
+SYSLIB+=-L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm -lrt
 
 # OpenMP C compilation options
 #---------------------------
@@ -46,7 +47,8 @@ FFLAGS_OMP = -openmp
 
 # MPI C compilation options
 #---------------------------
-MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
+# MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
+MPIROOT=/usr/local/Intel_compilers/impi/4.1.0.030/intel64
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
 NVCFLAGS_MPI = -I$(MPIROOT)/include
 

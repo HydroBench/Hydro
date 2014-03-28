@@ -52,13 +52,13 @@ equation_of_state(int imin,
                   int imax,
                   const int Hnxyt,
                   const int Hnvar,
-                  const double Hsmallc,
-                  const double Hgamma,
+                  const real_t Hsmallc,
+                  const real_t Hgamma,
                   const int slices, const int Hstep,
-                  double eint[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt], double c[Hstep][Hnxyt]) {
+                  real_t eint[Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt], real_t c[Hstep][Hnxyt]) {
   int k, s;
 	int inpar = 0;
-  double smallp;
+  real_t smallp;
 
   WHERE("equation_of_state");
   smallp = Square(Hsmallc) / Hgamma;
@@ -67,13 +67,14 @@ equation_of_state(int imin,
   // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
 #ifdef _OPENMP
 	inpar = omp_in_parallel();
-#pragma omp parallel for if (!inpar) schedule(static), private(s,k), shared(c,q)
+	//#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q), collapse(2)
+#pragma omp parallel for  private(s,k), shared(c,q) COLLAPSE
 #endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {
-      double rhok = q[ID][s][k];
-      double base = (Hgamma - one) * rhok * eint[s][k];
-      base = MAX(base, (double) (rhok * smallp));
+      register real_t rhok = q[ID][s][k];
+      register real_t base = (Hgamma - one) * rhok * eint[s][k];
+      base = MAX(base, (real_t) (rhok * smallp));
 
       q[IP][s][k] = base;
       c[s][k] = sqrt(Hgamma * base / rhok);

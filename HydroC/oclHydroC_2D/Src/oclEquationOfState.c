@@ -47,13 +47,13 @@
 
 void
 oclEquationOfState(long offsetIP, long offsetID, long imin, long imax, 
-		   const double Hsmallc, const double Hgamma,
+		   const real_t Hsmallc, const real_t Hgamma,
 		   const int slices, const int Hnxyt,
 		   cl_mem qDEV, cl_mem eintDEV, cl_mem cDEV)
 {
   WHERE("equation_of_state");
   OCLSETARG11(ker[LoopEOS], qDEV, eintDEV, cDEV, offsetIP, offsetID, imin, imax, Hsmallc, Hgamma, slices, Hnxyt);
-  oclLaunchKernel(ker[LoopEOS], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[LoopEOS], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 }                               // equation_of_state
 
 

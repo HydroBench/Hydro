@@ -48,8 +48,8 @@ knowledge of the CeCILL license and that you accept its terms.
 
 void
 oclRiemann(const long narray,
-           const double Hsmallr,
-           const double Hsmallc, const double Hgamma,
+           const real_t Hsmallr,
+           const real_t Hsmallc, const real_t Hgamma,
            const long Hniter_riemann, const long Hnvar, const long Hnxyt,
            const int slices, const int Hstep, cl_mem qleft, cl_mem qright, cl_mem qgdnv, cl_mem sgnm) {
   // Local variables
@@ -59,7 +59,7 @@ oclRiemann(const long narray,
 
   OCLSETARG12(ker[Loop1KcuRiemann], qleft, qright, sgnm, qgdnv, Hnxyt, narray, Hsmallc, Hgamma, Hsmallr, Hniter_riemann,
               slices, Hstep);
-  oclLaunchKernel(ker[Loop1KcuRiemann], cqueue, Hnxyt * slices, THREADSSZ, __FILE__, __LINE__);
+  oclLaunchKernel2D(ker[Loop1KcuRiemann], cqueue, Hnxyt, slices, THREADSSZ, __FILE__, __LINE__);
 
   if (Hnvar > IP + 1) {
     OCLSETARG09(ker[Loop10KcuRiemann], qleft, qright, sgnm, qgdnv, narray, Hnvar, Hnxyt, slices, Hstep);

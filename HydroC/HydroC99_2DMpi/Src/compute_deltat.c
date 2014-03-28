@@ -50,27 +50,29 @@ knowledge of the CeCILL license and that you accept its terms.
 #include "perfcnt.h"
 #include "equation_of_state.h"
 
-#define DABS(x) (double) fabs((x))
+#define DABS(x) (real_t) fabs((x))
 
-static void
+inline void
 ComputeQEforRow(const int j,
-                const double Hsmallr,
+                const real_t Hsmallr,
                 const int Hnx,
                 const int Hnxt,
                 const int Hnyt,
                 const int Hnxyt,
                 const int Hnvar,
-                const int slices, const int Hstep, double *uold, double q[Hnvar][Hstep][Hnxyt], double e[Hstep][Hnxyt]
+                const int slices, const int Hstep, 
+		real_t * uold, 
+		real_t q[Hnvar][Hstep][Hnxyt], real_t e[Hstep][Hnxyt]
 		) {
   int i, s;
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#pragma omp parallel for shared(q, e) private(s, i)
+#pragma omp parallel for shared(q, e) private(s, i) COLLAPSE
   for (s = 0; s < slices; s++) {
     for (i = 0; i < Hnx; i++) {
-      double eken;
-      double tmp;
+      real_t eken;
+      real_t tmp;
       int idxuID = IHV(i + ExtraLayer, j + s, ID);
       int idxuIU = IHV(i + ExtraLayer, j + s, IU);
       int idxuIV = IHV(i + ExtraLayer, j + s, IV);
@@ -95,51 +97,37 @@ ComputeQEforRow(const int j,
 // to force a parallel reduction with OpenMP
 #define WOMP
 
-static void
-courantOnXY(double *cournox,
-            double *cournoy,
+inline void
+courantOnXY(real_t *cournox,
+            real_t *cournoy,
             const int Hnx,
             const int Hnxyt,
-            const int Hnvar, const int slices, const int Hstep, double c[Hstep][Hnxyt], double q[Hnvar][Hstep][Hnxyt],
-	    double *tmpm1,
-	    double *tmpm2
+            const int Hnvar, const int slices, const int Hstep, real_t c[Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt],
+	    real_t *tmpm1,
+	    real_t *tmpm2
 	    ) 
 {
 #ifdef WOMP
-  int s;
-  // double maxValC = zero;
+  int s, i;
+  // real_t maxValC = zero;
+  real_t tmp1 = *cournox, tmp2 = *cournoy;
 
-#pragma omp parallel for shared(tmpm1, tmpm2) private(s)
+#pragma omp parallel for shared(tmpm1, tmpm2) private(s,i) reduction(max:tmp1) reduction(max:tmp2)
   for (s = 0; s < slices; s++) {
-    int i;
-    tmpm1[s] = *cournox;
-    tmpm2[s] = *cournoy;
     for (i = 0; i < Hnx; i++) {
-      double tmp1, tmp2;
-      tmp1 = c[s][i] + DABS(q[IU][s][i]);
-      tmp2 = c[s][i] + DABS(q[IV][s][i]);
-      tmpm1[s] = MAX(tmp1, tmpm1[s]);
-      tmpm2[s] = MAX(tmp2, tmpm2[s]);
+      tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
+      tmp2 = MAX(tmp2, c[s][i] + DABS(q[IV][s][i]));
     }
   }
+  *cournox = tmp1;
+  *cournoy = tmp2;
   { 
     int nops = (slices) * Hnx;
     FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
   }
-
-  // #pragma simd
-  for (s = 0; s < slices; s++) {
-    *cournox = MAX(*cournox, tmpm1[s]);
-    *cournoy = MAX(*cournoy, tmpm2[s]);
-  }
-  { 
-    int nops = (slices) * Hnx;
-    FLOPS(0, 0 * nops, 2 * nops, 0 * nops);
-  }
-
 #else
   int i, s;
-  double tmp1, tmp2;
+  real_t tmp1, tmp2;
   for (s = 0; s < slices; s++) {
     for (i = 0; i < Hnx; i++) {
       tmp1 = c[s][i] + DABS(q[IU][s][i]);
@@ -158,39 +146,39 @@ courantOnXY(double *cournox,
 
 void compute_deltat_init_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
-  Hvw->q = (double (*)) DMalloc(H.nvar * H.nxyt * H.nxystep);
-  Hw->e = (double (*))  DMalloc(         H.nxyt * H.nxystep);
-  Hw->c = (double (*))  DMalloc(         H.nxyt * H.nxystep);
-  Hw->tmpm1 = (double *) malloc(H.nxystep * sizeof(double));
-  Hw->tmpm2 = (double *) malloc(H.nxystep * sizeof(double));
+  Hvw->q = (real_t (*)) DMalloc(H.nvar * H.nxyt * H.nxystep);
+  Hw->e = (real_t (*))  DMalloc(         H.nxyt * H.nxystep);
+  Hw->c = (real_t (*))  DMalloc(         H.nxyt * H.nxystep);
+  Hw->tmpm1 = (real_t *) DMalloc(H.nxystep);
+  Hw->tmpm2 = (real_t *) DMalloc(H.nxystep);
 
 }
 
-void compute_deltat_clean_mem(hydrowork_t * Hw, hydrovarwork_t * Hvw)
+void compute_deltat_clean_mem(const hydroparam_t H, hydrowork_t * Hw, hydrovarwork_t * Hvw)
 {
-  Free(Hvw->q);
-  Free(Hw->e);
-  Free(Hw->c);
-  Free(Hw->tmpm1);
-  Free(Hw->tmpm2);
+  DFree(&Hvw->q, H.nvar * H.nxyt * H.nxystep);
+  DFree(&Hw->e, H.nxyt * H.nxystep);
+  DFree(&Hw->c, H.nxyt * H.nxystep);
+  DFree(&Hw->tmpm1, H.nxystep);
+  DFree(&Hw->tmpm2, H.nxystep);
 }
 
 void
-compute_deltat(double *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
-  double cournox, cournoy;
+compute_deltat(real_t *dt, const hydroparam_t H, hydrowork_t * Hw, hydrovar_t * Hv, hydrovarwork_t * Hvw) {
+  real_t cournox, cournoy;
   int j, jend, slices, Hstep, Hmin, Hmax;
-  double (*e)[H.nxyt];
-  double (*c)[H.nxystep];
-  double (*q)[H.nxystep][H.nxyt];
+  real_t (*e)[H.nxyt];
+  real_t (*c)[H.nxystep];
+  real_t (*q)[H.nxystep][H.nxyt];
   WHERE("compute_deltat");
 
   //   compute time step on grid interior
   cournox = zero;
   cournoy = zero;
 
-  c = (double (*)[H.nxystep]) Hw->c;
-  e = (double (*)[H.nxystep]) Hw->e;
-  q = (double (*)[H.nxystep][H.nxyt]) Hvw->q;
+  c = (real_t (*)[H.nxystep]) Hw->c;
+  e = (real_t (*)[H.nxystep]) Hw->e;
+  q = (real_t (*)[H.nxystep][H.nxyt]) Hvw->q;
 
   Hstep = H.nxystep;
   Hmin = H.jmin + ExtraLayer;

@@ -1,0 +1,63 @@
+#!/bin/bash
+# set -x
+
+export r=$PWD
+cd $SCRATCHDIR
+
+CMD1="gdb -x runcmd $r/tst"
+CMD1="$r/tst -i $r/input.nml"
+
+mkdir -p valtst
+cd valtst
+pwd
+rm -f STOP 
+# rm -f Continue.dump
+# rm -f *.png
+cat > runcmd <<EOF 
+run -i $r/input.nml
+where
+quit
+EOF
+set -x
+
+m[0]="none"
+if [ `uname -n` = "cirrus50" ] ; then
+    Q="hybridk40"
+    # Q="knc"
+    m[0]="cirrus5000"
+    m[1]="cirrus5001"
+    m[2]="cirrus5002"
+    m[3]="cirrus5003"
+    m[4]="cirrus5004"
+    m[5]="cirrus5005"
+    m[6]="cirrus5006"
+    m[7]="cirrus5007"
+    m[0]="none"
+    if [ $Q = "hybridk40" ] ; then
+	NP="-n8 -N4 env OMP_NUM_THREADS=12"
+    else
+	NP="-n18 -N9 env OMP_NUM_THREADS=4"
+    fi
+else
+    Q="standard"
+    m[0]="none"
+fi
+
+module unload mic
+
+R=0
+idx=0
+while [ ! -f STOP ] && [ $R -eq 0 ] ; do
+    MACH=""
+    if [ "${m[0]}" != "none" ] ; then
+	MACH="-E -w${m[idx]}"
+    fi
+    time ccc_mprun -p $Q -T 6400 $MACH $NP $CMD1
+    R=$?
+    I1="$PWD/"`ls *.png | tail -1`
+    display $I1 &
+    idx=$((idx + 1))
+    if [ $idx -gt 7 ]; then idx=0; fi
+done
+
+#EOF

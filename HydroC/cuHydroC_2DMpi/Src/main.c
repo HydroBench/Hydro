@@ -37,7 +37,9 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdio.h>
 #include <time.h>
 // #include <cuda.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 
 #include "parametres.h"
 #include "hydro_funcs.h"
@@ -69,9 +71,11 @@ main(int argc, char **argv)
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
 
+#ifdef MPI
   MPI_Init(&argc, &argv);
   
   DeviceSet();
+#endif
 
   if (H.mype == 1) fprintf(stdout, "Hydro starts.\n");
 
@@ -109,10 +113,12 @@ main(int argc, char **argv)
         dt = dt / 2.0;
       }
       if (H.nproc > 1) {
+#ifdef MPI
 	double dtmin;
 	int uno = 1;
 	MPI_Allreduce(&dt, &dtmin, uno, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 	dt = dtmin;
+#endif
       }
     }
     if ((H.nstep % 2) == 0) {
@@ -179,6 +185,8 @@ main(int argc, char **argv)
   timeToString(outnum, elaps);
   if (H.mype == 0)
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
+#ifdef MPI
   MPI_Finalize();
+#endif
   return 0;
 }

@@ -30,8 +30,8 @@ FFLAGS =
 # Linker options
 #---------------
 OCLLIB=/usr/lib64
-SYSLIB = -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm
-
+OCLLIB=/usr/local/Intel_compilers/opencl-1.2-3.0.56860/lib64
+OCLLIB=/opt/intel/opencl-1.2-3.0.67279/lib64
 # OpenMP C compilation options
 #---------------------------
 CFLAGS_OMP = -openmp
@@ -47,7 +47,8 @@ FFLAGS_OMP = -openmp
 # MPI C compilation options
 #---------------------------
 #MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
-MPIROOT=/opt/intel/impi/4.1.0.018/intel64
+MPIROOT=/opt/intel/impi/4.1.0.024/intel64
+MPIROOT=/usr/local/Intel_compilers/impi/4.1.0.030/intel64/
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
 #NVCFLAGS_MPI = -I$(MPIROOT)/include
 
@@ -62,6 +63,7 @@ LDFLAGS_OMP = -openmp
 
 # MPI link options
 #--------------------
+SYSLIB = -L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL  -Wl,-rpath,$(MPIROOT)/lib -lm
 LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
 
 

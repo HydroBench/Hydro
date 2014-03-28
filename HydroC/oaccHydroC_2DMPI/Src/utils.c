@@ -14,17 +14,17 @@
 #include <sys/time.h>
 
 #include "utils.h"
-// #include "parametres.h"
-double **
+#include "parametres.h"
+hydro_real_t **
 allocate (int imin, int imax, int nvar)
 {
   int i;
 
 #ifdef FAST
-  double **r = (double **) malloc (nvar * sizeof (double *));
+  hydro_real_t **r = (hydro_real_t **) malloc (nvar * sizeof (hydro_real_t *));
 
 #else /*  */
-  double **r = (double **) calloc (nvar, sizeof (double *));
+  hydro_real_t **r = (hydro_real_t **) calloc (nvar, sizeof (hydro_real_t *));
 
 #endif /*  */
   assert (r != NULL);
@@ -35,15 +35,15 @@ allocate (int imin, int imax, int nvar)
   return r;
 }
 
-double *
+hydro_real_t *
 DMalloc (long n)
 {
 
 #ifdef FAST
-  double *r = (double *) malloc ((n + MallocGuard) * sizeof (double));
+  hydro_real_t *r = (hydro_real_t *) malloc ((n + MallocGuard) * sizeof (hydro_real_t));
 
 #else /*  */
-  double *r = (double *) calloc ((n + MallocGuard), sizeof (double));
+  hydro_real_t *r = (hydro_real_t *) calloc ((n + MallocGuard), sizeof (hydro_real_t));
 
 #endif /*  */
   assert (r != NULL);
@@ -98,10 +98,10 @@ printuoldf (FILE * fic, const hydroparam_t H, hydrovar_t * Hv)
 }
 
 void
-printarray (FILE * fic, double *a, int n, const char *nom,
+printarray (FILE * fic, hydro_real_t *a, int n, const char *nom,
 	    const hydroparam_t H)
 {
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+  hydro_real_t (*ptr)[H.nxyt] = (hydro_real_t (*)[H.nxyt]) a;
   long i, j, nbr = 1;
   fprintf (fic, "=%s >\n", nom);
   for (j = 0; j < H.nxystep; j++)
@@ -143,13 +143,13 @@ printarrayi (FILE * fic, int *a, int n, const char *nom)
 }
 
 void
-printarrayv (FILE * fic, double *a, int n, const char *nom,
+printarrayv (FILE * fic, hydro_real_t *a, int n, const char *nom,
 	     const hydroparam_t H)
 {
   int i, nbr = 1;
   int nvar;
   fprintf (fic, "=%s >\n", nom);
-  double (*ptr)[H.nxyt] = (double (*)[H.nxyt]) a;
+  hydro_real_t (*ptr)[H.nxyt] = (hydro_real_t (*)[H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++)
     {
       nbr = 1;
@@ -170,13 +170,13 @@ printarrayv (FILE * fic, double *a, int n, const char *nom,
 }
 
 void
-printarrayv2 (FILE * fic, double *a, int n, const char *nom,
+printarrayv2 (FILE * fic, hydro_real_t *a, int n, const char *nom,
 	      const hydroparam_t H)
 {
   int i, j, nbr = 1;
   int nvar;
   fprintf (fic, "=%s >\n#", nom);
-  double (*ptr)[H.nxystep][H.nxyt] = (double (*)[H.nxystep][H.nxyt]) a;
+  hydro_real_t (*ptr)[H.nxystep][H.nxyt] = (hydro_real_t (*)[H.nxystep][H.nxyt]) a;
   for (nvar = 0; nvar < H.nvar; nvar++)
     {
       for (j = 0; j < H.nxystep; j++)
@@ -210,9 +210,10 @@ timeToString (char *buf, const double timeInS)
   float tenth = (float) (timeInS - hour * 3600 - minute * 60 - second);
   sprintf (ctenth, "%.3f", tenth);
   sprintf (buf, "%02d:%02d:%02d%s", hour, minute, second, &ctenth[1]);
-} double
+} 
 
-cclock (void)
+double
+Dcclock (void)
 {
   const double micro = 1.0e-06;	/* Conversion constant */
   static long start = 0L, startu;

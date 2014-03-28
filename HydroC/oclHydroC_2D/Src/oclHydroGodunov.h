@@ -45,7 +45,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void oclHydroGodunov(long idim, double dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw);
+  void oclHydroGodunov(long idim, real_t dt, const hydroparam_t H, hydrovar_t * Hv, hydrowork_t * Hw, hydrovarwork_t * Hvw);
   void oclFreeOnDevice();
   void oclAllocOnDevice(const hydroparam_t H);
   void oclPutUoldOnDevice(const hydroparam_t H, hydrovar_t * Hv);

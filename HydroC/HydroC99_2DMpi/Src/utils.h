@@ -50,31 +50,29 @@ knowledge of the CeCILL license and that you accept its terms.
 #define MIN(x, y) ((x) < (y)? (x): (y))
 #endif /*  */
 
-#ifndef Free
-// Make sure that the pointer is unusable afterwards.
-#define Free(x) do { if ((x)) { free((x)); }; (x) = NULL; } while (0)
-#endif /*  */
-double **allocate(int imin, int imax, int nvar);
-double *DMalloc(size_t n);
+real_t **allocate(int imin, int imax, int nvar);
+real_t *DMalloc(size_t n);
 int *IMalloc(size_t n);
+void  DFree(real_t ** adr, size_t n);
+void  IFree(int ** adr, size_t n);
 
 // 0 means perfect memory management from the code ;-)
 // static const int MallocGuard = 0;
 #define MallocGuard 0
 void printuoldf(FILE * fic, const hydroparam_t H, hydrovar_t * Hv);
-void printarray(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
+void printarray(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H);
 void printarrayi(FILE * fic, int *a, int n, const char *nom);
-void printarrayv(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
-void printarrayv2(FILE * fic, double *a, int n, const char *nom, const hydroparam_t H);
+void printarrayv(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H);
+void printarrayv2(FILE * fic, real_t *a, int n, const char *nom, const hydroparam_t H);
 void timeToString(char *buf, const double timeInS);
 
 #ifndef PRINTUOLD
 #ifndef HMPP
 #define PRINTUOLD(f,x,y) if ((x).prt) { printuoldf((f), (x), (y)); }
-#define PRINTARRAY(f,x,y,z,t) if ((t).prt) { printarray((f), (double *) (x), (y), (z), (t)); }
+#define PRINTARRAY(f,x,y,z,t) if ((t).prt) { printarray((f), (real_t *) (x), (y), (z), (t)); }
 #define PRINTARRAYI(f,x,y,z,t) if ((t).prt) { printarrayi((f), (x), (y), (z)); }
-#define PRINTARRAYV(f,x,y,z,t) if ((t).prt) { printarrayv((f), (double *) (x), (y), (z), (t)); }
-#define PRINTARRAYV2(f,x,y,z,t) if ((t).prt) { printarrayv2((f), (double *) (x), (y), (z), (t)); }
+#define PRINTARRAYV(f,x,y,z,t) if ((t).prt) { printarrayv((f), (real_t *) (x), (y), (z), (t)); }
+#define PRINTARRAYV2(f,x,y,z,t) if ((t).prt) { printarrayv2((f), (real_t *) (x), (y), (z), (t)); }
 #else /*  */
 // HMPP doesn't support prints : kill them
 #define PRINTUOLD(x, y)
@@ -98,5 +96,13 @@ void timeToString(char *buf, const double timeInS);
 #else /*  */
 #define RESTRICT __restrict
 #endif /*  */
+
+// #ifndef __MIC__
+// #pragma message "collapse activated (2)"
+// #define COLLAPSE collapse(2)
+// #else
+// #pragma message "collapse deactivated on MIC"
+#define COLLAPSE 
+// #endif
 
 #endif // UTILS_H_INCLUDED

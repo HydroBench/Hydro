@@ -41,8 +41,8 @@
 #include <CL/cl.h>
 
 void oclRiemann(const long narray,
-                const double Hsmallr,
-		const double Hsmallc, const double Hgamma, 
+                const real_t Hsmallr,
+		const real_t Hsmallc, const real_t Hgamma, 
 		const long Hniter_riemann, const long Hnvar, const long Hnxyt,
 		const int slices, const int Hstep,
 		cl_mem qleftDEV, cl_mem qrightDEV,

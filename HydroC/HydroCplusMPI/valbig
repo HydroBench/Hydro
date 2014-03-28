@@ -1,0 +1,29 @@
+#!/bin/bash
+set -x
+
+export r=$PWD
+cd $SCRATCHDIR
+
+NP="-n512 -N64 env OMP_NUM_THREADS=2 "
+CMD1="gdb -x runcmd $r/tst"
+CMD1="$r/tst -i $r/verybig.nml"
+
+mkdir -p valbig
+cd valbig
+pwd
+rm -f STOP Continue.dump *.png
+cat > runcmd <<EOF 
+run -i $r/input.nml
+where
+quit
+EOF
+
+R=0
+while [ ! -f STOP ] && [ $R -eq 0 ] ; do
+    time ccc_mprun -p standard -T 6400 $NP $CMD1
+	R=$?
+done
+
+I1="$PWD/"`ls *.png | tail -1`
+
+# EOF

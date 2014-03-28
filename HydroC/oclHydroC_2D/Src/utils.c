@@ -44,16 +44,16 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include "utils.h"
 
-double **
+real_t **
 allocate(long imin, long imax, long nvar)
 {
   long i;
 
 #ifdef FAST
-  double **r = (double **) malloc(nvar * sizeof(double *));
+  real_t **r = (real_t **) malloc(nvar * sizeof(real_t *));
 
 #else /*  */
-  double **r = (double **) calloc(nvar, sizeof(double *));
+  real_t **r = (real_t **) calloc(nvar, sizeof(real_t *));
 
 #endif /*  */
   assert(r != NULL);
@@ -63,15 +63,15 @@ allocate(long imin, long imax, long nvar)
   return r;
 }
 
-double *
+real_t *
 DMalloc(long n)
 {
 
 #ifdef FAST
-  double *r = (double *) malloc((n + MallocGuard) * sizeof(double));
+  real_t *r = (real_t *) malloc((n + MallocGuard) * sizeof(real_t));
 
 #else /*  */
-  double *r = (double *) calloc((n + MallocGuard), sizeof(double));
+  real_t *r = (real_t *) calloc((n + MallocGuard), sizeof(real_t));
 
 #endif /*  */
   assert(r != NULL);
@@ -120,7 +120,7 @@ printuold(FILE * fic, const hydroparam_t H, hydrovar_t * Hv)
 }
 
 void
-printarray(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarray(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   int Hnxystep = H.nxystep;
   int Hnxyt = H.nxyt;
@@ -161,7 +161,7 @@ printarrayi(FILE * fic, long *a, long n, const char *nom)
 }
 
 void
-printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarrayv(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   long i, nbr = 1;
   long nvar;
@@ -184,7 +184,7 @@ printarrayv(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H
 }
 
 void
-printarrayv2(FILE * fic, double *a, long n, const char *nom, const hydroparam_t H)
+printarrayv2(FILE * fic, real_t *a, long n, const char *nom, const hydroparam_t H)
 {
   long i, j, nbr = 1;
   long nvar;
@@ -220,24 +220,26 @@ timeToString(char *buf, const double timeInS)
   float tenth = timeInS - hour * 3600 - minute * 60 - second;
   sprintf(ctenth, "%.3f", tenth);
   sprintf(buf, "%02ld:%02ld:%02ld%s", hour, minute, second, &ctenth[1]);
-} double
-cclock(void)
-{
-  const double micro = 1.0e-06; /* Conversion constant */
-  static long start = 0L, startu;
-  struct timeval tp;            /* Structure used by gettimeofday */
-  double wall_time;             /* To hold the result */
-  if (gettimeofday(&tp, NULL) == -1)
-    wall_time = -1.0e0;
+} 
 
-  else if (!start) {
-    start = tp.tv_sec;
-    startu = tp.tv_usec;
-    wall_time = 0.0e0;
-  } else
-    wall_time = (double) (tp.tv_sec - start) + micro * (tp.tv_usec - startu);
-  return wall_time;
-}
+// double
+// cclock(void)
+// {
+//   const double micro = 1.0e-06; /* Conversion constant */
+//   static long start = 0L, startu;
+//   struct timeval tp;            /* Structure used by gettimeofday */
+//   double wall_time;             /* To hold the result */
+//   if (gettimeofday(&tp, NULL) == -1)
+//     wall_time = -1.0e0;
+
+//   else if (!start) {
+//     start = tp.tv_sec;
+//     startu = tp.tv_usec;
+//     wall_time = 0.0e0;
+//   } else
+//     wall_time = (double) (tp.tv_sec - start) + micro * (tp.tv_usec - startu);
+//   return wall_time;
+// }
 
 
 //EOF
