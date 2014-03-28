@@ -14,7 +14,10 @@
 #include <sys/time.h>
 #include <float.h>
 #include <math.h>
+
+#if USEMKL == 1
 #include <mkl.h>
+#endif
 
 using namespace std;
 
