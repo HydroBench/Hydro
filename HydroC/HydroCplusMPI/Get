@@ -1,0 +1,33 @@
+#!/bin/sh
+EXCLUDE=""
+RSYNCOPTS=""
+
+EXCLUDE="$EXCLUDE --exclude '*~'"
+EXCLUDE="$EXCLUDE --exclude '*.o'"
+EXCLUDE="$EXCLUDE --exclude '*.d'"
+EXCLUDE="$EXCLUDE --exclude '*.so'"
+EXCLUDE="$EXCLUDE --exclude '*.lst'"
+EXCLUDE="$EXCLUDE --exclude '*.mod'"
+EXCLUDE="$EXCLUDE --exclude '*.hmf'"
+EXCLUDE="$EXCLUDE --exclude '*.hmf.cu'"
+EXCLUDE="$EXCLUDE --exclude '*.hmg'"
+EXCLUDE="$EXCLUDE --exclude '*.hmg.cu'"
+EXCLUDE="$EXCLUDE --exclude '*.hmd'"
+EXCLUDE="$EXCLUDE --exclude '*.pvd'"
+EXCLUDE="$EXCLUDE --exclude '*.pdf'"
+EXCLUDE="$EXCLUDE --exclude '*.ps'"
+EXCLUDE="$EXCLUDE --exclude '/tst'"
+# EXCLUDE="$EXCLUDE --exclude '/toto/'"
+EXCLUDE="$EXCLUDE --exclude '/Dep/'"
+
+RSYNCOPTS="$RSYNCOPTS --recursive"
+RSYNCOPTS="$RSYNCOPTS --delete-excluded"
+RSYNCOPTS="$RSYNCOPTS --delete-after"
+
+cd ..
+rsync -avuz --rsh=ssh $EXCLUDE $RSYNCOPTS inti:Cplus .
+
+cd -
+make clean
+
+#EOF

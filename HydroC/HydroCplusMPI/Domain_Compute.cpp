@@ -1,0 +1,343 @@
+#ifdef MPI_ON
+#include <mpi.h>
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include <cstring>
+#include <cstdlib>
+#include <unistd.h>
+#include <cmath>
+#include <cstdio>
+#include <climits>
+#include <cerrno>
+#include <iostream>
+#include <iomanip>
+
+#include <strings.h>
+#include <unistd.h>
+#include <malloc.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <float.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <stdarg.h>
+
+/*
+ */
+using namespace std;
+
+#include "EnumDefs.hpp"
+#include "Domain.hpp"
+#include "Soa.hpp"
+#include "cclock.h"
+
+void Domain::changeDirection()
+{
+
+	// reverse the private storage direction of the tile
+#pragma omp parallel for
+	for (uint32_t i = 0; i < m_nbtiles; i++) {
+		m_tiles[i]->swapScan();
+		m_tiles[i]->swapStorageDims();
+	}
+
+	// reverse the shared storage direction of the threads
+#pragma omp parallel for
+	for (uint32_t i = 0; i < m_numThreads; i++) {
+		m_buffers[i]->swapStorageDims();
+	}
+	swapScan();
+}
+
+void Domain::computeDt()
+{
+	real_t dt;
+
+#pragma omp parallel for
+	for (uint32_t i = 0; i < m_nbtiles; i++) {
+		m_tiles[i]->setBuffers(m_buffers[myThread()]);
+		m_tiles[i]->setTcur(m_tcur);
+		m_tiles[i]->setDt(m_dt);
+		m_localDt[i] = m_tiles[i]->computeDt();
+	}
+
+	dt = m_localDt[0];
+	for (uint32_t i = 0; i < m_nbtiles; i++) {
+		dt = Min(dt, m_localDt[i]);
+	}
+	m_dt = reduceMin(dt);
+}
+
+real_t Domain::reduceMin(real_t dt)
+{
+	real_t dtmin = dt;
+#ifdef MPI_ON
+	if (sizeof(real_t) == sizeof(double)) {
+		MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	} else {
+		MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN,  MPI_COMM_WORLD);
+	}
+#endif
+	return dtmin;
+}
+
+real_t Domain::reduceMaxAndBcast(real_t dt)
+{
+	real_t dtmax = dt;
+#ifdef MPI_ON
+	if (sizeof(real_t) == sizeof(double)) {
+		MPI_Allreduce(&dt, &dtmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		MPI_Bcast(&dtmax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	} else {
+		MPI_Allreduce(&dt, &dtmax, 1, MPI_FLOAT, MPI_MAX,  MPI_COMM_WORLD);
+		MPI_Bcast(&dtmax, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	}
+#endif
+	return dtmax;
+}
+
+uint32_t Domain::tileFromMorton(uint32_t t) {
+	uint32_t i = t;
+	uint32_t m = m_mortonIdx[t];
+	uint32_t x, y;
+	(*m_morton).idxFromMorton(x, y, m);
+	i = (*m_morton)(x,y);
+	return i;
+}
+
+real_t Domain::computeTimeStep()
+{
+	real_t dt = 0;
+	uint32_t t;
+
+	for (uint32_t pass = 0; pass < 2; pass++) {
+		Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
+		if (m_prt)
+			uold.printFormatted("uold computeTimeStep");
+
+		boundary_init();
+		boundary_process();
+
+		real_t *pm_localDt = m_localDt;
+#pragma omp parallel for private(t)
+		for (t = 0; t < m_nbtiles; t++) {
+			uint32_t i = t;
+			if (m_withMorton) {
+				i = tileFromMorton(t);
+			}
+			m_tiles[i]->setBuffers(m_buffers[myThread()]);
+			m_tiles[i]->setTcur(m_tcur);
+			m_tiles[i]->setDt(m_dt);
+			m_tiles[i]->gatherconserv();	// input uold      output u
+			m_tiles[i]->godunov();
+		}
+// we have to wait here that all tiles are ready to update uold
+#pragma omp parallel for private(t)
+		for (t = 0; t < m_nbtiles; t++) {
+			uint32_t i = t;
+			if (m_withMorton) {
+				i = tileFromMorton(t);
+			}
+			m_tiles[i]->setBuffers(m_buffers[myThread()]);
+			m_tiles[i]->updateconserv();	// input u, flux       output uold
+			if (pass == 1) {
+				m_localDt[i] = m_tiles[i]->computeDt();
+			}
+		}
+// we have to wait here that uold has been fully updated by all tiles
+		if (m_prt) {
+			cout << "After pass " << pass << " direction [" <<
+			    m_scan << "]" << endl;
+		}
+		changeDirection();
+	}			// X_SCAN - Y_SCAN
+	changeDirection();	// to do X / Y then Y / X then X / Y ...
+
+	// final estimation of the time step
+	dt = m_localDt[0];
+	for (uint32_t i = 0; i < m_nbtiles; i++) {
+		dt = Min(dt, m_localDt[i]);
+	}
+
+	// inquire the other MPI domains
+	dt = reduceMin(dt);
+
+	return dt;
+}
+
+void Domain::compute()
+{
+	uint32_t n = 0;
+	real_t dt = 0;
+	char vtkprt[64];
+	double start, end;
+	double startstep, endstep, elpasstep;
+	struct rusage myusage;
+	double giga = 1024 * 1024 * 1024;
+	double totalCellPerSec = 0.0;
+	long nbTotCelSec = 0;
+	memset(vtkprt, 0, 64);
+
+#ifdef _OPENMP
+	if (m_myPe == 0) {
+		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() <<
+		    endl;
+		cout << "Hydro: OpenMP num threads " << omp_get_num_threads() <<
+		    endl;
+		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() <<
+		    endl;
+	}
+#endif
+#ifdef MPI_ON
+	if (m_myPe == 0) {
+		cout << "Hydro: MPI is present with "  << m_nProc << " tasks" << endl;;
+	}
+#endif
+
+	start = dcclock();
+	vtkprt[0] = '\0';
+
+	if (m_tcur == 0) {
+// 		if (m_dtImage > 0) {
+// 			char pngName[256];
+// 			pngProcess();
+// #if WITHPNG > 0
+// 			sprintf(pngName, "%s_%06d.png", "Image", m_npng);
+// #else
+// 			sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
+// #endif
+// 			pngWriteFile(pngName);  
+// 			pngCloseFile();
+// 			sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
+// 			m_npng++;
+// 		}
+		// only for the start of the test case
+		computeDt();
+		m_dt /= 2.0;
+		if (m_myPe == 0) {
+			cout << " Initial dt " <<
+				setiosflags(ios::scientific) <<
+				setprecision(5) << m_dt << endl;;
+		}
+	}
+	dt = m_dt;
+
+	while (m_tcur < m_tend) {
+		if (m_nStepMax > 0) {
+			if (n >= m_nStepMax)
+				break;
+		}
+		vtkprt[0] = '\0';
+		if ((m_iter % 2) == 0) {
+			m_dt = dt;	// either the initial one or the one computed by the time step
+		}
+
+		startstep = dcclock();
+		dt = computeTimeStep();
+		endstep = dcclock();
+		elpasstep = endstep - startstep;
+		// m_dt = 1.e-3;
+		m_tcur += m_dt;
+		n++; // iteration of this run
+		m_iter++; // global iteration of the computation (accross runs)
+
+		if ((m_nOutput > 0) && ((n % m_nOutput) == 0)) {
+			vtkOutput(m_nvtk);
+			sprintf(vtkprt, "[%05d]", m_nvtk);
+			m_nvtk++;
+		}
+		if ((m_dtOutput > 0) && (m_tcur > m_nextOutput)) {
+			m_nextOutput += m_dtOutput;
+			vtkOutput(m_nvtk);
+			sprintf(vtkprt, "[%05d]", m_nvtk);
+			m_nvtk++;
+		}
+		if ((m_dtImage > 0) && (m_tcur > m_nextImage)) {
+			m_nextImage += m_dtImage;
+			char pngName[256];
+			pngProcess();
+#if WITHPNG > 0
+			sprintf(pngName, "%s_%06d.png", "Image", m_npng);
+#else
+			sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
+#endif
+			pngWriteFile(pngName);  
+			pngCloseFile();
+			sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
+			m_npng++;
+		}
+		if (m_myPe == 0) {
+			uint64_t totCell = uint64_t(m_globNx) * uint64_t(m_globNy);
+			double cellPerSec = totCell / elpasstep / 1000000;
+			totalCellPerSec += cellPerSec;
+			nbTotCelSec++;
+			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s\n",
+				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt);
+		}
+		if (m_tr.timeRemainAll() < m_timeGuard) {
+			if (m_myPe == 0) cerr << "Hydro stops by time limit " << m_tr.timeRemainAll()  << " < " << m_timeGuard << endl;
+			break;
+		}
+	}
+	end = dcclock();
+	m_nbRun++;
+	m_elapsTotal += (end - start);
+	// TODO: temporaire a equiper de mesure de temps
+	if (m_checkPoint) {
+		double start, end;
+		start = dcclock();
+		m_dt = dt;
+		writeProtection();
+		end = dcclock();
+		if (m_myPe == 0) {
+			char txt[256];
+			double elaps = (end - start);
+			convertToHuman(txt, elaps);
+			cerr << "Write protection in " << txt << " (" << elaps << "s)"<<endl;
+		}
+	}
+	if (m_tcur >= m_tend) { 
+		StopComputation();
+	}
+
+	if (getrusage(RUSAGE_SELF, &myusage) != 0) {
+		cerr << "error getting my resources usage" << endl;
+		exit(1);
+	}
+	m_maxrss = myusage.ru_maxrss;
+	m_ixrss = myusage.ru_ixrss;
+
+	if (m_myPe == 0) {
+		char timeHuman[256];
+		long maxMemUsed = getMemUsed();
+		cout << "End of computations in " << setiosflags(ios::fixed) <<
+			setprecision(3) << (end - start);
+		cout << " s ";
+		cout << " (" ;
+		convertToHuman(timeHuman, (end - start));
+		cout << timeHuman;
+		cout << ")" ;
+		cout << " with " << m_nbtiles << " tiles";
+#ifdef _OPENMP
+		cout << " using " << m_numThreads << " threads";
+#endif
+#ifdef MPI_ON
+		cout << " and " << m_nProc << " MPI tasks";
+#endif
+		// cout << " maxRSS " << m_maxrss;
+		cout << std::resetiosflags(std::ios::showbase) << setprecision(3) << setiosflags(ios::fixed) ;
+		cout << " maxMEM " << float(maxMemUsed/giga) << "GB";
+		cout << endl;
+		convertToHuman(timeHuman, m_elapsTotal);
+		cout << "Total simulation time: " << timeHuman<< " in " << m_nbRun << " runs" << endl;
+		cout << "Average MC/s: " << totalCellPerSec / nbTotCelSec << endl;
+		
+	}
+	// cerr << "End compute " << m_myPe << endl;
+}
+
+// EOF

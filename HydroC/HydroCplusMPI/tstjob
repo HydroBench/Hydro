@@ -1,0 +1,50 @@
+#!/bin/bash
+#MSUB -s /bin/bash
+#MSUB -T 1789
+#MSUB -N 4
+#MSUB -n 8
+#MSUB -e tst.%I.err
+#MSUB -o tst.%I.out
+#MSUB -r tst
+#MSUB -q hybridk40
+
+set -x
+module unload mic
+cd ~/Cplus
+
+export r=$PWD
+
+cd $SCRATCHDIR
+
+export OMP_NUM_THREADS=12 KMP_AFFINITY=scatter
+CMD1="gdb -x runcmd $r/tst"
+CMD1="./tst -i $r/input.nml"
+
+mkdir -p valtst
+cd valtst
+
+if [ ! -f tst ]; then
+    cp -p $r/tst .
+fi
+pwd
+# rm -f STOP Continue.dump *.png
+cat > runcmd <<EOF 
+run -i $r/input.nml
+where
+quit
+EOF
+
+date 1>&2
+
+R=0
+time ccc_mprun $CMD1
+R=$?
+if [ ! -f STOP ] ; then
+    if [ $R -eq 0 ] ; then
+	ccc_msub ~/Cplus/tstjob
+    fi
+fi
+faitfilm
+date 1>&2
+
+# EOF

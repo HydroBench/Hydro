@@ -1,0 +1,8 @@
+*~
+*.o
+tst
+*.lst
+*.d
+*.pdf
+Dep
+*.pvd

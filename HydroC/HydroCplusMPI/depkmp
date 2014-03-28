@@ -1,0 +1,52 @@
+#!/bin/bash
+
+cd Rundir
+cat > extractnew.pl <<"EOF"
+#!/usr/bin/env perl
+while ( <> ) {
+   @a=split(" ");
+   $elaps=$a[4];
+   $threads=$a[10];
+   print $threads . " " . $elaps ."\n";
+}
+EOF
+cat > extractold.pl <<"EOF"
+#!/usr/bin/env perl
+BEGIN {
+     $elaps = 0.;
+}
+while ( <> ) {
+   @a=split(" ");
+   if ( /max threads/ ) {
+      $threads=$a[2];
+   }
+   if ( /Hydro ends/ ) {
+      $elapst=$a[4];
+      $elapst =~ s/\(//;
+      $elapst =~ s/\)//;
+      $elaps = $elapst;
+   }
+}
+END {
+   if ( $elaps > 0. ) { print $threads . " " . $elaps ."\n"; };
+}
+EOF
+chmod +x extract*.pl
+
+for o in old new ; do
+    for k in compact scatter balanced ; do
+	rm ${o}_${k}.dat
+	for t in ${o}_${k}*.lst ; do
+	    if [ $o = "new" ]; then grep computations $t | extractnew.pl >> ${o}_${k}.dat ; fi
+	    if [ $o = "old" ]; then extractold.pl < $t >> ${o}_${k}.dat ; fi
+	done
+    done
+done
+
+gnuplot <<EOF
+set term png medium size 1000,800 enhanced 
+set output "scankmp.png"
+set logscale xy
+plot "old_compact.dat" w lp, "old_scatter.dat" w lp, "old_balanced.dat" w lp, "new_compact.dat" w l, "new_scatter.dat" w l, "new_balanced.dat" w l
+EOF
+#EOF

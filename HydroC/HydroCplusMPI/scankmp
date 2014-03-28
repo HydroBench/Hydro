@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for k in compact scatter balanced ; do
+    for t in `seq 8 8 240` ; do
+	tt=`printf "%03d" $t`
+	ccc_mprun -T1800 -p knc -n 1 env KMP_AFFINITY=$k OMP_NUM_THREADS=$t tst -i input.nml > RunDir/new_${k}_${tt}.lst &
+	ccc_mprun -T1800 -p knc -n 1 env KMP_AFFINITY=$k OMP_NUM_THREADS=$t hydro -i input.nml > RunDir/old_${k}_${tt}.lst &
+    done
+    wait
+    echo block done
+done
+echo scan done
+#EOF
