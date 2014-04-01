@@ -1,3 +1,7 @@
+Small manual for HydroC
+-----------------------
+
+
 To compile hydroc, adapt the Makefile to your local
 installation. Normally, the different variables should be explicit
 enough.
@@ -7,15 +11,20 @@ The current Makefile has the possibility to build hydroc with various options:
 MPI=O	    to create a MPI version (default node only version)
 MIC=O	    to produce a native version for the MIC
 PG=O	    to use gprof profiling tool
-XHOST=O	    to build a tightly coupled binary to your local CPU
+XHOST=O	    to build a tightly coupled binary to your local CPU, will get an invalid instruction on a not compatible hardware.
 AVX=O	    to force AVX usage
-AVX2=O	    to force AVX2 usage
+AVX2=O	    to force AVX2 usage (Haswell)
 ATOM=O	    to force SSE4 for the atom
-SSE=O	    to force SSE usage
+SSE=O	    to force SSE usage (Nehalem)
 
-PNG=O	    to produce PNG images (PPM otherwise)
-VERB=0	    for a verbose output of the vectorization
-NOVEC=O     to inhibit vectorization (for vectorization speedup measurement)
+PNG=O to produce PNG images (PPM otherwise). Images are forced to be
+less than 2000 pixels wide so the program will shrink then if needed
+(yet still compute the full nx x ny domain).
+
+VERB=O	    for a verbose output of the vectorization
+
+NOVEC=O to inhibit vectorization (for vectorization speedup
+measurement)
 
 
 
@@ -23,7 +32,8 @@ so
 
 make MPI=O PNG=O AVX=O clean hydroc
 
-will clean everything then build hydroc with MPI capability and AVX optimization plus produce PNG images rather than PPM.
+will clean everything then build hydroc with MPI capability and AVX
+optimization plus produce PNG images rather than PPM.
 
 make MPI=O PNG=O AVX=O run
 
@@ -44,7 +54,7 @@ nstepmax=20
 # chkpt=1
 /
 
-&MESH0
+&MESH
 nx=6000
 ny=6000
 nxystep=480
@@ -75,7 +85,9 @@ computation.
 
 Meaning of the keywords of interest:
 
-tend = physical time at which the simulation should end. Might take a couple of runs ;-)
+tend = physical time at which the simulation should end. Might take a
+couple of runs ;-)
+
 nstepmax = maximum number of iterations for a single run
 
 # driving the outputs
@@ -85,27 +97,61 @@ dtimage = interval of physical time between two images (PNG or PPM)
 
 chkpt = if not 0, produce a checkpoint file at the end of the run.
 
-nx, ny = total size of the domain. An MPI run will devide those values according to the number of tasks.
+nx, ny = total size of the domain. An MPI run will divide those values
+according to the number of tasks.
+
 nxystep = unused in this version
+
 tilesize = the size of the side of a tile (excluding the ghost cells)
-morton = if 1, the OpenMP threads will pick tiles according to a morton curve
+
+morton = if 1, the OpenMP threads will pick tiles according to a
+morton curve
+
 prt = if 1, print all arrays ... 
+
 dx = (unitless) physical size of a cell
+
 boundary_XX = kind of boundary condition on a given border of the domain
 	    1 = reflexion
 	    2 = absorption
 	    3 = periodic
 
-testcase = one of the hard coded test cases (1 = center explosion, 2 = corner explosion, 3 = sinus curve explosion)
+testcase = one of the hard coded test cases (0 = center explosion, 1 =
+corner explosion, 3 = sinus curve explosion)
 
 
 _______________________________________________________________
 
 
-When a runs reaches either nstepmax or its time limit and chkpt=1, a file Continue.dump is produced.
-When a runs reaches tend, a STOP file is created, preventing any further runs.
+When a runs reaches either nstepmax or its time limit and chkpt=1, a
+file Continue.dump is produced.
 
-The global environment variable BRIDGE_MPRUN_MAXTIME specifies the maximum total ELAPS time of a run in seconds (defaul is 30 mn if not set).
+
+When a runs reaches tend, a STOP file is created, preventing any
+further runs. If you need to go further along the simulation, change
+tend and remove this file.
+
+The global environment variable BRIDGE_MPRUN_MAXTIME specifies the
+maximum total ELAPS time of a run in seconds (defaul is 30 mn if not
+set).
+
+
+on an IvyBridge with 24cores, a nx=1000,ny=1000,tend=1 takes 7s
+on an IvyBridge with 24cores, a nx=2000,ny=2000,tend=1 takes 22s
+
+for a 2000x2000 testcase (testcase=0), useful results are obtained for
+tend=1000 at least.
+
+Warning: the VTK output can become rather huge (>> GB). It is written
+in the current directory as a Dep folder. It is piloted by the
+Hydro.pvd file. Use paraview (www.paraview.org) to post process the
+results. Be careful that a 5000x5000 test case can exhaust all the
+memory with paraview.
+
+
+If your run has produced PNG images (e.g. tend=1000, dtimage=10), the
+faitfilm script can be used to produce a movie of your computation
+(requires mencoder [and mplayer]).
 
 Enjoy.
 Guillaume Colin de Verdiere
