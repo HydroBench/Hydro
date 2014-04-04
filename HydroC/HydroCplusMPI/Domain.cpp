@@ -296,9 +296,9 @@ void Domain::readInput()
 	char *realFmt;
 
 	if (sizeof(real_t) == sizeof(double)) {
-		realFmt = "%lf";
+	  realFmt = (char *)("%lf");
 	} else {
-		realFmt = "%f";
+	  realFmt = (char *)("%f");
 	}
 
 	fd = fopen(m_inputFile, "r");
