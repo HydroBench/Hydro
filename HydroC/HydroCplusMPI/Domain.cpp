@@ -490,6 +490,7 @@ void Domain::setTiles()
 
 	m_localDt = AlignedAllocReal(m_nbtiles);
 	m_tiles = new Tile *[m_nbtiles];
+#pragma omp parallel for private(i)
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i] = new Tile;
 	}
@@ -548,6 +549,7 @@ void Domain::setTiles()
 #endif
 	uint32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
 	m_buffers = new ThreadBuffers *[m_numThreads];
+#pragma omp parallel for private(i)
 	for (uint32_t i = 0; i < m_numThreads; i++) {
 		m_buffers[i] =
 		    new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
