@@ -273,8 +273,11 @@ void Domain::compute()
 		if (m_myPe == 0) {
 			uint64_t totCell = uint64_t(m_globNx) * uint64_t(m_globNy);
 			double cellPerSec = totCell / elpasstep / 1000000;
-			totalCellPerSec += cellPerSec;
-			nbTotCelSec++;
+			if (n > 4) {
+				// skip the 4 first iterations to let the system stabilize
+				totalCellPerSec += cellPerSec;
+				nbTotCelSec++;
+			}
 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s\n",
 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt);
 		}

@@ -42,6 +42,7 @@ using namespace std;
 Domain::Domain(int argc, char **argv)
 {
 	// default values
+	m_numa = 0;
 	m_nextOutput = 0;
 	m_nextImage = 0;	
 	m_nbRun = 0;
@@ -251,6 +252,7 @@ void Domain::printSummary()
 #endif
 		printf("|nt=%-7d         |\n", m_nbtiles);
 		printf("|morton=%-7u     |\n", m_withMorton);
+		printf("|numa=%-7u       |\n", m_numa);
 		printf("|tend=%-10.3f    |\n", m_tend);
 		printf("|nstepmax=%-7d   |\n", m_nStepMax);
 		printf("|noutput=%-7d    |\n", m_nOutput);
@@ -356,6 +358,10 @@ void Domain::readInput()
 		}
 		if (strcmp(pkey, "noutput") == 0) {
 			sscanf(pval, "%d", &m_nOutput);
+			continue;
+		}
+		if (strcmp(pkey, "numa") == 0) {
+			sscanf(pval, "%d", &m_numa);
 			continue;
 		}
 		if (strcmp(pkey, "iorder") == 0) {
@@ -490,7 +496,7 @@ void Domain::setTiles()
 
 	m_localDt = AlignedAllocReal(m_nbtiles);
 	m_tiles = new Tile *[m_nbtiles];
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) if (m_numa)
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i] = new Tile;
 	}
@@ -549,7 +555,7 @@ void Domain::setTiles()
 #endif
 	uint32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
 	m_buffers = new ThreadBuffers *[m_numThreads];
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) if (m_numa)
 	for (uint32_t i = 0; i < m_numThreads; i++) {
 		m_buffers[i] =
 		    new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);

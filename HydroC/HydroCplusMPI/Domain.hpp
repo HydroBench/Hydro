@@ -102,6 +102,7 @@ private:
 	uint32_t m_shrink;
 	uint32_t m_shrinkSize;
 	double m_timeGuard;
+	uint32_t m_numa; // try to cope with numa effects
 
 	void vtkfile(int step);
 	void vtkOutput(int step);

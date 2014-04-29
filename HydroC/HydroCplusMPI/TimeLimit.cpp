@@ -31,8 +31,8 @@ TimeLimit::TimeLimit(void) {
 	m_curTime = 0;
 	if (p != 0) {
 		m_allotedTime = strtod(p, NULL);
-	} else {
-	  cerr << "BRIDGE_MPRUN_MAXTIME not set, defaulted to " << m_allotedTime << endl;
+	// } else {
+	//   cerr << "BRIDGE_MPRUN_MAXTIME not set, defaulted to " << m_allotedTime << endl;
 	}
 	// cerr << "Tremain " << m_allotedTime << endl;
 }
