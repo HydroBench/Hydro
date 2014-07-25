@@ -103,6 +103,9 @@ Domain::Domain(int argc, char **argv)
 
 	initMPI();
 	double tRemain = m_tr.timeRemainAll();
+	if (m_myPe == 0) {
+		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" << endl;
+	}
 	m_timeGuard = 800;
 	if (tRemain < 36000 ) m_timeGuard = 600;
 	if (tRemain < 3600  ) m_timeGuard = 120;

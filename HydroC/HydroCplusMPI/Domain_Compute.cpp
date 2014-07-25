@@ -285,6 +285,7 @@ void Domain::compute()
 			if (m_myPe == 0) cerr << "Hydro stops by time limit " << m_tr.timeRemainAll()  << " < " << m_timeGuard << endl;
 			break;
 		}
+		cout.flush();
 	}
 	end = dcclock();
 	m_nbRun++;

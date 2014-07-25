@@ -27,6 +27,7 @@ public:
 	~TimeLimit();
 	double timeRemain();
 	double timeRemainAll();
+	double getTimeAllocated() { return m_allotedTime; };
 	// copy operator
 	// TimeLimit(const TimeLimit & obj);
 	// assignment operator
