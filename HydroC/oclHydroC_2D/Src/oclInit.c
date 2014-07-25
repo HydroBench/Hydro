@@ -42,7 +42,11 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#ifdef MPI
+#include <mpi.h>
+#endif
 
+#include "getDevice.h"
 #include "oclInit.h"
 #include "ocltools.h"
 #include "oclparam.h"
@@ -186,26 +190,47 @@ oclInitCode(const int nproc, const int mype)
   for (platformselected = 0; platformselected < nbplatf; platformselected++) {
 
     nbgpu = oclGetNbOfGpu(platformselected);
+    fprintf(stdout, "Hydro: %03d has %d GPU\n", mype, nbgpu);
     if ((runUnit == RUN_GPU) && (nbgpu > 0)) {
-      if (mype == 0) fprintf(stderr, "Building a GPU version\n");
-      if (nproc == 1) {
-    	devselected = oclGetGpuDev(platformselected, 0);
-      } else {
-	    devselected = oclGetGpuDev(platformselected, (mype % nbgpu));
-      }
-      fprintf(stdout, "Hydro: %03d GPU %d\n", mype, (mype % nbgpu));
-      fflush(stdout);
-      break;
+	    int gpuSel = 0;
+	    if (mype == 0) fprintf(stderr, "Building a GPU version\n");
+	    if (nproc == 1) {
+		    devselected = oclGetGpuDev(platformselected, gpuSel);
+	    } else {
+		    if (nbgpu > 1) gpuSel = GetDevice(nbgpu);
+		    devselected = oclGetGpuDev(platformselected, gpuSel);
+		    if (devselected == -1) {
+			    fprintf(stderr, "Error: more MPI ranks on a node than GPU cards\n");
+#ifdef MPI
+			    MPI_Abort(MPI_COMM_WORLD, 9);
+#else
+			    exit(9);
+#endif
+		    }
+	    }
+	    fprintf(stdout, "Hydro: %03d uses GPU %d\n", mype, gpuSel);
+	    fflush(stdout);
+	    break;
+    }
+    
+    nbacc = oclGetNbOfAcc(platformselected);
+    fprintf(stdout, "Hydro: %03d has %d ACC\n", mype, nbacc);
+    if ((runUnit == RUN_ACC) && (nbacc > 0)) {
+	    int accSel = 0;
+	    if (mype == 0) fprintf(stderr, "Building an ACC version\n");
+	    if (nproc == 1) {
+		    devselected = oclGetAccDev(platformselected, accSel);
+	    } else {
+		    if (nbacc > 1) accSel = GetDevice(nbacc);
+		    devselected = oclGetAccDev(platformselected, accSel);
+	    }
+	    fprintf(stdout, "Hydro: %03d uses ACC %d\n", mype, accSel);
+	    fflush(stdout);
+	    break;
     }
 
-    nbacc = oclGetNbOfAcc(platformselected);
-	if ((runUnit == RUN_ACC) && (nbacc > 0)) {
-       if (mype == 0) fprintf(stderr, "Building an ACC version\n");
-       devselected = oclGetAccDev(platformselected, 0);
-       break;
-	}
-
     nbcpu = oclGetNbOfCpu(platformselected);
+    fprintf(stdout, "Hydro: %03d has %d CPU\n", mype, nbcpu);
     if ((runUnit == RUN_CPU) && (nbcpu > 0)) {
       if (mype == 0) fprintf(stderr, "Building a CPU version\n");
       devselected = oclGetCpuDev(platformselected, 0);
