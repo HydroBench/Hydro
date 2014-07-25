@@ -151,6 +151,9 @@ main(int argc, char **argv) {
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
   struct timespec start, end;
+  double cellPerCycle = 0;
+  double avgCellPerCycle = 0;
+  long nbCycle = 0;
 
   // array of timers to profile the code
   memset(functim, 0, TIM_END * sizeof(functim[0]));
@@ -282,6 +285,10 @@ main(int argc, char **argv) {
       //            hydro_godunov(1, dt, H, &Hv, &Hw, &Hvw);
     }
     end_iter = dcclock();
+    cellPerCycle = (double) (H.globnx * H.globny) / (end_iter - start_iter) / 1000000.0L;
+    avgCellPerCycle += cellPerCycle;
+    nbCycle++;
+
     H.nstep++;
     H.t += dt;
     {
@@ -334,7 +341,7 @@ main(int argc, char **argv) {
       }
     }
     if (H.mype == 0) {
-      fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+	    fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s\n", H.nstep, H.t, dt, cellPerCycle, outnum);
       fflush(stdout);
     }
 #ifdef MPI
@@ -404,6 +411,9 @@ main(int argc, char **argv) {
     }
   }
 #endif
+  if (H.mype == 0) {
+	  fprintf(stdout, "Average MC/s: %.3lf\n", (double)(avgCellPerCycle / nbCycle));
+  }
 
 #ifdef MPI
 #if FTI>0

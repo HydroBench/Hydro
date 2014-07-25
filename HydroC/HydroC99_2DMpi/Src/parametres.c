@@ -311,6 +311,7 @@ process_args(int argc, char **argv, hydroparam_t * H) {
 #endif
 #if FTI>0
   H->prt=0;
+  default_values(H);
 
   while (n < argc) {
     if (strcmp(argv[n], "--help") == 0) {
