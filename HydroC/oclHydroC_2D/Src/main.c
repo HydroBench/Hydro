@@ -144,6 +144,9 @@ main(int argc, char **argv)
   double start_time = 0, start_time_2 = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
+  double avgMcps = 0;
+  long nAvgMcps = 0;
+
   char cdt;
   struct timespec start, end;
 
@@ -235,7 +238,9 @@ main(int argc, char **argv)
     if (iter_time > 1.e-9) {
 	    double mcps = ((double) H.globnx * (double) H.globny) / iter_time / 1e6l;
 	    if (H.nstep > 5) {
-		    sprintf(outnum, "%s (%.1f MC/s)", outnum, mcps);
+		    sprintf(outnum, "%s (%.1lf MC/s)", outnum, mcps);
+		    nAvgMcps++;
+		    avgMcps += mcps;
 	    }
     }
     if (time_output == 0 && H.noutput > 0) {
@@ -306,7 +311,10 @@ main(int argc, char **argv)
   oclCloseupCode();
   // Deallocate work space
   deallocate_work_space(H, &Hw, &Hvw);
-
+  if (H.mype == 0) {
+	  avgMcps /= nAvgMcps;
+	  fprintf(stdout, "Average MC/s: %.1lf\n", avgMcps);
+  }
   MPI_Finalize();
   return 0;
 }
