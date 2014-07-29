@@ -136,7 +136,7 @@ main(int argc, char **argv)
 {
   real_t dt = 0;
   long nvtk = 0;
-  char outnum[80];
+  char outnum[240];
   long time_output = 0;
 
   // double output_time = 0.0;
@@ -188,6 +188,7 @@ main(int argc, char **argv)
 
   start_time_2 = dcclock();
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
+	  double iter_time = 0;
     start_iter = dcclock();
     outnum[0] = 0;
     flops = 0;
@@ -222,15 +223,20 @@ main(int argc, char **argv)
     end_iter = dcclock();
     H.nstep++;
     H.t += dt;
+    iter_time = (double) (end_iter - start_iter);
     if (flops > 0) {
-      double iter_time = (double) (end_iter - start_iter);
       if (iter_time > 1.e-9) {
         double mflops = (double) flops / (double) 1.e+6 / iter_time;
         sprintf(outnum, "%s {%.3f Mflops} (%.3fs)", outnum, mflops, iter_time);
       }
     } else {
-      double iter_time = (double) (end_iter - start_iter);
       sprintf(outnum, "%s (%.3fs)", outnum, iter_time);
+    }
+    if (iter_time > 1.e-9) {
+	    double mcps = ((double) H.globnx * (double) H.globny) / iter_time / 1e6l;
+	    if (H.nstep > 5) {
+		    sprintf(outnum, "%s (%.1f MC/s)", outnum, mcps);
+	    }
     }
     if (time_output == 0 && H.noutput > 0) {
       if ((H.nstep % H.noutput) == 0) {
