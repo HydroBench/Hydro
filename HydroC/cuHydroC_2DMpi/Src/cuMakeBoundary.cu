@@ -35,15 +35,20 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef WITHMPI
+ #ifdef SEEK_SET
+  #undef SEEK_SET
+  #undef SEEK_CUR
+  #undef SEEK_END
+ #endif
+ #include <mpi.h>
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
 #include <assert.h>
 
 #include "parametres.h"
@@ -279,7 +284,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   double *recvbufruDEV, *recvbufldDEV;
   // MPI_Status st;
   // MPI_Win winld, winru;
-#ifdef MPI
+#ifdef WITHMPI
   MPI_Request requests[4];
   MPI_Status status[4];
 #endif
@@ -290,7 +295,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   char fname[256];
 
   if (H.nproc > 1) {
-#ifdef MPI
+#ifdef WITHMPI
     cudaMalloc(&recvbufruDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
     CheckErr("recvbufruDEV");
     cudaMalloc(&recvbufldDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
@@ -304,7 +309,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   WHERE("make_boundary");
   if (idim == 1) {
     if (H.nproc > 1) {
-#ifdef MPI
+#ifdef WITHMPI
       SetBlockDims(H.nyt, THREADSSZ, block, grid);
       i = ExtraLayer;
       pack_arrayv <<< grid, block >>> (i, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
@@ -415,7 +420,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);    }
   } else {
     if (H.nproc > 1) {
-#ifdef MPI
+#ifdef WITHMPI
       SetBlockDims(H.nxt, THREADSSZ, block, grid);
       j = ExtraLayer;
       pack_arrayh <<< grid, block >>> (j, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
@@ -531,7 +536,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
     }
   }
   if (H.nproc > 1) {
-#ifdef MPI
+#ifdef WITHMPI
     cudaFree(sendbufruDEV);
     cudaFree(sendbufldDEV);
     cudaFree(recvbufldDEV);

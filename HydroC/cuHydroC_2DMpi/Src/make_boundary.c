@@ -34,13 +34,13 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#include <mpi.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#include <mpi.h>
 #include <assert.h>
 
 #include "parametres.h"

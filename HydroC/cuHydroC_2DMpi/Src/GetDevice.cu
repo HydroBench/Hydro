@@ -35,14 +35,20 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef WITHMPI
+ #ifdef SEEK_SET
+  #undef SEEK_SET
+  #undef SEEK_CUR
+  #undef SEEK_END
+ #endif
+ #include <mpi.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
 #include <cuda.h>
 
 #include "GetDevice.h"

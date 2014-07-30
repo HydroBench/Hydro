@@ -38,6 +38,7 @@ knowledge of the CeCILL license and that you accept its terms.
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #ifdef MPI
 #include <mpi.h>
 #endif
@@ -97,7 +98,7 @@ default_values(hydroparam_t * H)
   H->boundary_up = 1;
   H->boundary_down = 1;
   H->noutput = 0;
-  H->nstepmax = 0;
+  H->nstepmax = INT_MAX;
   H->dtoutput = 0.0;
 } static void
 keyval(char *buffer, char **pkey, char **pval)

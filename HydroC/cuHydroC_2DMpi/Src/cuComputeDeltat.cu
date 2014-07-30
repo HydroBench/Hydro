@@ -34,14 +34,19 @@ knowledge of the CeCILL license and that you accept its terms.
 
 */
 
+#ifdef WITHMPI
+ #ifdef SEEK_SET
+  #undef SEEK_SET
+  #undef SEEK_CUR
+  #undef SEEK_END
+ #endif
+#include <mpi.h>
+#endif
 #include <stdio.h>
 // #include <stdlib.h>
 #include <malloc.h>
 // #include <unistd.h>
 #include <math.h>
-#ifdef MPI
-#include <mpi.h>
-#endif
 #include <cuda.h>
 
 #include "parametres.h"

@@ -61,7 +61,7 @@ main(int argc, char **argv)
 {
   double dt = 0;
   long nvtk = 0;
-  char outnum[80];
+  char outnum[240];
   long time_output = 0;
   long flops = 0;
 
@@ -70,6 +70,8 @@ main(int argc, char **argv)
   double start_time = 0, end_time = 0;
   double start_iter = 0, end_iter = 0;
   double elaps = 0;
+  double avgMcps = 0;
+  long nAvgMcps = 0;
 
 #ifdef MPI
   MPI_Init(&argc, &argv);
@@ -101,7 +103,11 @@ main(int argc, char **argv)
 
   cuPutUoldOnDevice(H, &Hv);
   start_time = cclock();
+
+  // fprintf(stdout, "%lg %lg %d %d \n", H.t, H.tend, H.nstep, H.nstepmax);
+
   while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
+	  double iter_time = 0;
     flopsAri = flopsSqr = flopsMin = flopsTra = 0;
     start_iter = cclock();
     outnum[0] = 0;
@@ -127,6 +133,7 @@ main(int argc, char **argv)
       cuHydroGodunov(2, dt, H, &Hv, &Hw, &Hvw);
     }
     end_iter = cclock();
+    iter_time = (double) (end_iter - start_iter);
     H.nstep++;
     H.t += dt;
     {
@@ -154,6 +161,14 @@ main(int argc, char **argv)
       } else {
         sprintf(outnum, "%s (%.3fs)", outnum, iter_time);
       }
+    }
+    if (iter_time > 1.e-9) {
+	    double mcps = ((double) H.globnx * (double) H.globny) / iter_time / 1e6l;
+	    if (H.nstep > 5) {
+		    sprintf(outnum, "%s (%.1lf MC/s)", outnum, mcps);
+		    nAvgMcps++;
+		    avgMcps += mcps;
+	    }
     }
     if (time_output == 0 && H.noutput > 0) {
       if ((H.nstep % H.noutput) == 0) {
@@ -185,6 +200,10 @@ main(int argc, char **argv)
   timeToString(outnum, elaps);
   if (H.mype == 0)
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
+  if (H.mype == 0) {
+	  avgMcps /= nAvgMcps;
+	  fprintf(stdout, "Average MC/s: %.1lf\n", avgMcps);
+  }
 #ifdef MPI
   MPI_Finalize();
 #endif
