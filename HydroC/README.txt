@@ -101,8 +101,13 @@ RUN section
 
 The simulation runs until the PHYSICAL simulation time tend is reached
 or the elaps time limit is reached (controled by the environment
-variable BRIDGE_MPRUN_MAXTIME or BRIDGE_MSUB_MAXTIME expressed in
-seconds).
+variable BRIDGE_MPRUN_MAXTIME or BRIDGE_MSUB_MAXTIME or HYDROC_MAXTIME
+expressed in seconds). 
+
+Furthermore, the code checks also the content of HYDROC_START_TIME
+(set by `date +%s`) which should be set at the beginning of the script
+to make sure that the compute time is the proper one, should the
+actions before laucnhing the code be (too) long.
 
 If the code stops before tend, there is the possibility to write a
 restart dump using chkpt=1. It will write a Continue.dump file and if
