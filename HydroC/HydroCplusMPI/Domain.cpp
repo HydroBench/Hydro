@@ -103,6 +103,17 @@ Domain::Domain(int argc, char **argv)
 
 	initMPI();
 	double tRemain = m_tr.timeRemainAll();
+	if (tRemain <= 1) {
+		// useless run which can be harmful to files
+		if (m_myPe == 0) {
+			cerr << "HydroC: allocated time too short " << tRemain << "s" << endl;
+		}
+#ifdef MPI_ON
+		MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+		abort();
+#endif					
+	}
 	m_timeGuard = 800;
 	if (tRemain < 36000 ) m_timeGuard = 600;
 	if (tRemain < 3600  ) m_timeGuard = 600;

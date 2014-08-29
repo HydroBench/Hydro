@@ -151,7 +151,7 @@ real_t Domain::computeTimeStep()
 // we have to wait here that uold has been fully updated by all tiles
 		if (m_prt) {
 			cout << "After pass " << pass << " direction [" <<
-			    m_scan << "]" << endl;
+				m_scan << "]" << endl;
 		}
 		changeDirection();
 	}			// X_SCAN - Y_SCAN
@@ -184,12 +184,9 @@ void Domain::compute()
 
 #ifdef _OPENMP
 	if (m_myPe == 0) {
-		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() <<
-		    endl;
-		cout << "Hydro: OpenMP num threads " << omp_get_num_threads() <<
-		    endl;
-		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() <<
-		    endl;
+		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << endl;
+		cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
+		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << endl;
 	}
 #endif
 #ifdef MPI_ON
@@ -281,11 +278,25 @@ void Domain::compute()
 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s\n",
 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt);
 		}
-		if (m_tr.timeRemainAll() < m_timeGuard) {
-			if (m_myPe == 0) cerr << "Hydro stops by time limit " << m_tr.timeRemainAll()  << " < " << m_timeGuard << endl;
-			break;
+		{
+			int needToStopGlob = false;
+			if (m_myPe == 0) {
+				double reste = m_tr.timeRemain();
+				int needToStop = false;
+				if (reste < m_timeGuard) needToStop = true;
+				needToStopGlob = needToStop;
+			}
+#ifdef MPI_ON
+			MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+			if (needToStopGlob && (m_myPe == 0) ) { cerr << " Hydro stops by time limit " 
+								   << m_tr.timeRemain()  << " < " << m_timeGuard << endl;
+			}
+			if (needToStopGlob) { 
+				break;
+				cout.flush();
+			}
 		}
-		cout.flush();
 	}
 	end = dcclock();
 	m_nbRun++;
