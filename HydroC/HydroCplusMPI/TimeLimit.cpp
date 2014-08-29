@@ -16,28 +16,47 @@
 #include <malloc.h>
 #include <sys/time.h>
 #include <float.h>
+#include <time.h>
 
 //
 #include "cclock.h"
 #include "TimeLimit.hpp"
 
 using namespace std;
+extern char **environ;
 
 // template <typename T> 
 TimeLimit::TimeLimit(void) { 
-	char *p = getenv("BRIDGE_MPRUN_MAXTIME") ;
+	char *p = NULL;
+	int ie = 0;
+	if (p == NULL) p = getenv("HYDROC_MAXTIME") ;
+	if (p == NULL) p = getenv("BRIDGE_MPRUN_MAXTIME") ;
+	if (p == NULL) p = getenv("BRIDGE_MSUB_MAXTIME") ;
 	m_allotedTime = 30 * 60; // 30mn by default
 	m_orgTime = dcclock();
 	m_curTime = 0;
 	if (p != 0) {
 		m_allotedTime = strtod(p, NULL);
-	} else {
-		p = getenv("BRIDGE_MSUB_MAXTIME");
+		p = getenv("HYDROC_START_TIME") ;
 		if (p != 0) {
-			m_allotedTime = strtod(p, NULL);
-		}	
+			// this is a protection against lengthy
+			// startup phases. HYDROC_START_TIME must be
+			// equal to `date +%s` at the beginning of the
+			// batch script to make sure that the current
+			// run has a correct view of the remaining
+			// elaps time.
+			long int batchOrigin = strtol(p, NULL, 10);
+			long int curTime = (long int) time(NULL);
+			m_allotedTime -= (curTime - batchOrigin);
+		}
+	}	// cerr << "Tremain " << m_allotedTime << endl;
+#ifdef NOTDEF
+	ie=0;
+	while ((p = environ[ie]) != NULL) {
+		cerr << "env: " << p << endl;
+		ie++;
 	}
-	// cerr << "Tremain " << m_allotedTime << endl;
+#endif
 }
 
 // template <typename T> 

@@ -103,14 +103,16 @@ Domain::Domain(int argc, char **argv)
 
 	initMPI();
 	double tRemain = m_tr.timeRemainAll();
-	if (m_myPe == 0) {
-		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" << endl;
-	}
 	m_timeGuard = 800;
 	if (tRemain < 36000 ) m_timeGuard = 600;
-	if (tRemain < 3600  ) m_timeGuard = 120;
-	if (tRemain < 1800  ) m_timeGuard =  60;
-	if (tRemain < 60    ) m_timeGuard =  10;
+	if (tRemain < 3600  ) m_timeGuard = 600;
+	if (tRemain < 1800  ) m_timeGuard = 300;
+	if (tRemain < 60    ) m_timeGuard =  20;
+
+	if (m_myPe == 0) {
+		cerr << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" 
+		     << " time guard " << m_timeGuard << "s"<< endl;
+	}
 
 	parseParams(argc, argv);
 	readInput();
@@ -572,14 +574,14 @@ void Domain::setTiles()
 				     m_scheme);
 		m_tiles[i]->setScan(X_SCAN);
 	}
-	if (!m_myPe) {
+	if (m_myPe == 0) {
 		char hostn[1024];
 		char cpuName[1024];
 		memset(hostn, 0, 1024);
 		memset(cpuName, 0, 1024);
 
 		gethostname(hostn, 1023);
-		cout << "Starting run with " << m_nbtiles << " tiles";
+		cout << "HydroC starting run with " << m_nbtiles << " tiles";
 		cout << " on " << hostn << endl;
 		getCPUName(cpuName);
 		cout << "CPU name" << cpuName << endl;

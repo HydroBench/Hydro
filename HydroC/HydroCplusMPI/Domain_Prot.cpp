@@ -236,6 +236,7 @@ void Domain::writeProtectionHeader(const int f)
 
 void Domain::writeProtection()
 {
+	int needToStopGlob = true;
 	int f = -1;
 	char protName[256];
 	errno = 0;
@@ -243,14 +244,14 @@ void Domain::writeProtection()
 	sprintf(protName, "%s", "Continue.dump");
 
 	if (m_myPe == 0) {
-		f = open(protName, O_LARGEFILE | O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+		f = open(protName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 	}
-	if (m_nProc > 1) {
 #ifdef MPI_ON
-		MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif		
+	if (m_nProc > 1) {
 		if (m_myPe > 0) {
-			f = open(protName, O_LARGEFILE | O_RDWR);
+			f = open(protName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 		}
 	}
 	if (f == -1) {
@@ -261,9 +262,15 @@ void Domain::writeProtection()
 		abort();
 #endif		
 	}
+#ifdef MPI_ON
+	MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif		
 	writeProtectionHeader(f);
 	writeProtectionVars(f);
 	close(f);
+#ifdef MPI_ON
+	MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif		
     if (m_myPe == 0) cerr << "Protection written" << endl;
 }
 
