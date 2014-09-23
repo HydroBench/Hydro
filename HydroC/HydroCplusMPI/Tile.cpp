@@ -525,6 +525,7 @@ void Tile::updateconservXscan(uint32_t xmin, uint32_t xmax, real_t dtdx,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+#pragma simd
 	for (uint32_t i = xmin; i < xmax; i++) {
 		uoldIDS[i + m_offx] =
 		    uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
@@ -556,6 +557,7 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+#pragma simd
 	for (uint32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIDS[j] + (fluxIDS[j - 2] - fluxIDS[j - 1]) * dtdx;
 	}
@@ -564,6 +566,7 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+#pragma simd
 	for (uint32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIUS[j] + (fluxIUS[j - 2] - fluxIUS[j - 1]) * dtdx;
 	}
@@ -572,6 +575,7 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+#pragma simd
 	for (uint32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIVS[j] + (fluxIVS[j - 2] - fluxIVS[j - 1]) * dtdx;
 	}
@@ -580,6 +584,7 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+#pragma simd
 	for (uint32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIPS[j] + (fluxIPS[j - 2] - fluxIPS[j - 1]) * dtdx;
 	}
@@ -697,6 +702,7 @@ void Tile::gatherconservXscan(uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
+#pragma simd
 	for (uint32_t i = xmin; i < xmax; i++) {
 		uIDS[i] = uoldIDS[i + m_offx];
 		uIUS[i] = uoldIUS[i + m_offx];
@@ -779,6 +785,7 @@ void Tile::eosOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 		    real_t * __restrict__ qIPS, real_t * __restrict__ cS)
 {
 	if (xmin > 0) {
+#pragma simd
 		for (uint32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
 			real_t base = (m_gamma - one) * rho * eS[k];;
@@ -793,6 +800,7 @@ void Tile::eosOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
+#pragma simd
 		for (uint32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
 			real_t base = (m_gamma - one) * rho * eS[k];;
