@@ -23,7 +23,7 @@
 #include "TimeLimit.hpp"
 
 using namespace std;
-extern char **environ;
+// extern char **environ;
 
 // template <typename T> 
 TimeLimit::TimeLimit(void) { 
