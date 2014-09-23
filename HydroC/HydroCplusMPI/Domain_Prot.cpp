@@ -356,6 +356,7 @@ bool Domain::StopComputation()
 #endif					
 		}
 	}
+	return false;
 }
 
 bool Domain::hasProtection() 
