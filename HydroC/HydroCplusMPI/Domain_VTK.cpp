@@ -123,7 +123,7 @@ char *ToBase64(unsigned char *data, int length)
 
 #define BINARY 1
 
-void vtkwpvd(int nout, char *r)
+void vtkwpvd(int nout, const char *r)
 {
 	char n[1024];
 	char vfname[1024];
@@ -388,7 +388,7 @@ void Domain::vtkfile(int step)
 		fclose(vf);
 
 		// We make the time step available only now to ensure consistency
-		vtkwpvd(step, "Dep");
+		vtkwpvd(step, (const char *) ("Dep"));
 	}
 }
 

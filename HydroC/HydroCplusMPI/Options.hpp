@@ -13,8 +13,8 @@
 #define TILEUSER 1
 
 #ifdef __MIC__
-#undef TILEUSER
-#define TILEUSER 0
+// #undef TILEUSER
+// #define TILEUSER 0
 #define TILEMIN 5
 #define TILEAVG 32
 #define TILESIZ 28
@@ -24,11 +24,11 @@
 #define TILESIZ 124
 #endif
 
-#ifdef __INTEL_COMPILER
-#define USEINTRINSICS 1
-#else
-#define USEINTRINSICS 0
-#endif
+// #ifdef __INTEL_COMPILER
+// #define USEINTRINSICS 1
+// #else
+// #define USEINTRINSICS 0
+// #endif
 
 #ifdef __MIC__
 #define KNC 1
@@ -40,6 +40,16 @@
 #endif
 
 #define DOUBLE 1
+
+// #define SCHEDULE schedule(runtime)
+// #define SCHEDULE schedule(guided)
+// #define SCHEDULE schedule(dynamic)
+#define SCHEDULE schedule(static,2)
+// #define SCHEDULE 
+
+#define WITH_TIMERS 0
+
+#define TILE_PER_THREAD 4
 
 #endif
 //EOF

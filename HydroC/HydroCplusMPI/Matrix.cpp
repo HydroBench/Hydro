@@ -97,9 +97,10 @@ template < typename T > void Matrix2 < T >::fill(T v)
 #endif
 	T *tmp = _arr;
 #ifdef _OPENMP
-#pragma omp parallel for shared(tmp) private(i,j) if (!embedded)
+#pragma omp parallel for shared(tmp) private(i,j) if (!embedded) SCHEDULE
 #endif
 	for (j = 0; j < _h; j++) {
+#pragma simd
 		for (i = 0; i < _w; i++) {
 			tmp[Mat2Index(i, j)] = v;
 		}
@@ -145,6 +146,7 @@ template < typename T > uint32_t * Matrix2 < T >::listMortonIdx(void)
 	uint32_t seen = 0;
 	uint32_t *list = new uint32_t[nbElem()];
 
+#pragma novector
 	for (uint32_t i = 0; i < maxmorton; ++i) {
 		uint32_t x, y;
 		if (idxFromMorton(x, y, i)) {
@@ -158,7 +160,7 @@ template < typename T > uint32_t * Matrix2 < T >::listMortonIdx(void)
 template < typename T > void Matrix2 < T >::Copy(const Matrix2 & src)
 {
 	for (uint32_t j = 0; j < _h; j++) {
-#pragma ivdep
+#pragma simd
 		for (uint32_t i = 0; i < _w; i++) {
 			_arr[Mat2Index(i, j)] = src._arr[Mat2Index(i, j)];
 		}
@@ -172,6 +174,7 @@ template < typename T > void Matrix2 < T >::aux_getFullCol(uint32_t x,
 							   T *
 							   __restrict__ theArr)
 {
+#pragma simd
 	for (uint32_t j = 0; j < h; j++) {
 		theCol[j] = theArr[Mat2Index(x, j)];
 	}
@@ -191,6 +194,7 @@ template < typename T >
 	if (sizeof(real_t) == sizeof(double)) vdUnpackI(h, (double *) theCol, (double *) &theArr[Mat2Index(x, offY)], Mat2Index(0, 1));
 	if (sizeof(real_t) == sizeof(float)) vsUnpackI(h, (float *) theCol, (float *) &theArr[Mat2Index(x, offY)], Mat2Index(0, 1));
 #else
+#pragma simd
 	for (uint32_t j = 0; j < h; j++) {
 		theArr[Mat2Index(x, j + offY)] = theCol[j];
 	}
@@ -211,7 +215,7 @@ template < typename T > void Matrix2 < T >::InsertMatrix(const Matrix2 & src,
 	uint32_t srcX = src.getW();
 	uint32_t srcY = src.getH();
 	for (uint32_t j = 0; j < srcY; j++) {
-#pragma ivdep
+#pragma simd
 		for (uint32_t i = 0; i < srcX; i++) {
 			_arr[Mat2Index(i + x0, j + y0)] =
 			    src._arr[Mat2Index(i, j)];
@@ -246,16 +250,18 @@ template < typename T > void Matrix2 < T >::read(const int f)
 {
   uint32_t srcX = getW();
   uint32_t srcY = getH();
+#pragma novector
   for (int j = 0; j < srcY; j++) {
-    ::read(f, &_arr[Mat2Index(0, j)], srcX * sizeof(T));
+    int l = ::read(f, &_arr[Mat2Index(0, j)], srcX * sizeof(T));
   }
 } 
 template < typename T > void Matrix2 < T >::write(const int f)
 {
   uint32_t srcX = getW();
   uint32_t srcY = getH();
+#pragma novector
   for (int j = 0; j < srcY; j++) {
-    ::write(f, &_arr[Mat2Index(0, j)], srcX * sizeof(T));
+    int l = ::write(f, &_arr[Mat2Index(0, j)], srcX * sizeof(T));
   }
 }
 // =================================================================
@@ -280,10 +286,11 @@ template < typename T > void Matrix3 < T >::fill(T v)
 #endif
 	T *tmp = _arr;
 #ifdef _OPENMP
-#pragma omp parallel for shared(tmp) private(i,j,k) collapse(2) if (!embedded)
+#pragma omp parallel for shared(tmp) private(i,j,k) collapse(2) if (!embedded) SCHEDULE
 #endif
 	for (k = 0; k < _d; k++) {
 		for (j = 0; j < _h; j++) {
+#pragma simd
 			for (i = 0; i < _w; i++) {
 				tmp[index(i, j, k)] = v;
 			}

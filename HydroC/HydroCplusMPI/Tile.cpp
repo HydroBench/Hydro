@@ -1612,6 +1612,7 @@ void Tile::setVoisins(Tile * left, Tile * right, Tile * up, Tile * down)
 
 void Tile::setBuffers(ThreadBuffers * buf)
 {
+	assert(buf != 0);
 	m_myBuffers = buf;
 
 	m_q = m_myBuffers->getQ();	// NXT, NYT

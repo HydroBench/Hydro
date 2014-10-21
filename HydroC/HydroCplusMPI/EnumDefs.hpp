@@ -32,4 +32,15 @@ typedef enum _protectionMode {
   PROT_READ, PROT_WRITE
 } protectionMode_t;
 
+typedef enum _funcNames {
+	FNM_TILE_GATCON = 0,
+	FNM_END
+} funcNames_t;
+
+typedef enum _loopNames {
+	LOOP_GODUNOV = 0,
+	LOOP_UPDATE,
+	LOOP_END
+} loopNames_t;
+
 #endif

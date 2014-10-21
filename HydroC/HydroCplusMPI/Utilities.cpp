@@ -118,7 +118,7 @@ void getCPUName(char cpuName[1024]) {
 	
 	if (fic != 0) {
 		while (!feof(fic)) {
-			fgets(cmd, 1023, fic);
+			char * l = fgets(cmd, 1023, fic);
 			if (strstr(cmd, "model name") != NULL) {
 				char *p = strchr(cmd, ':');
 				strcpy(cpuName, p);
@@ -139,7 +139,7 @@ long getMemUsed(void)
 	FILE *fic = fopen(cmd, "r");
 	if (fic != 0) {
 		while (!feof(fic)) {
-			fscanf(fic, "%ld ", &maxMemUsed);
+			int l = fscanf(fic, "%ld ", &maxMemUsed);
 			break;
 		}
 		fclose(fic);

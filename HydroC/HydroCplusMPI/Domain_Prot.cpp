@@ -41,10 +41,11 @@ const long pageSize = 4 * 1024 * 1024;
 typedef struct _textMarker { char t[64]; } TextMarker_t;
 
 template < typename T > inline void lgrdstScal(const int f, const protectionMode_t mode, long &l, T *x) {
+	int byt=0;
   switch (mode) {
   case PROT_LENGTH: { l += sizeof(T); }; break;
-  case PROT_WRITE: { write(f, (x), sizeof(T)); }; break;
-  case PROT_READ: { read (f, (x), sizeof(T)); }; break;
+  case PROT_WRITE: { byt = write(f, (x), sizeof(T)); }; break;
+  case PROT_READ: { byt = read (f, (x), sizeof(T)); }; break;
   default:
     cerr << "Checkpoint: unknown mode" << endl;
     abort();
@@ -63,15 +64,16 @@ template < typename T > inline void lgrdstArr(const int f, const protectionMode_
 }
 
 template < typename T > inline void lgrdstArrSimple(const int f, const protectionMode_t mode, long &l, T x, const uint32_t lgr) {
+	int byt=0;
   switch (mode) {
   case PROT_LENGTH: 
     l += (sizeof(x) * lgr); 
     break;
   case PROT_WRITE: 
-    write(f, &(x), sizeof(x) * lgr); 
+    byt = write(f, &(x), sizeof(x) * lgr); 
     break;
   case PROT_READ: 
-    read (f, &(x), sizeof(x) * lgr); 
+    byt = read (f, &(x), sizeof(x) * lgr); 
     break;
   default:
     cerr << "Checkpoint: unknown mode" << endl;
@@ -120,27 +122,29 @@ void Domain::writeProtectionVars(const int f)
   sprintf(endprot.t,  "HYDROC ENDPROT %06d", m_myPe);
 
   // Write of protection marker
-  write(f, protmark.t, sizeof(protmark));
+  int byt=0;
+  byt = write(f, protmark.t, sizeof(protmark));
   protectScalars(PROT_WRITE, f);
   protectArrays(PROT_WRITE, f);
-  write(f, endprot.t, sizeof(endprot));
+  byt = write(f, endprot.t, sizeof(endprot));
 }
 
 void Domain::readProtectionVars(const int f)
 {
+  int byt=0;
   TextMarker_t protmark, endprot;
   TextMarker_t protmarkR, endprotR;
   sprintf(protmark.t, "HYDROC BEGPROT %06d", m_myPe);
   sprintf(endprot.t,  "HYDROC ENDPROT %06d", m_myPe);
 
   // read of protection marker
-  read(f, protmarkR.t, sizeof(protmarkR));
+  byt = read(f, protmarkR.t, sizeof(protmarkR));
   // cerr << "marqueur lu: " << protmarkR.t << endl;
   // cerr << "marqueur at: " << protmark.t << endl;
   assert(strcmp(protmarkR.t, protmark.t) == 0); // crude protection corruption detection
   protectScalars(PROT_READ, f);
   protectArrays(PROT_READ, f);
-  read(f, endprotR.t, sizeof(endprotR));
+  byt = read(f, endprotR.t, sizeof(endprotR));
   // cerr << "marqueur lu: " << endprotR.t << endl;
   // cerr << "marqueur at: " << endprot.t << endl;
   assert(strcmp(endprotR.t, endprot.t) == 0); // crude protection corruption detection
@@ -154,7 +158,7 @@ void Domain::writeProtectionHeader(const int f)
 	MPI_Datatype mpiFormat = MPI_DOUBLE;
 	int err = 0, reqcnt = 0;
 #endif
-  long l = 0;
+	long l = 0, byt = 0;
   long *lgrs = (long *) calloc(m_nProc, sizeof(long));
   long *offsets = (long *) calloc(m_nProc, sizeof(long));
   long myOffset = 0;
@@ -224,10 +228,10 @@ void Domain::writeProtectionHeader(const int f)
   if (m_myPe == 0) {
     lseek(f, 0, SEEK_SET);
     // Write of magic number
-    write(f, magic.t, sizeof(magic));
+    byt = write(f, magic.t, sizeof(magic));
     // Write of offset marker
-    write(f, offmark.t, sizeof(offmark));
-    write(f, offsets, sizeof(long) * m_nProc);
+    byt = write(f, offmark.t, sizeof(offmark));
+    byt = write(f, offsets, sizeof(long) * m_nProc);
   }
   lseek(f, myOffset, SEEK_SET);
   free(offsets);
@@ -244,6 +248,7 @@ void Domain::writeProtection()
 	sprintf(protName, "%s", "Continue.dump");
 
 	if (m_myPe == 0) {
+		cerr << " Opening " << protName << " for writing " << endl;
 		f = open(protName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 	}
 #ifdef MPI_ON
@@ -271,7 +276,7 @@ void Domain::writeProtection()
 #ifdef MPI_ON
 	MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif		
-    if (m_myPe == 0) cerr << "Protection written" << endl;
+	if (m_myPe == 0) cerr << "Protection written" << endl;
 }
 
 void Domain::readProtectionHeader(const int f)
@@ -282,6 +287,7 @@ void Domain::readProtectionHeader(const int f)
 	MPI_Datatype mpiFormat = MPI_DOUBLE;
 	int err = 0, reqcnt = 0;
 #endif
+	int byt = 0;
   long *offsets = (long *) calloc(m_nProc, sizeof(long));
   long myOffset = 0;
   TextMarker_t magic, offmark, protmark, endmark;
@@ -303,12 +309,12 @@ void Domain::readProtectionHeader(const int f)
 	cerr << "Opening protection" << endl;
     lseek(f, 0, SEEK_SET);
     // Read magic number
-    read(f, magicR.t, sizeof(magicR));
+    byt = read(f, magicR.t, sizeof(magicR));
     assert(strcmp(magicR.t, magic.t) == 0); // crude protection corruption detection
     // Read offset marker
-    read(f, offmarkR.t, sizeof(offmarkR));
+    byt = read(f, offmarkR.t, sizeof(offmarkR));
     assert(strcmp(offmarkR.t, offmark.t) == 0); // crude protection corruption detection
-    read(f, offsets, sizeof(long) * m_nProc);
+    byt = read(f, offsets, sizeof(long) * m_nProc);
   }
   // by default we have only one proc.
   myOffset = offsets[0];

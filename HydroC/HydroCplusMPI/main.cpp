@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 
 	if (domain.isStopped()) {
 #ifdef MPI_ON
+#pragma message "MPI is activated"
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Finalize();
 		cout << "Hydroc: computation already finished" << endl;

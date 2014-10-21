@@ -143,6 +143,7 @@ void Domain::createTestCase()
 		printf("Test case not implemented -- aborting !\n");
 		abort();
 	}
+	fflush(stdout);
 }
 
 // EOF
