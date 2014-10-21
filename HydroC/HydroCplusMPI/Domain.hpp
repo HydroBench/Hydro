@@ -104,6 +104,11 @@ private:
 	double m_timeGuard;
 	uint32_t m_numa; // try to cope with numa effects
 
+	// timing of functions
+	double **m_timerLoops;
+
+	// member functions
+
 	void vtkfile(int step);
 	void vtkOutput(int step);
 	void parseParams(int argc, char **argv);
@@ -142,6 +147,14 @@ private:
 	uint32_t unpack_arrayv(uint32_t xoffset, real_t * buffer);
 	uint32_t pack_arrayh(uint32_t yoffset, real_t * buffer);
 	uint32_t unpack_arrayh(uint32_t yoffset, real_t * buffer);
+
+	uint32_t nbTile(uint32_t tileSize) {
+		int nbtC = 0;
+		int nbtx = (m_nx + tileSize - 1) / tileSize;
+		int nbty = (m_ny + tileSize - 1) / tileSize;
+		nbtC = nbtx * nbty;
+		return nbtC;
+	}
 
 	Domain(void) {
 	};			// default constructor.

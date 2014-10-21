@@ -114,15 +114,16 @@ Domain::Domain(int argc, char **argv)
 		abort();
 #endif					
 	}
-	m_timeGuard = 800;
-	if (tRemain < 36000 ) m_timeGuard = 600;
+	m_timeGuard = 900;
+	if (tRemain < 30000 ) m_timeGuard = 900;
 	if (tRemain < 3600  ) m_timeGuard = 600;
 	if (tRemain < 1800  ) m_timeGuard = 300;
 	if (tRemain < 60    ) m_timeGuard =  20;
 
 	if (m_myPe == 0) {
-		cerr << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" 
+		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" 
 		     << " time guard " << m_timeGuard << "s"<< endl;
+		cout.flush();
 	}
 
 	parseParams(argc, argv);
@@ -140,7 +141,8 @@ Domain::Domain(int argc, char **argv)
 			char txt[256];
 			double elaps = (end - start);
 			convertToHuman(txt, elaps);
-			cerr << "Read protection in " << txt << " (" << elaps << "s)"<<endl;
+			cout << "Read protection in " << txt << " (" << elaps << "s)"<<endl;
+			cout.flush();
 		}
 	}
 
@@ -470,24 +472,58 @@ void Domain::parseParams(int argc, char **argv)
 
 void Domain::setTiles()
 {
-	uint32_t i, j, offx, offy, tileSizeX, tileSizeY, tileSize, mortonW, mortonH;
+	uint32_t i, j, offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
+	int32_t tileSizeM, tileSize;
+	int32_t tileSizeOrg;
 	Matrix2 <uint32_t> *mortonIdx; // to hold the array of tiles ids.
 	//
 	m_nbtiles = 0;
 	tileSize = m_tileSize;
 #if TILEUSER == 1
 	if (tileSize <= 0) {
-#ifdef _OPENMP
-		m_nbtiles = omp_get_max_threads();
-		tileSize = sqrt(m_nx * m_ny / m_nbtiles);
+		int nTh = 1, nbT = 0, tsMin, tsMax, remMin, remain;
+		int tsCur;
+		int thMax, thMin, thCur;
+		tileSize = 60;
 		m_tileSize = tileSize;
-#else
-		tileSize = 128;
+#ifdef _OPENMP
+		nTh = omp_get_max_threads();
+		m_nbtiles = 1;
+		tsMin = 58;
+		tsMax = 256;
+		// we want at least TILE_PER_THREAD tiles per thread.
+		while (this->nbTile(tsMax) < (nTh * TILE_PER_THREAD)) tsMax--;
+		if (tsMax < tsMin) tsMax = tsMin;
+
+		tsCur = tsMin;
+		thMin = this->nbTile(tsMin) % nTh;
+		while (tsCur < tsMax) {
+			// cout << endl;
+			// cout << tsMin << " " << tsCur << " " << tsMax << endl;
+			thCur = this->nbTile(tsCur) % nTh;
+			if (thCur == 0) { 
+				// cout << " trouve : " << tsCur << " " << thCur << endl;
+				tsMin = tsCur;
+				thMin = thCur;
+				break;
+			}
+			if (thCur < thMin) {
+				tsMin = tsCur;
+				// cout << " New min : " << tsMin << " " << thMin << endl;
+			}
+			tsCur++;
+		}
+		if (tsCur >= tsMax) tsCur = tsMin;
+		tileSize = tsCur;
+		m_tileSize = tileSize;
+		m_nbtiles = this->nbTile(tileSize);
+		// cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles % nTh) << endl;
+
 #endif
-		if (!m_myPe)
-			cout << "Computing tilesize to " << tileSize << endl;
+		if (m_myPe == 0)
+			cout << "Computing tilesize to " << tileSize << " R=" << (float) m_nbtiles/ (float) nTh << endl;
 	} else {
-		if (!m_myPe)
+		if (m_myPe == 0)
 			cout << "Forcing tilesize to " << tileSize << endl;
 	}
 #else
@@ -495,24 +531,17 @@ void Domain::setTiles()
 	if ((tileSize > m_nx) && (tileSize > m_ny)) {
 		tileSize = max(m_nx, m_ny);
 	}
-	if (!m_myPe)
+	if (m_myPe == 0)
 		cout << "Forcing tilesize to " << tileSize << " at compile time" << endl;
 #endif
 
-	m_nbtiles = 0;
-	mortonH = 0;
-	for (j = 0; j < m_ny; j += tileSize) {
-		mortonW = 0;
-		for (i = 0; i < m_nx; i += tileSize) {
-			m_nbtiles++;
-			mortonW++;
-		}
-		mortonH++;
-	}
+	m_nbtiles = this->nbTile(tileSize);;
+	mortonH = (m_ny + tileSize - 1) / tileSize;
+	mortonW = (m_nx + tileSize - 1) / tileSize;
 
 	m_localDt = AlignedAllocReal(m_nbtiles);
 	m_tiles = new Tile *[m_nbtiles];
-#pragma omp parallel for private(i) if (m_numa)
+#pragma omp parallel for private(i) if (m_numa) SCHEDULE
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i] = new Tile;
 	}
@@ -523,15 +552,10 @@ void Domain::setTiles()
 	assert(m_mortonIdx != 0);
 
 	m_nbtiles = 0;
-	mortonH = 0;
-	for (j = 0; j < m_ny; j += tileSize) {
-		mortonW = 0;
-		for (i = 0; i < m_nx; i += tileSize) {
-			(*m_morton)(mortonW, mortonH) = m_nbtiles;
-			m_nbtiles++;
-			mortonW++;
+	for (j = 0; j < mortonH; j++) {
+		for (i = 0; i < mortonW; i++) {
+			(*m_morton)(i, j) = m_nbtiles++;
 		}
-		mortonH++;
 	}
 	//
 	m_nbtiles = 0;
@@ -544,8 +568,7 @@ void Domain::setTiles()
 		offx = 0;
 		for (i = 0; i < m_nx; i += tileSize) {
 			tileSizeX = tileSize;
-			if (offx + tileSizeX >= m_nx)
-				tileSizeX = m_nx - offx;
+			if (offx + tileSizeX >= m_nx) tileSizeX = m_nx - offx;
 			assert(tileSizeX <= tileSize);
 			m_tiles[m_nbtiles]->setPrt(m_prt);
 			m_tiles[m_nbtiles++]->setExtend(tileSizeX, tileSizeY,
@@ -569,12 +592,20 @@ void Domain::setTiles()
 #else
 	m_numThreads = 1;
 #endif
+	m_timerLoops = new double *[m_numThreads];
+	for (uint32_t i = 0; i < m_numThreads; i++) {
+		m_timerLoops[i] = new double[LOOP_END];
+		assert(m_timerLoops[i] != 0);
+		memset(m_timerLoops[i], 0, LOOP_END * sizeof(double));
+	}
+
 	uint32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
 	m_buffers = new ThreadBuffers *[m_numThreads];
-#pragma omp parallel for private(i) if (m_numa)
+	assert(m_buffers != 0);
+
 	for (uint32_t i = 0; i < m_numThreads; i++) {
-		m_buffers[i] =
-		    new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
+		m_buffers[i] = new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
+		assert(m_buffers[i] != 0);
 	}
 
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
