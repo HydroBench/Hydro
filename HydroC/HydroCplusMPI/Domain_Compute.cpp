@@ -39,14 +39,14 @@ void Domain::changeDirection()
 {
 
 	// reverse the private storage direction of the tile
-#pragma omp parallel for
+#pragma omp parallel for SCHEDULE
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i]->swapScan();
 		m_tiles[i]->swapStorageDims();
 	}
 
 	// reverse the shared storage direction of the threads
-#pragma omp parallel for
+#pragma omp parallel for SCHEDULE
 	for (uint32_t i = 0; i < m_numThreads; i++) {
 		m_buffers[i]->swapStorageDims();
 	}
@@ -57,7 +57,7 @@ void Domain::computeDt()
 {
 	real_t dt;
 
-#pragma omp parallel for
+#pragma omp parallel for SCHEDULE
 	for (uint32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i]->setBuffers(m_buffers[myThread()]);
 		m_tiles[i]->setTcur(m_tcur);
@@ -123,9 +123,16 @@ real_t Domain::computeTimeStep()
 		boundary_process();
 
 		real_t *pm_localDt = m_localDt;
-#pragma omp parallel for private(t)
+#pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
 			uint32_t i = t;
+			uint32_t thN = 0;
+#if WITH_TIMERS == 1
+			double startT = dcclock(), endT;
+#ifdef _OPENMP
+			thN = omp_get_thread_num();
+#endif
+#endif	
 			if (m_withMorton) {
 				i = tileFromMorton(t);
 			}
@@ -134,19 +141,34 @@ real_t Domain::computeTimeStep()
 			m_tiles[i]->setDt(m_dt);
 			m_tiles[i]->gatherconserv();	// input uold      output u
 			m_tiles[i]->godunov();
-		}
-// we have to wait here that all tiles are ready to update uold
-#pragma omp parallel for private(t)
-		for (t = 0; t < m_nbtiles; t++) {
-			uint32_t i = t;
-			if (m_withMorton) {
-				i = tileFromMorton(t);
-			}
-			m_tiles[i]->setBuffers(m_buffers[myThread()]);
+#if WITH_TIMERS == 1
+			endT = dcclock();
+			(m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
+#endif	
+ 		}
+ // we have to wait here that all tiles are ready to update uold
+ #pragma omp parallel for private(t) SCHEDULE
+ 		for (t = 0; t < m_nbtiles; t++) {
+ 			uint32_t i = t;
+#if WITH_TIMERS == 1
+			uint32_t thN = 0;
+			double startT = dcclock(), endT;
+#ifdef _OPENMP
+			thN = omp_get_thread_num();
+#endif
+#endif	
+ 			if (m_withMorton) {
+ 				i = tileFromMorton(t);
+ 			}
+ 			m_tiles[i]->setBuffers(m_buffers[myThread()]);
 			m_tiles[i]->updateconserv();	// input u, flux       output uold
 			if (pass == 1) {
 				m_localDt[i] = m_tiles[i]->computeDt();
 			}
+#if WITH_TIMERS == 1
+			endT = dcclock();
+			(m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+#endif	
 		}
 // we have to wait here that uold has been fully updated by all tiles
 		if (m_prt) {
@@ -213,8 +235,10 @@ void Domain::compute()
 // 			m_npng++;
 // 		}
 		// only for the start of the test case
+
 		computeDt();
 		m_dt /= 2.0;
+		assert(m_dt > 1.e-15);
 		if (m_myPe == 0) {
 			cout << " Initial dt " <<
 				setiosflags(ios::scientific) <<
@@ -267,37 +291,43 @@ void Domain::compute()
 			sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
 			m_npng++;
 		}
-		if (m_myPe == 0) {
-			uint64_t totCell = uint64_t(m_globNx) * uint64_t(m_globNy);
-			double cellPerSec = totCell / elpasstep / 1000000;
-			if (n > 4) {
-				// skip the 4 first iterations to let the system stabilize
-				totalCellPerSec += cellPerSec;
-				nbTotCelSec++;
-			}
-			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s\n",
-				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt);
-		}
-		{
-			int needToStopGlob = false;
-			if (m_myPe == 0) {
-				double reste = m_tr.timeRemain();
-				int needToStop = false;
-				if (reste < m_timeGuard) needToStop = true;
-				needToStopGlob = needToStop;
-			}
-#ifdef MPI_ON
-			MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
-#endif
-			if (needToStopGlob && (m_myPe == 0) ) { cerr << " Hydro stops by time limit " 
-								   << m_tr.timeRemain()  << " < " << m_timeGuard << endl;
-			}
-			if (needToStopGlob) { 
-				break;
-				cout.flush();
-			}
-		}
-	}
+ 		double resteAll = m_tr.timeRemain() - m_timeGuard;
+ 		if (m_myPe == 0) {
+ 			uint64_t totCell = uint64_t(m_globNx) * uint64_t(m_globNy);
+ 			double cellPerSec = totCell / elpasstep / 1000000;
+ 			if (n > 4) {
+ 				// skip the 4 first iterations to let the system stabilize
+ 				totalCellPerSec += cellPerSec;
+ 				nbTotCelSec++;
+ 			}
+ 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s %lf\n",
+ 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt, resteAll);
+ 			fflush(stdout);
+ 		}
+ 		{
+ 			int needToStopGlob = false;
+ 			if (m_myPe == 0) {
+ 				double reste = m_tr.timeRemain();
+ 				int needToStop = false;
+ 				if (reste < m_timeGuard) {
+ 					needToStop = true;
+ 				}
+ 				needToStopGlob = needToStop;
+ 			}
+ #ifdef MPI_ON
+ 			MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
+ #endif
+ 			if (needToStopGlob) { 
+ 				if (m_myPe == 0) {
+ 					cerr << " Hydro stops by time limit " << m_tr.timeRemain()  << " < " << m_timeGuard << endl;
+ 				}
+ 				cout.flush();
+ 				cerr.flush();
+ 				break;
+ 			}
+ 		}
+		// cout << "suivant"<< m_myPe<< endl; cout.flush();
+	} // while (m_tcur < m_tend)
 	end = dcclock();
 	m_nbRun++;
 	m_elapsTotal += (end - start);
@@ -350,6 +380,17 @@ void Domain::compute()
 		convertToHuman(timeHuman, m_elapsTotal);
 		cout << "Total simulation time: " << timeHuman<< " in " << m_nbRun << " runs" << endl;
 		cout << "Average MC/s: " << totalCellPerSec / nbTotCelSec << endl;
+
+#if WITH_TIMERS == 1
+		cout.precision(4);
+		for (uint32_t i = 0; i < m_numThreads; i++) {
+			cout << "THread " << i << " ";
+			for (uint32_t j = 0; j < LOOP_END; j++) {
+				cout << (m_timerLoops[i])[j] << " ";
+			}
+			cout << endl;
+		}
+#endif	
 		
 	}
 	// cerr << "End compute " << m_myPe << endl;
