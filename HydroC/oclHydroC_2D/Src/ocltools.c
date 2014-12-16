@@ -521,7 +521,7 @@ oclGetNbPlatforms(const int verbose)
       pdesc[theplatform].devdesc[j].fpdp = 0;
       if (strstr(msg, "cl_khr_fp64") != NULL) {
 	if (verbose) {
-	  printf("Device %d supports double precision floatting point\n", j);
+	  printf("Device %d supports double precision floating point\n", j);
 	}
 	pdesc[theplatform].devdesc[j].fpdp = 1;
       }
