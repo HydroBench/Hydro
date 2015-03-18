@@ -44,7 +44,7 @@ Domain::Domain(int argc, char **argv)
 	// default values
 	m_numa = 0;
 	m_nextOutput = 0;
-	m_nextImage = 0;	
+	m_nextImage = 0;
 	m_nbRun = 0;
 	m_elapsTotal = 0.0;
 	m_dtImage = 0;
@@ -96,7 +96,6 @@ Domain::Domain(int argc, char **argv)
 	m_sendbufld = 0;	// send left or down
 	m_numThreads = 1;	// runs serially by default
 
-
 #ifdef MPI_ON
 	MPI_Init(&argc, &argv);
 #endif
@@ -112,17 +111,20 @@ Domain::Domain(int argc, char **argv)
 		MPI_Abort(MPI_COMM_WORLD, 1);
 #else
 		abort();
-#endif					
+#endif
 	}
 	m_timeGuard = 900;
-	if (tRemain < 30000 ) m_timeGuard = 900;
-	if (tRemain < 3600  ) m_timeGuard = 600;
-	if (tRemain < 1800  ) m_timeGuard = 300;
-	if (tRemain < 60    ) m_timeGuard =  20;
+	if (tRemain < 30000)
+		m_timeGuard = 900;
+	if (tRemain < 3600)
+		m_timeGuard = 600;
+	if (tRemain < 1800)
+		m_timeGuard = 300;
+	if (tRemain < 60)
+		m_timeGuard = 20;
 
 	if (m_myPe == 0) {
-		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" 
-		     << " time guard " << m_timeGuard << "s"<< endl;
+		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" << " time guard " << m_timeGuard << "s" << endl;
 		cout.flush();
 	}
 
@@ -130,7 +132,7 @@ Domain::Domain(int argc, char **argv)
 	readInput();
 	domainDecompose();
 
-	createTestCase(); // will be overwritten if in the middle of test case
+	createTestCase();	// will be overwritten if in the middle of test case
 
 	if (hasProtection()) {
 		double start, end;
@@ -141,7 +143,7 @@ Domain::Domain(int argc, char **argv)
 			char txt[256];
 			double elaps = (end - start);
 			convertToHuman(txt, elaps);
-			cout << "Read protection in " << txt << " (" << elaps << "s)"<<endl;
+			cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
 			cout.flush();
 		}
 	}
@@ -160,32 +162,39 @@ Domain::~Domain()
 {
 	delete m_uold;
 	if (m_tiles) {
-		for (uint32_t i = 0; i < m_nbtiles; i++) {
-			if (m_tiles[i]) delete m_tiles[i];
+		for (int32_t i = 0; i < m_nbtiles; i++) {
+			if (m_tiles[i])
+				delete m_tiles[i];
 		}
-		delete [] m_tiles;
+		delete[]m_tiles;
 	}
-	if (m_recvbufru) free(m_recvbufru);
-	if (m_recvbufld) free(m_recvbufld);
-	if (m_sendbufru) free(m_sendbufru);
-	if (m_sendbufld) free(m_sendbufld);
-	if (m_localDt) free(m_localDt);
+	if (m_recvbufru)
+		free(m_recvbufru);
+	if (m_recvbufld)
+		free(m_recvbufld);
+	if (m_sendbufru)
+		free(m_sendbufru);
+	if (m_sendbufld)
+		free(m_sendbufld);
+	if (m_localDt)
+		free(m_localDt);
 
-	for (uint32_t i = 0; i < m_numThreads; i++) {
+	for (int32_t i = 0; i < m_numThreads; i++) {
 		delete m_buffers[i];
 	}
-	delete [] m_buffers;
-	delete [] m_mortonIdx;
+	delete[]m_buffers;
+	delete[]m_mortonIdx;
 	delete m_morton;
-	if (m_inputFile) free(m_inputFile); 
+	if (m_inputFile)
+		free(m_inputFile);
 	cerr << "End ~Domain " << getMype() << endl;
 }
 
 void
  Domain::domainDecompose()
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t lgx, lgy, lgmax;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t lgx, lgy, lgmax;
 
 	m_nx = m_globNx;
 	m_ny = m_globNy;
@@ -200,8 +209,7 @@ void
 	m_box[UP_D] = -1;
 
 	if (m_nProc > 1) {
-		CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, m_box,
-			       m_myPe);
+		CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, m_box, m_myPe);
 
 		m_nx = m_box[XMAX_D] - m_box[XMIN_D];
 		m_ny = m_box[YMAX_D] - m_box[YMIN_D];
@@ -253,7 +261,6 @@ void
 	m_sendbufld = AlignedAllocReal(lgmax * NB_VAR);
 	memset(m_sendbufld, 0, lgmax * NB_VAR * sizeof(real_t));
 }
-
 
 void Domain::printSummary()
 {
@@ -316,9 +323,9 @@ void Domain::readInput()
 	char *realFmt;
 
 	if (sizeof(real_t) == sizeof(double)) {
-	  realFmt = (char *)("%lf");
+		realFmt = (char *)("%lf");
 	} else {
-	  realFmt = (char *)("%f");
+		realFmt = (char *)("%f");
 	}
 
 	fd = fopen(m_inputFile, "r");
@@ -436,9 +443,7 @@ void Domain::readInput()
 			} else if (strcmp(pval, "collela") == 0) {
 				m_scheme = SCHEME_COLLELA;
 			} else {
-				cerr <<
-				    "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n"
-				    << pval << endl;
+				cerr << "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n" << pval << endl;
 				abort();
 			}
 			continue;
@@ -448,7 +453,7 @@ void Domain::readInput()
 
 void Domain::parseParams(int argc, char **argv)
 {
-	uint32_t n = 1;
+	int32_t n = 1;
 	while (n < argc) {
 		if (strcmp(argv[n], "--help") == 0) {
 			// usage();
@@ -472,10 +477,10 @@ void Domain::parseParams(int argc, char **argv)
 
 void Domain::setTiles()
 {
-	uint32_t i, j, offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
+	int32_t i, j, offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
 	int32_t tileSizeM, tileSize;
 	int32_t tileSizeOrg;
-	Matrix2 <uint32_t> *mortonIdx; // to hold the array of tiles ids.
+	Matrix2 < int32_t > *mortonIdx;	// to hold the array of tiles ids.
 	//
 	m_nbtiles = 0;
 	tileSize = m_tileSize;
@@ -492,8 +497,10 @@ void Domain::setTiles()
 		tsMin = 58;
 		tsMax = 256;
 		// we want at least TILE_PER_THREAD tiles per thread.
-		while (this->nbTile(tsMax) < (nTh * TILE_PER_THREAD)) tsMax--;
-		if (tsMax < tsMin) tsMax = tsMin;
+		while (this->nbTile(tsMax) < (nTh * TILE_PER_THREAD))
+			tsMax--;
+		if (tsMax < tsMin)
+			tsMax = tsMin;
 
 		tsCur = tsMin;
 		thMin = this->nbTile(tsMin) % nTh;
@@ -501,7 +508,7 @@ void Domain::setTiles()
 			// cout << endl;
 			// cout << tsMin << " " << tsCur << " " << tsMax << endl;
 			thCur = this->nbTile(tsCur) % nTh;
-			if (thCur == 0) { 
+			if (thCur == 0) {
 				// cout << " trouve : " << tsCur << " " << thCur << endl;
 				tsMin = tsCur;
 				thMin = thCur;
@@ -513,7 +520,8 @@ void Domain::setTiles()
 			}
 			tsCur++;
 		}
-		if (tsCur >= tsMax) tsCur = tsMin;
+		if (tsCur >= tsMax)
+			tsCur = tsMin;
 		tileSize = tsCur;
 		m_tileSize = tileSize;
 		m_nbtiles = this->nbTile(tileSize);
@@ -521,7 +529,7 @@ void Domain::setTiles()
 
 #endif
 		if (m_myPe == 0)
-			cout << "Computing tilesize to " << tileSize << " R=" << (float) m_nbtiles/ (float) nTh << endl;
+			cout << "Computing tilesize to " << tileSize << " R=" << (float)m_nbtiles / (float)nTh << endl;
 	} else {
 		if (m_myPe == 0)
 			cout << "Forcing tilesize to " << tileSize << endl;
@@ -542,11 +550,11 @@ void Domain::setTiles()
 	m_localDt = AlignedAllocReal(m_nbtiles);
 	m_tiles = new Tile *[m_nbtiles];
 #pragma omp parallel for private(i) if (m_numa) SCHEDULE
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i] = new Tile;
 	}
 	// Create the Morton holder to wander around the tiles
-	m_morton = new Matrix2 <uint32_t> (mortonW, mortonH);
+	m_morton = new Matrix2 < int32_t > (mortonW, mortonH);
 	// cerr << mortonW << " " << mortonH << endl;
 	m_mortonIdx = m_morton->listMortonIdx();
 	assert(m_mortonIdx != 0);
@@ -554,7 +562,7 @@ void Domain::setTiles()
 	m_nbtiles = 0;
 	for (j = 0; j < mortonH; j++) {
 		for (i = 0; i < mortonW; i++) {
-			(*m_morton)(i, j) = m_nbtiles++;
+			(*m_morton) (i, j) = m_nbtiles++;
 		}
 	}
 	//
@@ -568,18 +576,15 @@ void Domain::setTiles()
 		offx = 0;
 		for (i = 0; i < m_nx; i += tileSize) {
 			tileSizeX = tileSize;
-			if (offx + tileSizeX >= m_nx) tileSizeX = m_nx - offx;
+			if (offx + tileSizeX >= m_nx)
+				tileSizeX = m_nx - offx;
 			assert(tileSizeX <= tileSize);
 			m_tiles[m_nbtiles]->setPrt(m_prt);
-			m_tiles[m_nbtiles++]->setExtend(tileSizeX, tileSizeY,
-							m_nx, m_ny, offx, offy,
-							m_dx);
+			m_tiles[m_nbtiles++]->setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
 			if (m_prt) {
-				cout << "tsx " << tileSizeX << " tsy " <<
-				    tileSizeY;
+				cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
 				cout << " ofx " << offx << " offy " << offy;
-				cout << " nx " << m_nx << " m_ny " << m_ny <<
-				    endl;
+				cout << " nx " << m_nx << " m_ny " << m_ny << endl;
 			}
 			offx += tileSize;
 		}
@@ -593,27 +598,25 @@ void Domain::setTiles()
 	m_numThreads = 1;
 #endif
 	m_timerLoops = new double *[m_numThreads];
-	for (uint32_t i = 0; i < m_numThreads; i++) {
+	for (int32_t i = 0; i < m_numThreads; i++) {
 		m_timerLoops[i] = new double[LOOP_END];
 		assert(m_timerLoops[i] != 0);
 		memset(m_timerLoops[i], 0, LOOP_END * sizeof(double));
 	}
 
-	uint32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
+	int32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
 	m_buffers = new ThreadBuffers *[m_numThreads];
 	assert(m_buffers != 0);
 
-	for (uint32_t i = 0; i < m_numThreads; i++) {
+	for (int32_t i = 0; i < m_numThreads; i++) {
 		m_buffers[i] = new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
 		assert(m_buffers[i] != 0);
 	}
 
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i]->initTile(m_uold);
 		m_tiles[i]->setMpi(m_nProc, m_myPe);
-		m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl,
-				     m_slope_type, m_nIterRiemann, m_iorder,
-				     m_scheme);
+		m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann, m_iorder, m_scheme);
 		m_tiles[i]->setScan(X_SCAN);
 	}
 	if (m_myPe == 0) {
@@ -644,4 +647,5 @@ void Domain::initMPI()
 	m_nProc = 1;
 #endif
 }
+
 // EOF

@@ -23,5 +23,4 @@ const real_t PRECISION = 1.e-6f;
 
 #endif
 
-
 #endif

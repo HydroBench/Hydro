@@ -38,8 +38,8 @@ using namespace std;
 
 void Domain::createTestCase()
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t i, j, x, y;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t i, j, x, y;
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -54,15 +54,29 @@ void Domain::createTestCase()
 	uoldIU.clear();
 	uoldIV.clear();
 
-	for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
+	for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) 
 		for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uoldID(i, j) = one;
+		}
+
+#pragma nofusion
+	for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) 
+		for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uoldIU(i, j) = zero;
+		}
+
+#pragma nofusion
+	for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) 
+		for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uoldIV(i, j) = zero;
+		}
+
+#pragma nofusion
+	for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) 
+		for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uoldIP(i, j) = 1e-5;
 		}
-	}
-
+	
 	if (m_testcase == 0) {
 		if (m_nProc == 1) {
 			x = (xmax - xmin) / 2 + m_ExtraLayer * 0;
@@ -77,8 +91,7 @@ void Domain::createTestCase()
 				x = x - m_box[XMIN_D] + m_ExtraLayer;
 				y = y - m_box[YMIN_D] + m_ExtraLayer;
 				uoldIP(x, y) = one / m_dx / m_dx;
-				printf("Centered test case : [%d] %d %d\n",
-				       m_myPe, x, y);
+				printf("Centered test case : [%d] %d %d\n", m_myPe, x, y);
 			}
 		}
 	}
@@ -92,8 +105,7 @@ void Domain::createTestCase()
 			if ((x >= m_box[XMIN_D]) && (x < m_box[XMAX_D])
 			    && (y >= m_box[YMIN_D]) && (y < m_box[YMAX_D])) {
 				uoldIP(x, y) = one / m_dx / m_dx;
-				printf("Lower corner test case : [%d] %d %d\n",
-				       m_myPe, x, y);
+				printf("Lower corner test case : [%d] %d %d\n", m_myPe, x, y);
 			}
 		}
 	}
@@ -120,24 +132,24 @@ void Domain::createTestCase()
 		}
 	}
 	if (m_testcase == 3) {
-			for (j = 0; j < m_globNy; j++) {
-				double osc = double(j + m_globNy * 0.5) / double(m_globNy) * 16. * 3.14159;
-				double oscmx = 0.1 * (m_globNx - m_ExtraLayer);
-				int xm;
-				osc = sin(osc) * oscmx;
-				xm = 2 * m_ExtraLayer + osc + oscmx;
-				x = xm;
-				// for (x = m_ExtraLayer; x < xm; x++) {
-					if ((x >= m_box[XMIN_D]) && (x < m_box[XMAX_D])
-					    && (j >= m_box[YMIN_D])
-					    && (j < m_box[YMAX_D])) {
-						x = x - m_box[XMIN_D] + m_ExtraLayer;
-						y = j - m_box[YMIN_D] + m_ExtraLayer;
-						uoldIP(x, y) = one / m_dx / m_dx;
-					}
-					//}
+		for (j = 0; j < m_globNy; j++) {
+			double osc = double (j + m_globNy * 0.5) / double (m_globNy) * 16. * 3.14159;
+			double oscmx = 0.1 * (m_globNx - m_ExtraLayer);
+			int xm;
+			osc = sin(osc) * oscmx;
+			xm = 2 * m_ExtraLayer + osc + oscmx;
+			x = xm;
+			// for (x = m_ExtraLayer; x < xm; x++) {
+			if ((x >= m_box[XMIN_D]) && (x < m_box[XMAX_D])
+			    && (j >= m_box[YMIN_D])
+			    && (j < m_box[YMAX_D])) {
+				x = x - m_box[XMIN_D] + m_ExtraLayer;
+				y = j - m_box[YMIN_D] + m_ExtraLayer;
+				uoldIP(x, y) = one / m_dx / m_dx;
 			}
-			printf("\n");
+			//}
+		}
+		printf("\n");
 	}
 	if (m_testcase > 3) {
 		printf("Test case not implemented -- aborting !\n");

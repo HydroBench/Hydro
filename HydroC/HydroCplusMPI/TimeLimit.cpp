@@ -26,18 +26,22 @@ using namespace std;
 // extern char **environ;
 
 // template <typename T> 
-TimeLimit::TimeLimit(void) { 
+TimeLimit::TimeLimit(void)
+{
 	char *p = NULL;
 	int ie = 0;
-	if (p == NULL) p = getenv("HYDROC_MAXTIME") ;
-	if (p == NULL) p = getenv("BRIDGE_MPRUN_MAXTIME") ;
-	if (p == NULL) p = getenv("BRIDGE_MSUB_MAXTIME") ;
-	m_allotedTime = 30 * 60; // 30mn by default
+	if (p == NULL)
+		p = getenv("HYDROC_MAXTIME");
+	if (p == NULL)
+		p = getenv("BRIDGE_MPRUN_MAXTIME");
+	if (p == NULL)
+		p = getenv("BRIDGE_MSUB_MAXTIME");
+	m_allotedTime = 30 * 60;	// 30mn by default
 	m_orgTime = dcclock();
 	m_curTime = 0;
 	if (p != 0) {
 		m_allotedTime = strtod(p, NULL);
-		p = getenv("HYDROC_START_TIME") ;
+		p = getenv("HYDROC_START_TIME");
 		if (p != 0) {
 			// this is a protection against lengthy
 			// startup phases. HYDROC_START_TIME must be
@@ -46,12 +50,12 @@ TimeLimit::TimeLimit(void) {
 			// run has a correct view of the remaining
 			// elaps time.
 			long int batchOrigin = strtol(p, NULL, 10);
-			long int curTime = (long int) time(NULL);
+			long int curTime = (long int)time(NULL);
 			m_allotedTime -= (curTime - batchOrigin);
 		}
-	}	// cerr << "Tremain " << m_allotedTime << endl;
+	}			// cerr << "Tremain " << m_allotedTime << endl;
 #ifdef NOTDEF
-	ie=0;
+	ie = 0;
 	while ((p = environ[ie]) != NULL) {
 		cerr << "env: " << p << endl;
 		ie++;
@@ -63,17 +67,20 @@ TimeLimit::TimeLimit(void) {
 // TimeLimit::TimeLimit() { }
 
 // template <typename T> 
-TimeLimit::~TimeLimit() { 
+TimeLimit::~TimeLimit()
+{
 }
 
-double TimeLimit::timeRemain() {
+double TimeLimit::timeRemain()
+{
 	double remain;
 	m_curTime = dcclock() - m_orgTime;
 	remain = m_allotedTime - m_curTime;
 	return remain;
 }
 
-double TimeLimit::timeRemainAll() {
+double TimeLimit::timeRemainAll()
+{
 	double remain;
 #ifndef MPI_ON
 	return timeRemain();
@@ -83,11 +90,12 @@ double TimeLimit::timeRemainAll() {
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 	MPI_Comm_size(MPI_COMM_WORLD, &msiz);
-	
+
 	if (mype == 0) {
 		remain = timeRemain();
 	}
-	if (msiz > 1) MPI_Bcast(&remain, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	if (msiz > 1)
+		MPI_Bcast(&remain, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	return remain;
 #endif
 }
@@ -99,17 +107,16 @@ double TimeLimit::timeRemainAll() {
 // TimeLimit & TimeLimit::operator=(const TimeLimit & rhs) { }
 
 // template <typename T> 
-// TimeLimit & TimeLimit::operator() (uint32_t i) { }
+// TimeLimit & TimeLimit::operator() (int32_t i) { }
 
 // template <typename T> 
-// TimeLimit & TimeLimit::operator() (uint32_t i) const { }
-
+// TimeLimit & TimeLimit::operator() (int32_t i) const { }
 
 // Instantion of the needed types for the linker
 // template class TimeLimit<the_type>;
 
 #ifdef WITH_MAIN
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
 	TimeLimit tr;
 #ifdef MPI_ON

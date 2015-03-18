@@ -9,14 +9,13 @@
 #include <cstdlib>
 #include <cassert>
 #include <cerrno>
-#include <stdint.h>		// for the definition of uint32_t
+#include <stdint.h>		// for the definition of int32_t
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #if WITHPNG > 0
 #include <png.h>
 #endif
-
 
 #include "EnumDefs.hpp"
 #include "Soa.hpp"
@@ -26,47 +25,46 @@
 
 // template <typename T>
 class Domain {
-private:
-  // variables to protect between runs
-	uint32_t m_globNx, m_globNy;	// global size of the simulation //=
+ private:
+	// variables to protect between runs
+	int32_t m_globNx, m_globNy;	// global size of the simulation //=
 	Soa *m_uold;		// on the full domain
 	godunovDir_t m_scan;	//=
 	int m_nvtk;
 	int m_npng;
 	real_t m_tcur, m_dt;	//=
-	uint32_t m_iter; // current iteration
-	uint32_t m_nbRun;
+	int32_t m_iter;	// current iteration
+	int32_t m_nbRun;
 	double m_elapsTotal;
 
-  // those variables are not protected to allow for modifications
+	// those variables are not protected to allow for modifications
 	TimeLimit m_tr;
 	int m_prt;
-	Tile ** m_tiles;	//=
-	uint32_t m_nbtiles;	//=
-	uint32_t m_tileSize;	//=
-	uint32_t m_numThreads;	// nb of threads available
-	uint32_t m_withMorton;
-	uint32_t *m_mortonIdx;
-	Matrix2 <uint32_t> *m_morton;
+	Tile **m_tiles;		//=
+	int32_t m_nbtiles;	//=
+	int32_t m_tileSize;	//=
+	int32_t m_numThreads;	// nb of threads available
+	int32_t m_withMorton;
+	int32_t *m_mortonIdx;
+	 Matrix2 < int32_t > *m_morton;
 	ThreadBuffers **m_buffers;	// shared buffers for all threads
 
 	long m_maxrss, m_ixrss;	// memory usage;
-	
-  
-	uint32_t m_nx, m_ny;	// size of the local domain
+
+	int32_t m_nx, m_ny;	// size of the local domain
 	int m_box[MAXBOX_D];	// size of our current domain in global coordinate
 	real_t m_dx;		//=
-	uint32_t m_boundary_left, m_boundary_right, m_boundary_down, m_boundary_up;	//=
-	uint32_t m_ExtraLayer;
+	int32_t m_boundary_left, m_boundary_right, m_boundary_down, m_boundary_up;	//=
+	int32_t m_ExtraLayer;
 	real_t m_gamma, m_smallc, m_smallr, m_slope_type;	//=
-	uint32_t m_testcase;	//=
-	uint32_t m_iorder;	//=
+	int32_t m_testcase;	//=
+	int32_t m_iorder;	//=
 	real_t m_cfl;		//=
-	uint32_t m_nIterRiemann;	//=
+	int32_t m_nIterRiemann;	//=
 
-	uint32_t m_nStepMax;	//=
-	uint32_t m_nOutput;	//=
-	uint32_t m_checkPoint;
+	int32_t m_nStepMax;	//=
+	int32_t m_nOutput;	//=
+	int32_t m_checkPoint;
 
 	real_t *m_localDt;	//=
 	real_t m_tend;		//=
@@ -77,7 +75,7 @@ private:
 	godunovScheme_t m_scheme;	//=
 
 	// 
-	uint32_t m_myPe, m_nProc;	//=
+	int32_t m_myPe, m_nProc;	//=
 
 	// working arrays
 	real_t *m_recvbufru;	// receive right or up  //=
@@ -89,20 +87,20 @@ private:
 	char *m_inputFile;
 
 	// PNG output
-	uint32_t m_withPng;
+	int32_t m_withPng;
 	FILE *m_fp;
 #if WITHPNG > 0
 	png_structp m_png_ptr;
 	png_infop m_info_ptr;
-	png_bytep* m_row_pointers;
-	png_byte* m_buffer;
+	png_bytep *m_row_pointers;
+	png_byte *m_buffer;
 #else
-	uint8_t * m_buffer;
+	uint8_t *m_buffer;
 #endif
-	uint32_t m_shrink;
-	uint32_t m_shrinkSize;
+	int32_t m_shrink;
+	int32_t m_shrinkSize;
 	double m_timeGuard;
-	uint32_t m_numa; // try to cope with numa effects
+	int32_t m_numa;	// try to cope with numa effects
 
 	// timing of functions
 	double **m_timerLoops;
@@ -127,8 +125,7 @@ private:
 	real_t reduceMin(real_t val);
 	real_t reduceMaxAndBcast(real_t val);
 
-	void getExtends(tileSpan_t span, uint32_t & xmin, uint32_t & xmax,
-			uint32_t & ymin, uint32_t & ymax) {
+	void getExtends(tileSpan_t span, int32_t & xmin, int32_t & xmax, int32_t & ymin, int32_t & ymax) {
 		// returns the dimension of the tile with ghost cells.
 		if (span == TILE_INTERIOR) {
 			xmin = m_ExtraLayer;
@@ -143,12 +140,12 @@ private:
 		}
 	};
 	// pack/unpack array for ghost cells exchange. Works for MPI
-	uint32_t pack_arrayv(uint32_t xoffset, real_t * buffer);
-	uint32_t unpack_arrayv(uint32_t xoffset, real_t * buffer);
-	uint32_t pack_arrayh(uint32_t yoffset, real_t * buffer);
-	uint32_t unpack_arrayh(uint32_t yoffset, real_t * buffer);
+	int32_t pack_arrayv(int32_t xoffset, real_t * buffer);
+	int32_t unpack_arrayv(int32_t xoffset, real_t * buffer);
+	int32_t pack_arrayh(int32_t yoffset, real_t * buffer);
+	int32_t unpack_arrayh(int32_t yoffset, real_t * buffer);
 
-	uint32_t nbTile(uint32_t tileSize) {
+	int32_t nbTile(int32_t tileSize) {
 		int nbtC = 0;
 		int nbtx = (m_nx + tileSize - 1) / tileSize;
 		int nbty = (m_ny + tileSize - 1) / tileSize;
@@ -164,13 +161,13 @@ private:
 		else
 			m_scan = X_SCAN;
 	}
-	uint32_t tileFromMorton(uint32_t t);
+	int32_t tileFromMorton(int32_t t);
 	void pngWriteFile(char *name);
 	void pngProcess(void);
 	void pngCloseFile(void);
-	void getMaxVarValues(real_t *mxP, real_t *mxD, real_t *mxUV);
-	void pngFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int &cpt, uint32_t imgSizeX, uint32_t imgSizeY);
-  
+	void getMaxVarValues(real_t * mxP, real_t * mxD, real_t * mxUV);
+	void pngFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int &cpt, int32_t imgSizeX, int32_t imgSizeY);
+
 	// Checkpoint helper routines
 	long protectScalars(const protectionMode_t mode, const int f);
 	long protectArrays(const protectionMode_t mode, const int f);
@@ -178,25 +175,27 @@ private:
 	void readProtectionVars(const int f);
 	void writeProtectionHeader(const int f);
 	void readProtectionHeader(const int f);
-	
+
 	bool hasProtection();
-	
+
 	void writeProtection();
 	void readProtection();
-	
+
 	bool StopComputation();
-	
-protected:
+
+ protected:
  public:
 	// basic constructor
 	Domain(int argc, char **argv);
 	// destructor
 	~Domain();
 	bool isStopped();
-	int getMype() { return m_myPe; };
+	int getMype() {
+		return m_myPe;
+	};
 	void compute();
-	uint32_t myThread() {
-		uint32_t r = 0;
+	int32_t myThread() {
+		int32_t r = 0;
 #ifdef _OPENMP
 		r = omp_get_thread_num();
 #endif

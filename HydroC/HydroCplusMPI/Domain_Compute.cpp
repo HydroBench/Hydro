@@ -40,14 +40,14 @@ void Domain::changeDirection()
 
 	// reverse the private storage direction of the tile
 #pragma omp parallel for SCHEDULE
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i]->swapScan();
 		m_tiles[i]->swapStorageDims();
 	}
 
 	// reverse the shared storage direction of the threads
 #pragma omp parallel for SCHEDULE
-	for (uint32_t i = 0; i < m_numThreads; i++) {
+	for (int32_t i = 0; i < m_numThreads; i++) {
 		m_buffers[i]->swapStorageDims();
 	}
 	swapScan();
@@ -58,7 +58,7 @@ void Domain::computeDt()
 	real_t dt;
 
 #pragma omp parallel for SCHEDULE
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		m_tiles[i]->setBuffers(m_buffers[myThread()]);
 		m_tiles[i]->setTcur(m_tcur);
 		m_tiles[i]->setDt(m_dt);
@@ -66,7 +66,7 @@ void Domain::computeDt()
 	}
 
 	dt = m_localDt[0];
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		dt = Min(dt, m_localDt[i]);
 	}
 	m_dt = reduceMin(dt);
@@ -79,7 +79,7 @@ real_t Domain::reduceMin(real_t dt)
 	if (sizeof(real_t) == sizeof(double)) {
 		MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 	} else {
-		MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN,  MPI_COMM_WORLD);
+		MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
 	}
 #endif
 	return dtmin;
@@ -93,28 +93,33 @@ real_t Domain::reduceMaxAndBcast(real_t dt)
 		MPI_Allreduce(&dt, &dtmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 		MPI_Bcast(&dtmax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	} else {
-		MPI_Allreduce(&dt, &dtmax, 1, MPI_FLOAT, MPI_MAX,  MPI_COMM_WORLD);
+		MPI_Allreduce(&dt, &dtmax, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 		MPI_Bcast(&dtmax, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	}
 #endif
 	return dtmax;
 }
 
-uint32_t Domain::tileFromMorton(uint32_t t) {
-	uint32_t i = t;
-	uint32_t m = m_mortonIdx[t];
-	uint32_t x, y;
+int32_t Domain::tileFromMorton(int32_t t)
+{
+	int32_t i = t;
+	int32_t m = m_mortonIdx[t];
+	int32_t x, y;
 	(*m_morton).idxFromMorton(x, y, m);
-	i = (*m_morton)(x,y);
+	i = (*m_morton) (x, y);
 	return i;
 }
+
+#if ANNOTATE==1
+#include "advisor-annotate.h"
+#endif
 
 real_t Domain::computeTimeStep()
 {
 	real_t dt = 0;
-	uint32_t t;
+	int32_t t;
 
-	for (uint32_t pass = 0; pass < 2; pass++) {
+	for (int32_t pass = 0; pass < 2; pass++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
 		if (m_prt)
 			uold.printFormatted("uold computeTimeStep");
@@ -123,16 +128,22 @@ real_t Domain::computeTimeStep()
 		boundary_process();
 
 		real_t *pm_localDt = m_localDt;
+#if ANNOTATE==1
+		ANNOTATE_SITE_BEGIN(computeTimeStep);
+#endif
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
-			uint32_t i = t;
-			uint32_t thN = 0;
+#if ANNOTATE==1
+			ANNOTATE_TASK_BEGIN(firstPart);
+#endif
+			int32_t i = t;
+			int32_t thN = 0;
 #if WITH_TIMERS == 1
 			double startT = dcclock(), endT;
 #ifdef _OPENMP
 			thN = omp_get_thread_num();
 #endif
-#endif	
+#endif
 			if (m_withMorton) {
 				i = tileFromMorton(t);
 			}
@@ -144,23 +155,29 @@ real_t Domain::computeTimeStep()
 #if WITH_TIMERS == 1
 			endT = dcclock();
 			(m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
-#endif	
- 		}
- // we have to wait here that all tiles are ready to update uold
- #pragma omp parallel for private(t) SCHEDULE
- 		for (t = 0; t < m_nbtiles; t++) {
- 			uint32_t i = t;
+#endif
+#if ANNOTATE==1
+			ANNOTATE_TASK_END();
+#endif
+		}
+		// we have to wait here that all tiles are ready to update uold
+#pragma omp parallel for private(t) SCHEDULE
+		for (t = 0; t < m_nbtiles; t++) {
+#if ANNOTATE==1
+			ANNOTATE_TASK_BEGIN(secondPart);
+#endif
+			int32_t i = t;
 #if WITH_TIMERS == 1
-			uint32_t thN = 0;
+			int32_t thN = 0;
 			double startT = dcclock(), endT;
 #ifdef _OPENMP
 			thN = omp_get_thread_num();
 #endif
-#endif	
- 			if (m_withMorton) {
- 				i = tileFromMorton(t);
- 			}
- 			m_tiles[i]->setBuffers(m_buffers[myThread()]);
+#endif
+			if (m_withMorton) {
+				i = tileFromMorton(t);
+			}
+			m_tiles[i]->setBuffers(m_buffers[myThread()]);
 			m_tiles[i]->updateconserv();	// input u, flux       output uold
 			if (pass == 1) {
 				m_localDt[i] = m_tiles[i]->computeDt();
@@ -168,20 +185,25 @@ real_t Domain::computeTimeStep()
 #if WITH_TIMERS == 1
 			endT = dcclock();
 			(m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
-#endif	
+#endif
+#if ANNOTATE==1
+			ANNOTATE_TASK_END();
+#endif
 		}
 // we have to wait here that uold has been fully updated by all tiles
 		if (m_prt) {
-			cout << "After pass " << pass << " direction [" <<
-				m_scan << "]" << endl;
+			cout << "After pass " << pass << " direction [" << m_scan << "]" << endl;
 		}
+#if ANNOTATE==1
+		ANNOTATE_SITE_END();
+#endif
 		changeDirection();
 	}			// X_SCAN - Y_SCAN
 	changeDirection();	// to do X / Y then Y / X then X / Y ...
 
 	// final estimation of the time step
 	dt = m_localDt[0];
-	for (uint32_t i = 0; i < m_nbtiles; i++) {
+	for (int32_t i = 0; i < m_nbtiles; i++) {
 		dt = Min(dt, m_localDt[i]);
 	}
 
@@ -193,7 +215,7 @@ real_t Domain::computeTimeStep()
 
 void Domain::compute()
 {
-	uint32_t n = 0;
+	int32_t n = 0;
 	real_t dt = 0;
 	char vtkprt[64];
 	double start, end;
@@ -207,13 +229,14 @@ void Domain::compute()
 #ifdef _OPENMP
 	if (m_myPe == 0) {
 		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << endl;
-		cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
+		// cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
 		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << endl;
+		cout << "Hydro: OpenMP "<< Schedule << endl;
 	}
 #endif
 #ifdef MPI_ON
 	if (m_myPe == 0) {
-		cout << "Hydro: MPI is present with "  << m_nProc << " tasks" << endl;;
+		cout << "Hydro: MPI is present with " << m_nProc << " tasks" << endl;;
 	}
 #endif
 
@@ -221,28 +244,26 @@ void Domain::compute()
 	vtkprt[0] = '\0';
 
 	if (m_tcur == 0) {
-// 		if (m_dtImage > 0) {
-// 			char pngName[256];
-// 			pngProcess();
+//              if (m_dtImage > 0) {
+//                      char pngName[256];
+//                      pngProcess();
 // #if WITHPNG > 0
-// 			sprintf(pngName, "%s_%06d.png", "Image", m_npng);
+//                      sprintf(pngName, "%s_%06d.png", "Image", m_npng);
 // #else
-// 			sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
+//                      sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
 // #endif
-// 			pngWriteFile(pngName);  
-// 			pngCloseFile();
-// 			sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
-// 			m_npng++;
-// 		}
+//                      pngWriteFile(pngName);  
+//                      pngCloseFile();
+//                      sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
+//                      m_npng++;
+//              }
 		// only for the start of the test case
 
 		computeDt();
 		m_dt /= 2.0;
 		assert(m_dt > 1.e-15);
 		if (m_myPe == 0) {
-			cout << " Initial dt " <<
-				setiosflags(ios::scientific) <<
-				setprecision(5) << m_dt << endl;;
+			cout << " Initial dt " << setiosflags(ios::scientific) << setprecision(5) << m_dt << endl;;
 		}
 	}
 	dt = m_dt;
@@ -263,8 +284,8 @@ void Domain::compute()
 		elpasstep = endstep - startstep;
 		// m_dt = 1.e-3;
 		m_tcur += m_dt;
-		n++; // iteration of this run
-		m_iter++; // global iteration of the computation (accross runs)
+		n++;		// iteration of this run
+		m_iter++;	// global iteration of the computation (accross runs)
 
 		if ((m_nOutput > 0) && ((n % m_nOutput) == 0)) {
 			vtkOutput(m_nvtk);
@@ -286,48 +307,48 @@ void Domain::compute()
 #else
 			sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
 #endif
-			pngWriteFile(pngName);  
+			pngWriteFile(pngName);
 			pngCloseFile();
 			sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
 			m_npng++;
 		}
- 		double resteAll = m_tr.timeRemain() - m_timeGuard;
- 		if (m_myPe == 0) {
- 			uint64_t totCell = uint64_t(m_globNx) * uint64_t(m_globNy);
- 			double cellPerSec = totCell / elpasstep / 1000000;
- 			if (n > 4) {
- 				// skip the 4 first iterations to let the system stabilize
- 				totalCellPerSec += cellPerSec;
- 				nbTotCelSec++;
- 			}
- 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s %lf\n",
- 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float(getMemUsed()/giga), vtkprt, resteAll);
- 			fflush(stdout);
- 		}
- 		{
- 			int needToStopGlob = false;
- 			if (m_myPe == 0) {
- 				double reste = m_tr.timeRemain();
- 				int needToStop = false;
- 				if (reste < m_timeGuard) {
- 					needToStop = true;
- 				}
- 				needToStopGlob = needToStop;
- 			}
- #ifdef MPI_ON
- 			MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
- #endif
- 			if (needToStopGlob) { 
- 				if (m_myPe == 0) {
- 					cerr << " Hydro stops by time limit " << m_tr.timeRemain()  << " < " << m_timeGuard << endl;
- 				}
- 				cout.flush();
- 				cerr.flush();
- 				break;
- 			}
- 		}
+		double resteAll = m_tr.timeRemain() - m_timeGuard;
+		if (m_myPe == 0) {
+			int64_t totCell = int64_t(m_globNx) * int64_t(m_globNy);
+			double cellPerSec = totCell / elpasstep / 1000000;
+			if (n > 4) {
+				// skip the 4 first iterations to let the system stabilize
+				totalCellPerSec += cellPerSec;
+				nbTotCelSec++;
+			}
+			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %s %lf\n",
+				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), vtkprt, resteAll);
+			fflush(stdout);
+		}
+		{
+			int needToStopGlob = false;
+			if (m_myPe == 0) {
+				double reste = m_tr.timeRemain();
+				int needToStop = false;
+				if (reste < m_timeGuard) {
+					needToStop = true;
+				}
+				needToStopGlob = needToStop;
+			}
+#ifdef MPI_ON
+			MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+			if (needToStopGlob) {
+				if (m_myPe == 0) {
+					cerr << " Hydro stops by time limit " << m_tr.timeRemain() << " < " << m_timeGuard << endl;
+				}
+				cout.flush();
+				cerr.flush();
+				break;
+			}
+		}
 		// cout << "suivant"<< m_myPe<< endl; cout.flush();
-	} // while (m_tcur < m_tend)
+	}			// while (m_tcur < m_tend)
 	end = dcclock();
 	m_nbRun++;
 	m_elapsTotal += (end - start);
@@ -342,10 +363,10 @@ void Domain::compute()
 			char txt[256];
 			double elaps = (end - start);
 			convertToHuman(txt, elaps);
-			cerr << "Write protection in " << txt << " (" << elaps << "s)"<<endl;
+			cerr << "Write protection in " << txt << " (" << elaps << "s)" << endl;
 		}
 	}
-	if (m_tcur >= m_tend) { 
+	if (m_tcur >= m_tend) {
 		StopComputation();
 	}
 
@@ -359,13 +380,12 @@ void Domain::compute()
 	if (m_myPe == 0) {
 		char timeHuman[256];
 		long maxMemUsed = getMemUsed();
-		cout << "End of computations in " << setiosflags(ios::fixed) <<
-			setprecision(3) << (end - start);
+		cout << "End of computations in " << setiosflags(ios::fixed) << setprecision(3) << (end - start);
 		cout << " s ";
-		cout << " (" ;
+		cout << " (";
 		convertToHuman(timeHuman, (end - start));
 		cout << timeHuman;
-		cout << ")" ;
+		cout << ")";
 		cout << " with " << m_nbtiles << " tiles";
 #ifdef _OPENMP
 		cout << " using " << m_numThreads << " threads";
@@ -374,24 +394,24 @@ void Domain::compute()
 		cout << " and " << m_nProc << " MPI tasks";
 #endif
 		// cout << " maxRSS " << m_maxrss;
-		cout << std::resetiosflags(std::ios::showbase) << setprecision(3) << setiosflags(ios::fixed) ;
-		cout << " maxMEM " << float(maxMemUsed/giga) << "GB";
+		cout << std::resetiosflags(std::ios::showbase) << setprecision(3) << setiosflags(ios::fixed);
+		cout << " maxMEM " << float (maxMemUsed / giga) << "GB";
 		cout << endl;
 		convertToHuman(timeHuman, m_elapsTotal);
-		cout << "Total simulation time: " << timeHuman<< " in " << m_nbRun << " runs" << endl;
+		cout << "Total simulation time: " << timeHuman << " in " << m_nbRun << " runs" << endl;
 		cout << "Average MC/s: " << totalCellPerSec / nbTotCelSec << endl;
 
 #if WITH_TIMERS == 1
 		cout.precision(4);
-		for (uint32_t i = 0; i < m_numThreads; i++) {
+		for (int32_t i = 0; i < m_numThreads; i++) {
 			cout << "THread " << i << " ";
-			for (uint32_t j = 0; j < LOOP_END; j++) {
+			for (int32_t j = 0; j < LOOP_END; j++) {
 				cout << (m_timerLoops[i])[j] << " ";
 			}
 			cout << endl;
 		}
-#endif	
-		
+#endif
+
 	}
 	// cerr << "End compute " << m_myPe << endl;
 }

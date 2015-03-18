@@ -9,32 +9,34 @@
 #include <cstdlib>
 #include <cassert>
 #include <cerrno>
-#include <stdint.h>             // for the definition of uint32_t
+#include <stdint.h>		// for the definition of int32_t
 
 // template <typename T>
 class TimeLimit {
-private:
+ private:
 	double m_orgTime;
 	double m_curTime;
 	double m_allotedTime;
 
-protected:
-public:
+ protected:
+ public:
 	// basic constructor
-	TimeLimit(void); // default constructor. make it private if needed.
+	 TimeLimit(void);	// default constructor. make it private if needed.
 	// TimeLimit();
 	// destructor
 	~TimeLimit();
 	double timeRemain();
 	double timeRemainAll();
-	double getTimeAllocated() { return m_allotedTime; };
+	double getTimeAllocated() {
+		return m_allotedTime;
+	};
 	// copy operator
 	// TimeLimit(const TimeLimit & obj);
 	// assignment operator
 	// TimeLimit & operator=(const TimeLimit & rhs);
 	// access through ()
-	// TimeLimit & operator() (uint32_t i) ; // lhs
-	// TimeLimit & operator() (uint32_t i) const ; // rhs
+	// TimeLimit & operator() (int32_t i) ; // lhs
+	// TimeLimit & operator() (int32_t i) const ; // rhs
 };
 #endif
 //EOF

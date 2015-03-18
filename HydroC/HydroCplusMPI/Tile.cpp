@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <climits>
 #include <cerrno>
-
 #include <strings.h>
 #include <unistd.h>
 #include <malloc.h>
@@ -31,7 +30,7 @@ using namespace std;
 // template <typename T> 
 Tile::Tile()
 {
-	for (uint32_t i = 0; i < NEIGHBOUR_TILE; i++) {
+	for (int32_t i = 0; i < NEIGHBOUR_TILE; i++) {
 		m_voisin[i] = 0;
 	}
 	m_ExtraLayer = 2;
@@ -47,15 +46,15 @@ Tile::~Tile()
 }
 
 void
- Tile::setNeighbourTile(tileNeighbour_t type, Tile * tile)
+Tile::setNeighbourTile(tileNeighbour_t type, Tile * tile)
 {
 	m_voisin[type] = tile;
 }
 
 void Tile::initTile(Soa * uold)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t lgx, lgy, lgmax;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t lgx, lgy, lgmax;
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -76,7 +75,7 @@ void Tile::initTile(Soa * uold)
 void Tile::swapStorageDims()
 {
 #pragma novector
-	for (uint32_t i = 0; i < NB_VAR; i++) {
+	for (int32_t i = 0; i < NB_VAR; i++) {
 		Matrix2 < real_t > *m;
 		m = (*m_u) (i);
 		m->swapDimOnly();
@@ -85,15 +84,13 @@ void Tile::swapStorageDims()
 	}
 }
 
-void Tile::setMpi(uint32_t nproc, uint32_t mype)
+void Tile::setMpi(int32_t nproc, int32_t mype)
 {
 	m_nproc = nproc;
 	m_mype = mype;
 }
 
-void Tile::initPhys(real_t gamma, real_t smallc, real_t smallr,
-		    real_t cfl, real_t slope_type, uint32_t niter_riemann,
-		    uint32_t order, uint32_t scheme)
+void Tile::initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type, int32_t niter_riemann, int32_t order, int32_t scheme)
 {
 	m_gamma = gamma;
 	m_smallc = smallc;
@@ -107,8 +104,7 @@ void Tile::initPhys(real_t gamma, real_t smallc, real_t smallr,
 	m_scheme = scheme;
 }
 
-void Tile::setExtend(uint32_t nx, uint32_t ny, uint32_t gnx, uint32_t gny,
-		     uint32_t offx, uint32_t offy, real_t dx)
+void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy, real_t dx)
 {
 	m_nx = nx;
 	m_ny = ny;
@@ -120,39 +116,47 @@ void Tile::setExtend(uint32_t nx, uint32_t ny, uint32_t gnx, uint32_t gny,
 }
 
 // Compute part
-void Tile::slopeOnRow(uint32_t xmin, uint32_t xmax, real_t * __restrict__ qS,
-		      real_t * __restrict__ dqS)
+void Tile::slopeOnRow(int32_t xmin, int32_t xmax, real_t * __restrict__ qS, real_t * __restrict__ dqS)
 {
 
 	// #pragma vector aligned  // impossible !
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-	for (uint32_t i = xmin + 1; i < xmax - 1; i++) {
+	for (int32_t i = xmin + 1; i < xmax - 1; i++) {
 		real_t dlft, drgt, dcen, dsgn, slop, dlim;
-		int llftrgt = 0;
+		real_t llftrgt = 0;
 		real_t t1;
 		dlft = m_slope_type * (qS[i] - qS[i - 1]);
 		drgt = m_slope_type * (qS[i + 1] - qS[i]);
 		dcen = half * (dlft + drgt) / m_slope_type;
 		dsgn = (dcen > 0) ? one : -one;	// sign(one, dcen);
+#ifndef NOTDEF
 		llftrgt = ((dlft * drgt) <= zero);
 		t1 = Min(Fabs(dlft), Fabs(drgt));
 		dqS[i] = dsgn * Min((1 - llftrgt) * t1, Fabs(dcen));
+#else
+		slop = Min(Fabs(dlft), Fabs(drgt));
+		dlim = slop;
+		if ((dlft * drgt) <= zero) {
+			dlim = zero;;
+		}
+		dqS[i] = dsgn * Min(dlim, Fabs(dcen));
+#endif
 	}
 }
 
 void Tile::slope()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 
-	for (uint32_t nbv = 0; nbv < NB_VAR; nbv++) {
+	for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
 		Matrix2 < real_t > &q = *(*m_q) (nbv);
 		Matrix2 < real_t > &dq = *(*m_dq) (nbv);
 
 		getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-		for (uint32_t s = ymin; s < ymax; s++) {
+		for (int32_t s = ymin; s < ymax; s++) {
 			real_t *qS = q.getRow(s);
 			real_t *dqS = dq.getRow(s);
 			slopeOnRow(xmin, xmax, qS, dqS);
@@ -168,7 +172,7 @@ void Tile::slope()
 
 void Tile::trace()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIV = *(*m_q) (IV_VAR);
 	Matrix2 < real_t > &qIU = *(*m_q) (IU_VAR);
@@ -209,7 +213,7 @@ void Tile::trace()
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *cS = (*m_c).getRow(s);
 		real_t *qIDS = qID.getRow(s);
 		real_t *qIUS = qIU.getRow(s);
@@ -228,14 +232,7 @@ void Tile::trace()
 		real_t *pqxmIVS = pqxmIV.getRow(s);
 		real_t *pqxmIPS = pqxmIP.getRow(s);
 		traceonRow(xmin, xmax, dtdx, zeror, zerol, project,
-			   cS,
-			   qIDS,
-			   qIUS,
-			   qIVS,
-			   qIPS,
-			   dqIDS, dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS,
-			   pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS, pqxmIVS,
-			   pqxmIPS);
+			   cS, qIDS, qIUS, qIVS, qIPS, dqIDS, dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS, pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS, pqxmIVS, pqxmIPS);
 	}
 	if (m_prt)
 		pqxmIP.printFormatted("Tile pqxmIP trace");
@@ -243,8 +240,8 @@ void Tile::trace()
 		pqxpIP.printFormatted("Tile pqxpIP trace");
 }
 
-void Tile::traceonRow(uint32_t xmin,
-		      uint32_t xmax,
+void Tile::traceonRow(int32_t xmin,
+		      int32_t xmax,
 		      real_t dtdx,
 		      real_t zeror,
 		      real_t zerol,
@@ -261,11 +258,7 @@ void Tile::traceonRow(uint32_t xmin,
 		      real_t * __restrict__ pqxpIDS,
 		      real_t * __restrict__ pqxpIUS,
 		      real_t * __restrict__ pqxpIVS,
-		      real_t * __restrict__ pqxpIPS,
-		      real_t * __restrict__ pqxmIDS,
-		      real_t * __restrict__ pqxmIUS,
-		      real_t * __restrict__ pqxmIVS,
-		      real_t * __restrict__ pqxmIPS)
+		      real_t * __restrict__ pqxpIPS, real_t * __restrict__ pqxmIDS, real_t * __restrict__ pqxmIUS, real_t * __restrict__ pqxmIVS, real_t * __restrict__ pqxmIPS)
 {
 #if ALIGNED > 0
 #pragma vector aligned
@@ -273,7 +266,7 @@ void Tile::traceonRow(uint32_t xmin,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		real_t cc, csq, r, u, v, p;
 		real_t dr, du, dv, dp;
 		real_t alpham, alphap, alpha0r, alpha0v;
@@ -334,17 +327,14 @@ void Tile::traceonRow(uint32_t xmin,
 	}
 }
 
-void Tile::qleftrOnRow(uint32_t xmin, uint32_t xmax,
-		       real_t * __restrict__ pqleftS,
-		       real_t * __restrict__ pqrightS,
-		       real_t * __restrict__ pqxmS, real_t * __restrict__ pqxpS)
+void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, real_t * __restrict__ pqleftS, real_t * __restrict__ pqrightS, real_t * __restrict__ pqxmS, real_t * __restrict__ pqxpS)
 {
 
 	// #pragma vector aligned // impossible !
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		pqleftS[i] = pqxmS[i + 1];
 		pqrightS[i] = pqxpS[i + 2];
 	}
@@ -352,21 +342,20 @@ void Tile::qleftrOnRow(uint32_t xmin, uint32_t xmax,
 
 void Tile::qleftr()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	for (uint32_t v = 0; v < NB_VAR; v++) {
+	for (int32_t v = 0; v < NB_VAR; v++) {
 		Matrix2 < real_t > &pqleft = *(*m_qleft) (v);
 		Matrix2 < real_t > &pqright = *(*m_qright) (v);
 		Matrix2 < real_t > &pqxm = *(*m_qxm) (v);
 		Matrix2 < real_t > &pqxp = *(*m_qxp) (v);
-		for (uint32_t s = ymin; s < ymax; s++) {
+		for (int32_t s = ymin; s < ymax; s++) {
 			real_t *pqleftS = pqleft.getRow(s);
 			real_t *pqrightS = pqright.getRow(s);
 			real_t *pqxmS = pqxm.getRow(s);
 			real_t *pqxpS = pqxp.getRow(s);
-			qleftrOnRow(xmin, xmax, pqleftS, pqrightS, pqxmS,
-				    pqxpS);
+			qleftrOnRow(xmin, xmax, pqleftS, pqrightS, pqxmS, pqxpS);
 		}
 	}
 	Matrix2 < real_t > &pqleft = *(*m_qleft) (IP_VAR);
@@ -377,17 +366,13 @@ void Tile::qleftr()
 		pqright.printFormatted("Tile qright qleftr");
 }
 
-void Tile::compflxOnRow(uint32_t xmin,
-			uint32_t xmax,
+void Tile::compflxOnRow(int32_t xmin,
+			int32_t xmax,
 			real_t entho,
 			real_t * __restrict__ qgdnvIDS,
 			real_t * __restrict__ qgdnvIUS,
 			real_t * __restrict__ qgdnvIVS,
-			real_t * __restrict__ qgdnvIPS,
-			real_t * __restrict__ fluxIVS,
-			real_t * __restrict__ fluxIUS,
-			real_t * __restrict__ fluxIPS,
-			real_t * __restrict__ fluxIDS)
+			real_t * __restrict__ qgdnvIPS, real_t * __restrict__ fluxIVS, real_t * __restrict__ fluxIUS, real_t * __restrict__ fluxIPS, real_t * __restrict__ fluxIDS)
 {
 #if USEINTRINSICS == 0
 #if ALIGNED > 0
@@ -396,7 +381,7 @@ void Tile::compflxOnRow(uint32_t xmin,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		// Mass density
 		real_t massDensity = qgdnvIDS[i] * qgdnvIUS[i];
 		fluxIDS[i] = massDensity;
@@ -405,27 +390,25 @@ void Tile::compflxOnRow(uint32_t xmin,
 		// Transverse momentum 1
 		fluxIVS[i] = massDensity * qgdnvIVS[i];
 		// Total energy
-		real_t ekin =
-		    half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) +
-					  Square(qgdnvIVS[i]));
+		real_t ekin = half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) + Square(qgdnvIVS[i]));
 		real_t etot = qgdnvIPS[i] * entho + ekin;
 		fluxIPS[i] = qgdnvIUS[i] * (etot + qgdnvIPS[i]);
 	}
 #else
 #pragma message "compflxOnRow uses intrinsics"
-	uint32_t step = SIMD_WIDTH;
-	uint32_t veccnt = (xmax - xmin) / step;
-	uint32_t remain = (xmax - xmin) - veccnt * step;
-	real_t* qgdnvIDS_ = &qgdnvIDS[xmin];
-	real_t* qgdnvIUS_ = &qgdnvIUS[xmin];
-	real_t* qgdnvIPS_ = &qgdnvIPS[xmin];
-	real_t* qgdnvIVS_ = &qgdnvIVS[xmin];
-	real_t* fluxIPS_ = &fluxIPS[xmin];
-	real_t* fluxIUS_ = &fluxIUS[xmin];
-	real_t* fluxIVS_ = &fluxIVS[xmin];
-	real_t* fluxIDS_ = &fluxIDS[xmin];
+	int32_t step = SIMD_WIDTH;
+	int32_t veccnt = (xmax - xmin) / step;
+	int32_t remain = (xmax - xmin) - veccnt * step;
+	real_t *qgdnvIDS_ = &qgdnvIDS[xmin];
+	real_t *qgdnvIUS_ = &qgdnvIUS[xmin];
+	real_t *qgdnvIPS_ = &qgdnvIPS[xmin];
+	real_t *qgdnvIVS_ = &qgdnvIVS[xmin];
+	real_t *fluxIPS_ = &fluxIPS[xmin];
+	real_t *fluxIUS_ = &fluxIUS[xmin];
+	real_t *fluxIVS_ = &fluxIVS[xmin];
+	real_t *fluxIDS_ = &fluxIDS[xmin];
 
-	for (uint32_t i = xmin; i < xmax; i += step) {
+	for (int32_t i = xmin; i < xmax; i += step) {
 		register VREAL_T _qgdnvIDS = load(qgdnvIDS_);
 		register VREAL_T _qgdnvIUS = load(qgdnvIUS_);
 		register VREAL_T _qgdnvIPS = load(qgdnvIPS_);
@@ -433,8 +416,8 @@ void Tile::compflxOnRow(uint32_t xmin,
 
 		register VREAL_T _fluxIDS = _qgdnvIDS * _qgdnvIUS;
 
-		store(fluxIUS_,  _fluxIDS * _qgdnvIUS + _qgdnvIPS);
-		store(fluxIVS_,  _fluxIDS * _qgdnvIVS);
+		store(fluxIUS_, _fluxIDS * _qgdnvIUS + _qgdnvIPS);
+		store(fluxIVS_, _fluxIDS * _qgdnvIVS);
 		store(fluxIDS_, _fluxIDS);
 
 		register VREAL_T _ekin(half);
@@ -456,7 +439,7 @@ void Tile::compflxOnRow(uint32_t xmin,
 
 	if (remain) {
 #pragma novector
-		for (uint32_t i = xmin + veccnt * step; i < xmax; i++) {
+		for (int32_t i = xmin + veccnt * step; i < xmax; i++) {
 			// Mass density
 			real_t massDensity = qgdnvIDS[i] * qgdnvIUS[i];
 			fluxIDS[i] = massDensity;
@@ -465,9 +448,7 @@ void Tile::compflxOnRow(uint32_t xmin,
 			// Transverse momentum 1
 			fluxIVS[i] = massDensity * qgdnvIVS[i];
 			// Total energy
-			real_t ekin =
-				half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) +
-						      Square(qgdnvIVS[i]));
+			real_t ekin = half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) + Square(qgdnvIVS[i]));
 			real_t etot = qgdnvIPS[i] * entho + ekin;
 			fluxIPS[i] = qgdnvIUS[i] * (etot + qgdnvIPS[i]);
 		}
@@ -477,7 +458,7 @@ void Tile::compflxOnRow(uint32_t xmin,
 
 void Tile::compflx()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &qgdnvID = *(*m_qgdnv) (ID_VAR);
 	Matrix2 < real_t > &qgdnvIU = *(*m_qgdnv) (IU_VAR);
 	Matrix2 < real_t > &qgdnvIP = *(*m_qgdnv) (IP_VAR);
@@ -491,7 +472,7 @@ void Tile::compflx()
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *qgdnvIDS = qgdnvID.getRow(s);
 		real_t *qgdnvIUS = qgdnvIU.getRow(s);
 		real_t *qgdnvIPS = qgdnvIP.getRow(s);
@@ -501,14 +482,13 @@ void Tile::compflx()
 		real_t *fluxIPS = fluxIP.getRow(s);
 		real_t *fluxIDS = fluxID.getRow(s);
 
-		compflxOnRow(xmin, xmax, entho, qgdnvIDS, qgdnvIUS, qgdnvIVS,
-			     qgdnvIPS, fluxIVS, fluxIUS, fluxIPS, fluxIDS);
+		compflxOnRow(xmin, xmax, entho, qgdnvIDS, qgdnvIUS, qgdnvIVS, qgdnvIPS, fluxIVS, fluxIUS, fluxIPS, fluxIDS);
 	}
 	if (m_prt)
 		fluxIP.printFormatted("Tile fluxIP compflx");
 }
 
-void Tile::updateconservXscan(uint32_t xmin, uint32_t xmax, real_t dtdx,
+void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 			      real_t * __restrict__ uIDS,
 			      real_t * __restrict__ uIUS,
 			      real_t * __restrict__ uIVS,
@@ -517,29 +497,22 @@ void Tile::updateconservXscan(uint32_t xmin, uint32_t xmax, real_t dtdx,
 			      real_t * __restrict__ uoldIUS,
 			      real_t * __restrict__ uoldIVS,
 			      real_t * __restrict__ uoldIPS,
-			      real_t * __restrict__ fluxIDS,
-			      real_t * __restrict__ fluxIVS,
-			      real_t * __restrict__ fluxIUS,
-			      real_t * __restrict__ fluxIPS)
+			      real_t * __restrict__ fluxIDS, real_t * __restrict__ fluxIVS, real_t * __restrict__ fluxIUS, real_t * __restrict__ fluxIPS)
 {
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-#pragma simd
-	for (uint32_t i = xmin; i < xmax; i++) {
-		uoldIDS[i + m_offx] =
-		    uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
-		uoldIVS[i + m_offx] =
-		    uIVS[i] + (fluxIVS[i - 2] - fluxIVS[i - 1]) * dtdx;
-		uoldIUS[i + m_offx] =
-		    uIUS[i] + (fluxIUS[i - 2] - fluxIUS[i - 1]) * dtdx;
-		uoldIPS[i + m_offx] =
-		    uIPS[i] + (fluxIPS[i - 2] - fluxIPS[i - 1]) * dtdx;
+// #pragma simd
+	for (int32_t i = xmin; i < xmax; i++) {
+		uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
+		uoldIVS[i + m_offx] = uIVS[i] + (fluxIVS[i - 2] - fluxIVS[i - 1]) * dtdx;
+		uoldIUS[i + m_offx] = uIUS[i] + (fluxIUS[i - 2] - fluxIUS[i - 1]) * dtdx;
+		uoldIPS[i + m_offx] = uIPS[i] + (fluxIPS[i - 2] - fluxIPS[i - 1]) * dtdx;
 	}
 }
 
-void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
-			      uint32_t ymin, uint32_t ymax, real_t dtdx,
+void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
+			      int32_t ymin, int32_t ymax, real_t dtdx,
 			      Matrix2 < real_t > &uoldID,
 			      Matrix2 < real_t > &uoldIP,
 			      Matrix2 < real_t > &uoldIV,
@@ -548,17 +521,13 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 			      real_t * __restrict__ fluxIUS,
 			      real_t * __restrict__ fluxIPS,
 			      real_t * __restrict__ fluxIDS,
-			      real_t * __restrict__ uIDS,
-			      real_t * __restrict__ uIPS,
-			      real_t * __restrict__ uIVS,
-			      real_t * __restrict__ uIUS,
-			      real_t * __restrict__ pl)
+			      real_t * __restrict__ uIDS, real_t * __restrict__ uIPS, real_t * __restrict__ uIVS, real_t * __restrict__ uIUS, real_t * __restrict__ pl)
 {
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-#pragma simd
-	for (uint32_t j = xmin; j < xmax; j++) {
+// #pragma simd
+	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIDS[j] + (fluxIDS[j - 2] - fluxIDS[j - 1]) * dtdx;
 	}
 	uoldID.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
@@ -566,8 +535,8 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-#pragma simd
-	for (uint32_t j = xmin; j < xmax; j++) {
+// #pragma simd
+	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIUS[j] + (fluxIUS[j - 2] - fluxIUS[j - 1]) * dtdx;
 	}
 	uoldIV.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
@@ -575,8 +544,8 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-#pragma simd
-	for (uint32_t j = xmin; j < xmax; j++) {
+// #pragma simd
+	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIVS[j] + (fluxIVS[j - 2] - fluxIVS[j - 1]) * dtdx;
 	}
 	uoldIU.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
@@ -584,8 +553,8 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-#pragma simd
-	for (uint32_t j = xmin; j < xmax; j++) {
+// #pragma simd
+	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIPS[j] + (fluxIPS[j - 2] - fluxIPS[j - 1]) * dtdx;
 	}
 	uoldIP.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
@@ -593,7 +562,7 @@ void Tile::updateconservYscan(uint32_t s, uint32_t xmin, uint32_t xmax,
 
 void Tile::updateconserv()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &uoldID = *(*m_uold) (ID_VAR);
 	Matrix2 < real_t > &uoldIP = *(*m_uold) (IP_VAR);
 	Matrix2 < real_t > &uoldIV = *(*m_uold) (IV_VAR);
@@ -633,7 +602,7 @@ void Tile::updateconserv()
 		uIP.printFormatted("Tile uIP updateconserv");
 
 	if (m_scan == X_SCAN) {
-		for (uint32_t s = ymin; s < ymax; s++) {
+		for (int32_t s = ymin; s < ymax; s++) {
 			real_t *uoldIDS = uoldID.getRow(s + m_offy);
 			real_t *uoldIPS = uoldIP.getRow(s + m_offy);
 			real_t *uoldIVS = uoldIV.getRow(s + m_offy);
@@ -646,13 +615,10 @@ void Tile::updateconserv()
 			real_t *fluxIVS = fluxIV.getRow(s);
 			real_t *fluxIUS = fluxIU.getRow(s);
 			real_t *fluxIPS = fluxIP.getRow(s);
-			updateconservXscan(xmin, xmax, dtdx, uIDS, uIUS, uIVS,
-					   uIPS, uoldIDS, uoldIUS, uoldIVS,
-					   uoldIPS, fluxIDS, fluxIVS, fluxIUS,
-					   fluxIPS);
+			updateconservXscan(xmin, xmax, dtdx, uIDS, uIUS, uIVS, uIPS, uoldIDS, uoldIUS, uoldIVS, uoldIPS, fluxIDS, fluxIVS, fluxIUS, fluxIPS);
 		}
 	} else {
-		for (uint32_t s = ymin; s < ymax; s++) {
+		for (int32_t s = ymin; s < ymax; s++) {
 			real_t *fluxIVS = fluxIV.getRow(s);
 			real_t *fluxIUS = fluxIU.getRow(s);
 			real_t *fluxIPS = fluxIP.getRow(s);
@@ -663,12 +629,9 @@ void Tile::updateconserv()
 			real_t *uIUS = uIU.getRow(s);
 			real_t *pl = m_pl;
 
-			updateconservYscan(s, xmin, xmax, ymin, ymax, dtdx,
-					   uoldID, uoldIP, uoldIV, uoldIU,
-					   fluxIVS, fluxIUS, fluxIPS, fluxIDS,
-					   uIDS, uIPS, uIVS, uIUS, pl);
+			updateconservYscan(s, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP, uoldIV, uoldIU, fluxIVS, fluxIUS, fluxIPS, fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
 
-			// for (uint32_t j = xmin; j < xmax; j++) {
+			// for (int32_t j = xmin; j < xmax; j++) {
 			// uoldID(s + m_offx, j + m_offy) = uID(j, s) + (fluxID(j - 2, s) - fluxID(j - 1, s)) * dtdx;
 			// uoldIV(s + m_offx, j + m_offy) = uIU(j, s) + (fluxIU(j - 2, s) - fluxIU(j - 1, s)) * dtdx;
 			// uoldIU(s + m_offx, j + m_offy) = uIV(j, s) + (fluxIV(j - 2, s) - fluxIV(j - 1, s)) * dtdx;
@@ -686,15 +649,12 @@ void Tile::updateconserv()
 		uoldIP.printFormatted("Tile uoldIP updateconserv");
 }
 
-void Tile::gatherconservXscan(uint32_t xmin, uint32_t xmax,
+void Tile::gatherconservXscan(int32_t xmin, int32_t xmax,
 			      real_t * __restrict__ uIDS,
 			      real_t * __restrict__ uIUS,
 			      real_t * __restrict__ uIVS,
 			      real_t * __restrict__ uIPS,
-			      real_t * __restrict__ uoldIDS,
-			      real_t * __restrict__ uoldIUS,
-			      real_t * __restrict__ uoldIVS,
-			      real_t * __restrict__ uoldIPS)
+			      real_t * __restrict__ uoldIDS, real_t * __restrict__ uoldIUS, real_t * __restrict__ uoldIVS, real_t * __restrict__ uoldIPS)
 {
 #if ALIGNED > 0
 	// #pragma vector aligned // impossible !
@@ -703,7 +663,7 @@ void Tile::gatherconservXscan(uint32_t xmin, uint32_t xmax,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #pragma simd
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		uIDS[i] = uoldIDS[i + m_offx];
 		uIUS[i] = uoldIUS[i + m_offx];
 		uIVS[i] = uoldIVS[i + m_offx];
@@ -717,7 +677,7 @@ void Tile::gatherconservYscan()
 
 void Tile::gatherconserv()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &uID = *(*m_u) (ID_VAR);
 	Matrix2 < real_t > &uIP = *(*m_u) (IP_VAR);
 	Matrix2 < real_t > &uIV = *(*m_u) (IV_VAR);
@@ -739,7 +699,7 @@ void Tile::gatherconserv()
 		uoldIP.printFormatted("Tile uoldIP gatherconserv");
 
 	if (m_scan == X_SCAN) {
-		for (uint32_t s = ymin; s < ymax; s++) {
+		for (int32_t s = ymin; s < ymax; s++) {
 			real_t *uoldIDS = uoldID.getRow(s + m_offy);
 			real_t *uoldIPS = uoldIP.getRow(s + m_offy);
 			real_t *uoldIVS = uoldIV.getRow(s + m_offy);
@@ -748,21 +708,16 @@ void Tile::gatherconserv()
 			real_t *uIPS = uIP.getRow(s);
 			real_t *uIVS = uIV.getRow(s);
 			real_t *uIUS = uIU.getRow(s);
-			gatherconservXscan(xmin, xmax, uIDS, uIUS, uIVS, uIPS,
-					   uoldIDS, uoldIUS, uoldIVS, uoldIPS);
+			gatherconservXscan(xmin, xmax, uIDS, uIUS, uIVS, uIPS, uoldIDS, uoldIUS, uoldIVS, uoldIPS);
 		}
 	} else {
-		for (uint32_t j = xmin; j < xmax; j++) {
-			uID.putFullCol(j, 0, uoldID.getRow(j + m_offy) + m_offx,
-				       (ymax - ymin));
-			uIU.putFullCol(j, 0, uoldIV.getRow(j + m_offy) + m_offx,
-				       (ymax - ymin));
-			uIV.putFullCol(j, 0, uoldIU.getRow(j + m_offy) + m_offx,
-				       (ymax - ymin));
-			uIP.putFullCol(j, 0, uoldIP.getRow(j + m_offy) + m_offx,
-				       (ymax - ymin));
+		for (int32_t j = xmin; j < xmax; j++) {
+			uID.putFullCol(j, 0, uoldID.getRow(j + m_offy) + m_offx, (ymax - ymin));
+			uIU.putFullCol(j, 0, uoldIV.getRow(j + m_offy) + m_offx, (ymax - ymin));
+			uIV.putFullCol(j, 0, uoldIU.getRow(j + m_offy) + m_offx, (ymax - ymin));
+			uIP.putFullCol(j, 0, uoldIP.getRow(j + m_offy) + m_offx, (ymax - ymin));
 
-			// for (uint32_t s = ymin; s < ymax; s++) {
+			// for (int32_t s = ymin; s < ymax; s++) {
 			//        uID(j, s) = uoldID(s + m_offx, j + m_offy);
 			//        uIU(j, s) = uoldIV(s + m_offx, j + m_offy);
 			//        uIV(j, s) = uoldIU(s + m_offx, j + m_offy);
@@ -780,18 +735,17 @@ void Tile::gatherconserv()
 		uIP.printFormatted("Tile uIP gatherconserv");
 }
 
-void Tile::eosOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
-		    real_t * __restrict__ qIDS, real_t * __restrict__ eS,
-		    real_t * __restrict__ qIPS, real_t * __restrict__ cS)
+void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t * __restrict__ qIDS, real_t * __restrict__ eS, real_t * __restrict__ qIPS, real_t * __restrict__ cS)
 {
 	if (xmin > 0) {
-#pragma simd
-		for (uint32_t k = xmin; k < xmax; k++) {
+// #pragma simd
+		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
+			real_t rrho = 1. / rho;
 			real_t base = (m_gamma - one) * rho * eS[k];;
 			base = Max(base, (real_t) (rho * smallp));
 			qIPS[k] = base;
-			cS[k] = sqrt(m_gamma * base / rho);
+			cS[k] = sqrt(m_gamma * base * rrho);
 		}
 	} else {
 #if ALIGNED > 0
@@ -800,20 +754,21 @@ void Tile::eosOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-#pragma simd
-		for (uint32_t k = xmin; k < xmax; k++) {
+// #pragma simd
+		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
+			real_t rrho = 1. / rho;
 			real_t base = (m_gamma - one) * rho * eS[k];;
 			base = Max(base, (real_t) (rho * smallp));
 			qIPS[k] = base;
-			cS[k] = sqrt(m_gamma * base / rho);
+			cS[k] = sqrt(m_gamma * base * rrho);
 		}
 	}
 }
 
 void Tile::eos(tileSpan_t span)
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIP = *(*m_q) (IP_VAR);
@@ -822,7 +777,7 @@ void Tile::eos(tileSpan_t span)
 
 	getExtends(span, xmin, xmax, ymin, ymax);
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *qIDS = qID.getRow(s);
 		real_t *eS = (*m_e).getRow(s);
 		real_t *qIPS = qIP.getRow(s);
@@ -835,18 +790,15 @@ void Tile::eos(tileSpan_t span)
 		m_c->printFormatted("Tile c eos");
 }
 
-void Tile::compute_dt_loop1OnRow(uint32_t xmin, uint32_t xmax,
+void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
 				 real_t * __restrict__ qIDS,
 				 real_t * __restrict__ qIPS,
 				 real_t * __restrict__ qIUS,
 				 real_t * __restrict__ qIVS,
 				 real_t * __restrict__ uoldIDS,
-				 real_t * __restrict__ uoldIUS,
-				 real_t * __restrict__ uoldIVS,
-				 real_t * __restrict__ uoldIPS,
-				 real_t * __restrict__ eS)
+				 real_t * __restrict__ uoldIUS, real_t * __restrict__ uoldIVS, real_t * __restrict__ uoldIPS, real_t * __restrict__ eS)
 {
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		real_t eken, tmp;
 		qIDS[i] = uoldIDS[i + m_offx];
 		qIDS[i] = Max(qIDS[i], m_smallr);
@@ -859,22 +811,19 @@ void Tile::compute_dt_loop1OnRow(uint32_t xmin, uint32_t xmax,
 	}
 }
 
-void Tile::compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, uint32_t xmin,
-				 uint32_t xmax, real_t * __restrict__ cS,
-				 real_t * __restrict__ qIUS,
-				 real_t * __restrict__ qIVS)
+void Tile::compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int32_t xmax, real_t * __restrict__ cS, real_t * __restrict__ qIUS, real_t * __restrict__ qIVS)
 {
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		tmp1 = Max(tmp1, cS[i] + Fabs(qIUS[i]));
 	}
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		tmp2 = Max(tmp2, cS[i] + Fabs(qIVS[i]));
 	}
 }
 
 real_t Tile::compute_dt()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	real_t dt = 0, cournox, cournoy, tmp1 = 0, tmp2 = 0;
 	Matrix2 < real_t > &uoldID = *(*m_uold) (ID_VAR);
 	Matrix2 < real_t > &uoldIP = *(*m_uold) (IP_VAR);
@@ -896,7 +845,7 @@ real_t Tile::compute_dt()
 	cournox = zero;
 	cournoy = zero;
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *uoldIDS;
 		real_t *uoldIPS;
 		real_t *uoldIVS;
@@ -911,13 +860,12 @@ real_t Tile::compute_dt()
 		real_t *qIVS = qIV.getRow(s);
 		real_t *qIUS = qIU.getRow(s);
 		real_t *eS = (*m_e).getRow(s);
-		compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS,
-				      uoldIDS, uoldIUS, uoldIVS, uoldIPS, eS);
+		compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS, uoldIDS, uoldIUS, uoldIVS, uoldIPS, eS);
 	}
 
 	eos(TILE_INTERIOR);	// needs    qID, e    returns    c, qIP
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *qIVS = qIV.getRow(s);
 		real_t *qIUS = qIU.getRow(s);
 		real_t *cS = (*m_c).getRow(s);
@@ -938,15 +886,12 @@ real_t Tile::compute_dt()
 	return dt;
 }
 
-void Tile::constprimOnRow(uint32_t xmin, uint32_t xmax,
+void Tile::constprimOnRow(int32_t xmin, int32_t xmax,
 			  real_t * __restrict__ qIDS,
 			  real_t * __restrict__ qIPS,
 			  real_t * __restrict__ qIVS,
 			  real_t * __restrict__ qIUS,
-			  real_t * __restrict__ uIDS,
-			  real_t * __restrict__ uIPS,
-			  real_t * __restrict__ uIVS,
-			  real_t * __restrict__ uIUS, real_t * __restrict__ eS)
+			  real_t * __restrict__ uIDS, real_t * __restrict__ uIPS, real_t * __restrict__ uIVS, real_t * __restrict__ uIUS, real_t * __restrict__ eS)
 {
 
 #if ALIGNED > 0
@@ -956,17 +901,17 @@ void Tile::constprimOnRow(uint32_t xmin, uint32_t xmax,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) { 
+	for (int32_t i = xmin; i < xmax; i++) {
 		register real_t eken, qid, qiu, qiv, qip;
 		qid = uIDS[i];
-	        qid = Max(qid, m_smallr);
+		qid = Max(qid, m_smallr);
 		// if (qid < m_smallr) qid = m_smallr;
 		qiu = uIUS[i] / qid;
 		qiv = uIVS[i] / qid;
 
 		eken = half * (Square(qiu) + Square(qiv));
 
-		qip = uIPS[i] / qid - eken; 
+		qip = uIPS[i] / qid - eken;
 		qIUS[i] = qiu;
 		qIVS[i] = qiv;
 		qIDS[i] = qid;
@@ -977,7 +922,7 @@ void Tile::constprimOnRow(uint32_t xmin, uint32_t xmax,
 
 void Tile::constprim()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIP = *(*m_q) (IP_VAR);
 	Matrix2 < real_t > &qIV = *(*m_q) (IV_VAR);
@@ -990,7 +935,7 @@ void Tile::constprim()
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *eS = (*m_e).getRow(s);
 		real_t *qIDS = qID.getRow(s);
 		real_t *qIPS = qIP.getRow(s);
@@ -1000,8 +945,7 @@ void Tile::constprim()
 		real_t *uIPS = uIP.getRow(s);
 		real_t *uIVS = uIV.getRow(s);
 		real_t *uIUS = uIU.getRow(s);
-		constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS,
-			       uIVS, uIUS, eS);
+		constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
 	}
 	if (m_prt)
 		qIP.printFormatted("Tile qIP constprim");
@@ -1009,7 +953,7 @@ void Tile::constprim()
 		(*m_e).printFormatted("Tile e constprim");
 }
 
-void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
+void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 			real_t gamma6, real_t smallpp,
 			real_t * __restrict__ qgdnvIDS,
 			real_t * __restrict__ qgdnvIUS,
@@ -1026,9 +970,7 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 			long *__restrict__ goon, real_t * __restrict__ sgnm,
 			real_t * __restrict__ pstar, real_t * __restrict__ rl,
 			real_t * __restrict__ ul, real_t * __restrict__ pl,
-			real_t * __restrict__ rr, real_t * __restrict__ ur,
-			real_t * __restrict__ pr, real_t * __restrict__ cl,
-			real_t * __restrict__ cr)
+			real_t * __restrict__ rr, real_t * __restrict__ ur, real_t * __restrict__ pr, real_t * __restrict__ cl, real_t * __restrict__ cr)
 {
 
 #if ALIGNED > 0
@@ -1037,7 +979,7 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		goon[i] = 1;
 	}
 
@@ -1049,7 +991,7 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i, wr_i;
 		rl[i] = Max(qleftIDS[i], m_smallr);
 		ul[i] = qleftIUS[i];
@@ -1065,43 +1007,32 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 		// First guess
 		wl_i = sqrt(cl[i]);
 		wr_i = sqrt(cr[i]);
-		pstar[i] =
-		    Max(((wr_i * pl[i] + wl_i * pr[i]) +
-			 wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), 0.0);
+		pstar[i] = Max(((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), 0.0);
 	}
 
 	// solve the riemann problem on the interfaces of this slice
-	// for (uint32_t iter = 0; iter < m_niter_riemann; iter++) {
+	// for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #pragma loop_count min=1, max=20, avg=10
 // #pragma unroll(5)
-	for (uint32_t iter = 0; iter < m_niter_riemann; iter++) {
+	for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
 #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-		for (uint32_t i = xmin; i < xmax; i++) {
+		for (int32_t i = xmin; i < xmax; i++) {
 			if (goon[i] > 0) {
 				real_t pst = pstar[i];
 				// Newton-Raphson iterations to find pstar at the required accuracy
-				real_t wwl =
-				    sqrt(cl[i] *
-					 (one +
-					  gamma6 * (pst - pl[i]) / pl[i]));
-				real_t wwr =
-				    sqrt(cr[i] *
-					 (one +
-					  gamma6 * (pst - pr[i]) / pr[i]));
+				real_t wwl = sqrt(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
+				real_t wwr = sqrt(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
 				real_t swwl = Square(wwl);
 				real_t ql = two * wwl * swwl / (swwl + cl[i]);
-				real_t qr =
-				    two * wwr * Square(wwr) / (Square(wwr) +
-							       cr[i]);
+				real_t qr = two * wwr * Square(wwr) / (Square(wwr) + cr[i]);
 				real_t usl = ul[i] - (pst - pl[i]) / wwl;
 				real_t usr = ur[i] + (pst - pr[i]) / wwr;
-				real_t tmp =
-				    (qr * ql / (qr + ql) * (usl - usr));
+				real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
 				real_t delp_i = Max(tmp, (-pst));
 				// pstar[i] = pstar[i] + delp_i;
 				pst += delp_i;
@@ -1120,20 +1051,16 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
+	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i = sqrt(cl[i]);
 		real_t wr_i = sqrt(cr[i]);
 
-		wr_i =
-		    sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
-		wl_i =
-		    sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
+		wr_i = sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
+		wl_i = sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
 
-		real_t ustar_i =
-		    half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] -
-			    (pr[i] - pstar[i]) / wr_i);
+		real_t ustar_i = half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
 
-		int left = ustar_i > 0;
+		real_t left = ustar_i > 0;
 
 		real_t ro_i, uo_i, po_i, wo_i;
 
@@ -1159,8 +1086,7 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 		real_t co_i = sqrt(Fabs(m_gamma * po_i / ro_i));
 		co_i = Max(m_smallc, co_i);
 
-		real_t rstar_i =
-		    ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
+		real_t rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
 		rstar_i = Max(rstar_i, m_smallr);
 
 		real_t cstar_i = sqrt(Fabs(m_gamma * pstar[i] / rstar_i));
@@ -1176,8 +1102,7 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 		}
 
 		real_t scr_i = Max((real_t) (spout_i - spin_i),
-				   (real_t) (m_smallc +
-					     Fabs(spout_i + spin_i)));
+				   (real_t) (m_smallc + Fabs(spout_i + spin_i)));
 
 		real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
 		frac_i = Max(zero, (real_t) (Min(one, frac_i)));
@@ -1211,11 +1136,11 @@ void Tile::riemannOnRow(uint32_t xmin, uint32_t xmax, real_t smallp,
 		// } else {
 		//   qgdnvIVS[i] = qrightIVS[i];
 		// }
-		qgdnvIVS[i] = left * qleftIVS[i] + (1 - left) * qrightIVS[i];
+		qgdnvIVS[i] = left * qleftIVS[i] + (1.0 - left) * qrightIVS[i];
 	}
 }
 
-void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
+void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 			      real_t gamma6, real_t smallpp,
 			      real_t * __restrict__ qgdnvIDS,
 			      real_t * __restrict__ qgdnvIUS,
@@ -1226,9 +1151,9 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 			      real_t * __restrict__ qleftIPS,
 			      real_t * __restrict__ qleftIVS,
 			      real_t * __restrict__ qrightIDS,
-			      real_t * __restrict__ qrightIUS,
-			      real_t * __restrict__ qrightIPS,
-			      real_t * __restrict__ qrightIVS,
+			      real_t * __restrict__ qrightIUS, 
+			      real_t * __restrict__ qrightIPS, 
+			      real_t * __restrict__ qrightIVS, 
 			      real_t * __restrict__ sgnm)
 {
 
@@ -1238,8 +1163,13 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-	for (uint32_t i = xmin; i < xmax; i++) {
-		long goonI;
+
+#if OMPOVERLOAD == 1
+#pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm) schedule(static, 8)
+#endif
+#pragma simd
+	for (int32_t i = xmin; i < xmax; i++) {
+		long goonI; 
 		real_t pstarI;
 		real_t rlI;
 		real_t ulI;
@@ -1268,29 +1198,20 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 		// First guess
 		wl_i = sqrt(clI);
 		wr_i = sqrt(crI);
-		pstarI =
-		    Max(((wr_i * plI + wl_i * prI) +
-			 wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), 0.0);
+		pstarI = Max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), 0.0);
 #pragma ivdep
-		for (uint32_t iter = 0; iter < 5; iter++) {
+		for (int32_t iter = 0; iter < 10; iter++) {
 			if (goonI > 0) {
 				real_t pst = pstarI;
 				// Newton-Raphson iterations to find pstar at the required accuracy
-				real_t wwl =
-				    sqrt(clI *
-					 (one + gamma6 * (pst - plI) / plI));
-				real_t wwr =
-				    sqrt(crI *
-					 (one + gamma6 * (pst - prI) / prI));
+				real_t wwl = sqrt(clI * (one + gamma6 * (pst - plI) / plI));
+				real_t wwr = sqrt(crI * (one + gamma6 * (pst - prI) / prI));
 				real_t swwl = Square(wwl);
 				real_t ql = two * wwl * swwl / (swwl + clI);
-				real_t qr =
-				    two * wwr * Square(wwr) / (Square(wwr) +
-							       crI);
+				real_t qr = two * wwr * Square(wwr) / (Square(wwr) + crI);
 				real_t usl = ulI - (pst - plI) / wwl;
 				real_t usr = urI + (pst - prI) / wwr;
-				real_t tmp =
-				    (qr * ql / (qr + ql) * (usl - usr));
+				real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
 				real_t delp_i = Max(tmp, (-pst));
 				// pstarI = pstarI + delp_i;
 				pst += delp_i;
@@ -1301,13 +1222,39 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 				// FLOPS(29, 10, 2, 0);
 				pstarI = pst;
 			}
+			// // Optimization MIC 
+			// // Delete the if condition to optimize the vectorisation
+			// //if (goonI > 0) {
+			// real_t pst = pstarI;
+			// // Newton-Raphson iterations to find pstar at the required accuracy
+			// real_t wwl = sqrt(clI * (one + gamma6 * (pst - plI) / plI));
+			// real_t wwr = sqrt(crI * (one + gamma6 * (pst - prI) / prI));
+			// real_t swwl = Square(wwl);
+			// real_t ql = two * wwl * swwl / (swwl + clI);
+			// real_t qr = two * wwr * Square(wwr) / (Square(wwr) + crI);
+			// real_t usl = ulI - (pst - plI) / wwl;
+			// real_t usr = urI + (pst - prI) / wwr;
+			// real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
+			// real_t delp_i = Max(tmp, (-pst));
+			// // pstarI = pstarI + delp_i;
+			// pst += delp_i;
+			// // Convergence indicator
+			// real_t tmp2 = delp_i / (pst + smallpp);
+			// real_t uo_i = Fabs(tmp2);
+			// // Optimization MIC 
+			// // We calculate the goonI and the pstarI with the goonI variable condition
+			// //goonI = uo_i > PRECISION;
+			// real_t rgoonI = (real_t) goonI;
+			// pstarI = (pst * rgoonI) + (pstarI * (1.0L - rgoonI));
+			// goonI = (uo_i > PRECISION) * goonI;
+			// // FLOPS(29, 10, 2, 0);
+			// //pstarI = pst;
+			// //}
 		}
 		wr_i = sqrt(crI * (one + gamma6 * (pstarI - prI) / prI));
 		wl_i = sqrt(clI * (one + gamma6 * (pstarI - plI) / plI));
 
-		real_t ustar_i =
-		    half * (ulI + (plI - pstarI) / wl_i + urI -
-			    (prI - pstarI) / wr_i);
+		real_t ustar_i = half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
 		int left = ustar_i > 0;
 
@@ -1322,8 +1269,7 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 		real_t co_i = sqrt(Fabs(m_gamma * po_i / ro_i));
 		co_i = Max(m_smallc, co_i);
 
-		real_t rstar_i =
-		    ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
+		real_t rstar_i = ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
 		rstar_i = Max(rstar_i, m_smallr);
 
 		real_t cstar_i = sqrt(Fabs(m_gamma * pstarI / rstar_i));
@@ -1339,8 +1285,7 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 		}
 
 		real_t scr_i = Max((real_t) (spout_i - spin_i),
-				   (real_t) (m_smallc +
-					     Fabs(spout_i + spin_i)));
+				   (real_t) (m_smallc + Fabs(spout_i + spin_i)));
 
 		real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
 		frac_i = Max(zero, (real_t) (Min(one, frac_i)));
@@ -1374,13 +1319,13 @@ void Tile::riemannOnRowInRegs(uint32_t xmin, uint32_t xmax, real_t smallp,
 		// } else {
 		//   qgdnvIVS[i] = qrightIVS[i];
 		// }
-		qgdnvIVS[i] = left * qleftIVS[i] + (1 - left) * qrightIVS[i];
+		qgdnvIVS[i] = left * qleftIVS[i] + (1.0L - left) * qrightIVS[i];
 	}
 }
 
 void Tile::riemann()
 {
-	uint32_t xmin, xmax, ymin, ymax;
+	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &qgdnvID = *(*m_qgdnv) (ID_VAR);
 	Matrix2 < real_t > &qgdnvIU = *(*m_qgdnv) (IU_VAR);
 	Matrix2 < real_t > &qgdnvIP = *(*m_qgdnv) (IP_VAR);
@@ -1400,7 +1345,7 @@ void Tile::riemann()
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	for (uint32_t s = ymin; s < ymax; s++) {
+	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *qgdnvIDS = qgdnvID.getRow(s);
 		real_t *qgdnvIUS = qgdnvIU.getRow(s);
 		real_t *qgdnvIPS = qgdnvIP.getRow(s);
@@ -1416,22 +1361,11 @@ void Tile::riemann()
 #if RIEMANNINREGS == 0
 		riemannOnRow(xmin, xmax, smallp, gamma6, smallpp,
 			     qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS,
-			     qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
-			     qrightIPS, qrightIVS, m_goon, m_sgnm, m_pstar,
-			     m_rl, m_ul, m_pl, m_rr, m_ur, m_pr, m_cl, m_cr);
+			     qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_goon, m_sgnm, m_pstar, m_rl, m_ul, m_pl, m_rr, m_ur, m_pr, m_cl, m_cr);
 #else
 		riemannOnRowInRegs(xmin, xmax, smallp,
 				   gamma6, smallpp,
-				   qgdnvIDS,
-				   qgdnvIUS,
-				   qgdnvIPS,
-				   qgdnvIVS,
-				   qleftIDS,
-				   qleftIUS,
-				   qleftIPS,
-				   qleftIVS,
-				   qrightIDS,
-				   qrightIUS, qrightIPS, qrightIVS, m_sgnm);
+				   qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_sgnm);
 #endif
 	}
 	if (m_prt)
@@ -1446,7 +1380,7 @@ void Tile::riemann()
 
 void Tile::boundary_init()
 {
-	uint32_t size, ivar, i, j, i0, j0;
+	int32_t size, ivar, i, j, i0, j0;
 
 	if (m_scan == X_SCAN) {
 		size = pack_arrayv(m_ExtraLayer, m_sendbufld);
@@ -1461,17 +1395,14 @@ void Tile::boundary_init()
 
 void Tile::boundary_process()
 {
-	uint32_t size, ivar, i, j, i0, j0;
+	int32_t size, ivar, i, j, i0, j0;
 
 	if (m_scan == X_SCAN) {
 		if (m_voisin[RIGHT_TILE] != 0) {
-			size =
-			    unpack_arrayv(m_nx + m_ExtraLayer,
-					  m_voisin[RIGHT_TILE]->m_sendbufld);
+			size = unpack_arrayv(m_nx + m_ExtraLayer, m_voisin[RIGHT_TILE]->m_sendbufld);
 		}
 		if (m_voisin[LEFT_TILE] != 0) {
-			size =
-			    unpack_arrayv(0, m_voisin[LEFT_TILE]->m_sendbufru);
+			size = unpack_arrayv(0, m_voisin[LEFT_TILE]->m_sendbufru);
 		}
 	}			// X_SCAN
 
@@ -1480,8 +1411,7 @@ void Tile::boundary_process()
 			unpack_arrayh(0, m_voisin[DOWN_TILE]->m_sendbufld);
 		}
 		if (m_voisin[UP_TILE] != 0) {
-			unpack_arrayh(m_ny + m_ExtraLayer,
-				      m_voisin[UP_TILE]->m_sendbufru);
+			unpack_arrayh(m_ny + m_ExtraLayer, m_voisin[UP_TILE]->m_sendbufru);
 		}
 	}			// Y_SCAN
 	Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
@@ -1489,16 +1419,16 @@ void Tile::boundary_process()
 		uold.printFormatted("tile uold boundary_process");
 }
 
-uint32_t Tile::pack_arrayv(uint32_t xoffset, real_t * buffer)
+int32_t Tile::pack_arrayv(int32_t xoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = ymin; j < ymax; j++) {
-#pragma ivdep
+// #pragma ivdep
 			for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
 				buffer[p++] = uold(i + m_offx, j + m_offy);
 			}
@@ -1507,16 +1437,16 @@ uint32_t Tile::pack_arrayv(uint32_t xoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Tile::unpack_arrayv(uint32_t xoffset, real_t * buffer)
+int32_t Tile::unpack_arrayv(int32_t xoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = ymin; j < ymax; j++) {
-#pragma ivdep
+// #pragma ivdep
 			for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
 				uold(i + m_offx, j + m_offy) = buffer[p++];
 			}
@@ -1525,16 +1455,16 @@ uint32_t Tile::unpack_arrayv(uint32_t xoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Tile::pack_arrayh(uint32_t yoffset, real_t * buffer)
+int32_t Tile::pack_arrayh(int32_t yoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
-#pragma ivdep
+// #pragma ivdep
 			for (i = xmin; i < xmax; i++) {
 				buffer[p++] = uold(i + m_offx, j + m_offy);
 			}
@@ -1543,16 +1473,16 @@ uint32_t Tile::pack_arrayh(uint32_t yoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Tile::unpack_arrayh(uint32_t yoffset, real_t * buffer)
+int32_t Tile::unpack_arrayh(int32_t yoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
-#pragma ivdep
+// #pragma ivdep
 			for (i = xmin; i < xmax; i++) {
 				uold(i + m_offx, j + m_offy) = buffer[p++];
 			}

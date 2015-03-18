@@ -20,10 +20,9 @@
 
 using namespace std;
 
-ThreadBuffers::ThreadBuffers(uint32_t xmin, uint32_t xmax, uint32_t ymin,
-			     uint32_t ymax)
+ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
 {
-	uint32_t lgx, lgy, lgmax;
+	int32_t lgx, lgy, lgmax;
 	lgx = (xmax - xmin);
 	lgy = (ymax - ymin);
 	lgmax = lgx;
@@ -101,7 +100,7 @@ void
  ThreadBuffers::swapStorageDims()
 {
 #pragma novector
-	for (uint32_t i = 0; i < NB_VAR; i++) {
+	for (int32_t i = 0; i < NB_VAR; i++) {
 		Matrix2 < real_t > *m;
 		m = (*m_q) (i);
 		m->swapDimOnly();

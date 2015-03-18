@@ -14,9 +14,7 @@
 #include "EnumDefs.hpp"
 #include "Utilities.hpp"
 
-void
-CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax,
-	       int *box, int mype)
+void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, int *box, int mype)
 {
 	int nbpe = (pmax - pmin + 1);
 	int ny = (int)sqrt(nbpe);
@@ -46,14 +44,9 @@ CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax,
 
 		if (lastdevider == 1) {
 			if (mype == 0) {
-				fprintf(stderr,
-					"\tERROR: %d can't be devided evenly in x and y\n",
-					nbpe);
-				fprintf(stderr,
-					"\tERROR: closest value is %d\n",
-					nx * ny);
-				fprintf(stderr,
-					"\tERROR: please adapt the number of process\n");
+				fprintf(stderr, "\tERROR: %d can't be devided evenly in x and y\n", nbpe);
+				fprintf(stderr, "\tERROR: closest value is %d\n", nx * ny);
+				fprintf(stderr, "\tERROR: please adapt the number of process\n");
 			}
 #ifdef MPI_ON
 			MPI_Finalize();
@@ -110,20 +103,22 @@ CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax,
 		box[RIGHT_D] = -1;
 }
 
-void getCPUName(char cpuName[1024]) {
+void getCPUName(char cpuName[1024])
+{
 	char cmd[1024];
 	memset(cmd, 0, 1024);
 	sprintf(cmd, "/proc/cpuinfo");
 	FILE *fic = fopen(cmd, "r");
-	
+
 	if (fic != 0) {
 		while (!feof(fic)) {
-			char * l = fgets(cmd, 1023, fic);
+			char *l = fgets(cmd, 1023, fic);
 			if (strstr(cmd, "model name") != NULL) {
 				char *p = strchr(cmd, ':');
 				strcpy(cpuName, p);
 				p = strchr(cpuName, '\n');
-				if (p) *p = 0;
+				if (p)
+					*p = 0;
 			}
 		}
 		fclose(fic);

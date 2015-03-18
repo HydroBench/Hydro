@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <cerrno>
-#include <stdint.h>		// for the definition of uint32_t
+#include <stdint.h>		// for the definition of int32_t
 
 #include "Soa.hpp"
 #include "EnumDefs.hpp"
@@ -37,8 +37,7 @@ class ThreadBuffers {
  protected:
  public:
 	// basic constructor
-	 ThreadBuffers(uint32_t xmin, uint32_t xmax, uint32_t ymin,
-		       uint32_t ymax);
+	 ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
 	// destructor
 	~ThreadBuffers();
 	void swapStorageDims();

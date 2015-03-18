@@ -7,8 +7,7 @@ typedef enum _tileNeighbour {
 } tileNeighbour_t;
 
 typedef enum _boxBoundary {
-	XMIN_D =
-	    0, XMAX_D, YMIN_D, YMAX_D, UP_D, DOWN_D, LEFT_D, RIGHT_D, MAXBOX_D
+	XMIN_D = 0, XMAX_D, YMIN_D, YMAX_D, UP_D, DOWN_D, LEFT_D, RIGHT_D, MAXBOX_D
 } boxBoundary_t;
 
 typedef enum _tileSpan {
@@ -28,8 +27,8 @@ typedef enum _godunovScheme {
 } godunovScheme_t;
 
 typedef enum _protectionMode {
-  PROT_LENGTH = 1,
-  PROT_READ, PROT_WRITE
+	PROT_LENGTH = 1,
+	PROT_READ, PROT_WRITE
 } protectionMode_t;
 
 typedef enum _funcNames {

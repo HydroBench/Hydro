@@ -42,12 +42,10 @@ template < typename T > static inline void Swap(T & x, T & y)
 // }
 #define Fabs(x) (((x) > 0) ? (x) : -(x))
 
-void
-CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax,
-	       int box[MAXBOX_D], int mype);
+void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, int box[MAXBOX_D], int mype);
 
 long getMemUsed(void);
-void getCPUName(char cpuName[1024]) ;
+void getCPUName(char cpuName[1024]);
 
 real_t *AlignedAllocReal(size_t lg);
 int *AlignedAllocInt(size_t lg);

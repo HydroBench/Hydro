@@ -21,7 +21,7 @@
 // Soa::Soa(void) { }
 
 // template <typename T> 
- Soa::Soa(uint32_t nb, uint32_t w, uint32_t h):m_nbElem(nb)
+ Soa::Soa(int32_t nb, int32_t w, int32_t h):m_nbElem(nb)
 {
 	m_tab = new Matrix2 < double >*[m_nbElem];
 #pragma novector
@@ -37,33 +37,35 @@ Soa::~Soa()
 	for (int i = 0; i < m_nbElem; ++i) {
 		delete m_tab[i];
 	}
-	delete [] m_tab;
+	delete[]m_tab;
 }
-
 
 long Soa::getLengthByte()
 {
-  long lgr = 0;
+	long lgr = 0;
 #pragma novector
 	for (int i = 0; i < m_nbElem; ++i) {
-	  lgr += m_tab[i]->getLengthByte();
+		lgr += m_tab[i]->getLengthByte();
 	}
 	return lgr;
-} 
+}
+
 void Soa::read(const int f)
 {
 #pragma novector
 	for (int i = 0; i < m_nbElem; ++i) {
-	  m_tab[i]->read(f);
+		m_tab[i]->read(f);
 	}
-} 
+}
+
 void Soa::write(const int f)
 {
 #pragma novector
 	for (int i = 0; i < m_nbElem; ++i) {
-	  m_tab[i]->write(f);
+		m_tab[i]->write(f);
 	}
 }
+
 // template <typename T> 
 // Soa::Soa(const Soa & obj) { }
 
@@ -71,10 +73,10 @@ void Soa::write(const int f)
 // Soa & Soa::operator=(const Soa & rhs) { }
 
 // template <typename T> 
-// Soa & Soa::operator() (uint32_t i) { }
+// Soa & Soa::operator() (int32_t i) { }
 
 // template <typename T> 
-// Soa & Soa::operator() (uint32_t i) const { }
+// Soa & Soa::operator() (int32_t i) const { }
 
 // Instantion of the needed types for the linker
 // template class Soa<the_type>;

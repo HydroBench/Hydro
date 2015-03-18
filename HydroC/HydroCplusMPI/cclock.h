@@ -10,17 +10,16 @@
 
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-  struct timespec cclock(void); // for high precision operations on time
-  double dcclock(void);         // might loose some precision 
+	struct timespec cclock(void);	// for high precision operations on time
+	double dcclock(void);	// might loose some precision 
 
-  double ccelaps(struct timespec start, struct timespec end);
+	double ccelaps(struct timespec start, struct timespec end);
 	void convertToHuman(char *s, double t);
 #ifdef __cplusplus
 };
 #endif
 
-#endif // CCLOCK_H
+#endif				// CCLOCK_H

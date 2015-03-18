@@ -80,8 +80,7 @@ char *ToBase64(unsigned char *data, int length)
 
 	s = (char *)malloc(lalloc);
 	if (s == NULL) {
-		fprintf(stderr, "Length=%d, blocks=%d lalloc=%ld\n", length,
-			blocks, lalloc);
+		fprintf(stderr, "Length=%d, blocks=%d lalloc=%ld\n", length, blocks, lalloc);
 	}
 	assert(s != NULL);
 
@@ -133,8 +132,7 @@ void vtkwpvd(int nout, const char *r)
 
 	vf = fopen("Hydro.pvd", "w");
 	fprintf(vf, "<?xml version=\"1.0\"?>\n");
-	fprintf(vf,
-		" <VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
+	fprintf(vf, " <VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(vf, "  <Collection>\n");
 
 #pragma novector
@@ -143,9 +141,7 @@ void vtkwpvd(int nout, const char *r)
 		sprintf(n, "Dep/%c%c%c%c", tmp[0], tmp[1], tmp[2], tmp[3]);
 		sprintf(n, "%s/%c%c", n, tmp[4], tmp[5]);
 		sprintf(vfname, "%s/Hydro_%04d.pvtr", n, i);
-		fprintf(vf,
-			"  <DataSet timestep=\"%d\" part=\"0\" file=\"%s\"  name=\"Asmb:FRAME\"/>\n",
-			i, vfname);
+		fprintf(vf, "  <DataSet timestep=\"%d\" part=\"0\" file=\"%s\"  name=\"Asmb:FRAME\"/>\n", i, vfname);
 	}
 
 	fprintf(vf, " </Collection>\n");
@@ -200,33 +196,24 @@ void Domain::vtkfile(int step)
 		abort();
 	}
 	fprintf(fic, "<?xml version=\"1.0\"?>\n");
-	fprintf(fic,
-		"<VTKFile type=\"RectilinearGrid\" byte_order=\"LittleEndian\">\n");
-	fprintf(fic, " <RectilinearGrid WholeExtent=\" %d %d %d %d %d %d\">\n",
-		m_box[XMIN_D], m_box[XMAX_D], m_box[YMIN_D], m_box[YMAX_D], 0,
-		1);
-	fprintf(fic,
-		"  <Piece Extent=\" %d %d %d %d %d %d\" GhostLevel=\"0\">\n",
-		m_box[XMIN_D], m_box[XMAX_D], m_box[YMIN_D], m_box[YMAX_D], 0,
-		1);
+	fprintf(fic, "<VTKFile type=\"RectilinearGrid\" byte_order=\"LittleEndian\">\n");
+	fprintf(fic, " <RectilinearGrid WholeExtent=\" %d %d %d %d %d %d\">\n", m_box[XMIN_D], m_box[XMAX_D], m_box[YMIN_D], m_box[YMAX_D], 0, 1);
+	fprintf(fic, "  <Piece Extent=\" %d %d %d %d %d %d\" GhostLevel=\"0\">\n", m_box[XMIN_D], m_box[XMAX_D], m_box[YMIN_D], m_box[YMAX_D], 0, 1);
 	fprintf(fic, "   <Coordinates>\n");
 
-	fprintf(fic,
-		"    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
+	fprintf(fic, "    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
 	for (i = m_box[XMIN_D]; i <= m_box[XMAX_D]; i++) {
 		fprintf(fic, "%f ", i * m_dx);
 	}
 	fprintf(fic, "\n");
 	fprintf(fic, "    </DataArray>\n");
-	fprintf(fic,
-		"    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
+	fprintf(fic, "    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
 	for (j = m_box[YMIN_D]; j <= m_box[YMAX_D]; j++) {
 		fprintf(fic, "%f ", j * m_dx);
 	}
 	fprintf(fic, "\n");
 	fprintf(fic, "    </DataArray>\n");
-	fprintf(fic,
-		"    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
+	fprintf(fic, "    <DataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\">\n");
 	fprintf(fic, "%f %f\n", 0., 1. * m_dx);
 	fprintf(fic, "    </DataArray>\n");
 	fprintf(fic, "   </Coordinates>\n");
@@ -257,27 +244,22 @@ void Domain::vtkfile(int step)
 
 		//Definition of the cell values
 #if BINARY == 1
-		fprintf(fic,
-			"    <DataArray Name=\"%s\" type=\"Float32\" format=\"binary\" encoding=\"base64\" NumberOfComponents=\"1\">\n",
-			name);
+		fprintf(fic, "    <DataArray Name=\"%s\" type=\"Float32\" format=\"binary\" encoding=\"base64\" NumberOfComponents=\"1\">\n", name);
 		{
 			Matrix2 < real_t > &uold = *(*m_uold) (nv);
 			// float tuold[H.nxt * H.nyt];
-			uint32_t xmin, xmax, ymin, ymax;
+			int32_t xmin, xmax, ymin, ymax;
 			getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 			float *tuold = NULL;
 			char *r64;
 			size_t p = 0, lst;
 
 			assert((xmax * ymax) > 0);
-			tuold =
-			    (float *)calloc(xmax * ymax + 16, sizeof(float));
+			tuold = (float *)calloc(xmax * ymax + 16, sizeof(float));
 			assert(tuold != NULL);
 
-			for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer;
-			     j++) {
-				for (i = xmin + m_ExtraLayer;
-				     i < xmax - m_ExtraLayer; i++) {
+			for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
+				for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 					tuold[p++] = (float)uold(i, j);
 				}
 			}
@@ -296,14 +278,11 @@ void Domain::vtkfile(int step)
 			free(tuold);
 		}
 #else
-		fprintf(fic,
-			"    <DataArray type=\"Float32\" Name=\"%s\" format=\"ascii\" NumberOfComponents=\"1\">\n",
-			name);
+		fprintf(fic, "    <DataArray type=\"Float32\" Name=\"%s\" format=\"ascii\" NumberOfComponents=\"1\">\n", name);
 
 		// the image is the interior of the computed domain
 		for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
-			for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer;
-			     i++) {
+			for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
 				fprintf(fic, "%lf ", Hv->uold[IHv(i, j, nv)]);
 			}
 			fprintf(fic, "\n");
@@ -330,16 +309,12 @@ void Domain::vtkfile(int step)
 		sprintf(name, "%s/Hydro_%04d.pvtr", vfrname, step);
 		vf = fopen(name, "w");
 		if (vf == NULL) {
-			fprintf(stderr, "Ouverture du fichier %s impossible\n",
-				name);
+			fprintf(stderr, "Ouverture du fichier %s impossible\n", name);
 			abort();
 		}
 		fprintf(vf, "<?xml version=\"1.0\"?>\n");
-		fprintf(vf,
-			"<VTKFile type=\"PRectilinearGrid\" byte_order=\"LittleEndian\">\n");
-		fprintf(vf,
-			"<PRectilinearGrid WholeExtent=\"0 %d 0 %d 0 %d\"  GhostLevel=\"0\" >\n",
-			m_globNx, m_globNy, 1);
+		fprintf(vf, "<VTKFile type=\"PRectilinearGrid\" byte_order=\"LittleEndian\">\n");
+		fprintf(vf, "<PRectilinearGrid WholeExtent=\"0 %d 0 %d 0 %d\"  GhostLevel=\"0\" >\n", m_globNx, m_globNy, 1);
 		fprintf(vf, " <PCellData>\n");
 #pragma novector
 		for (nv = 0; nv < NB_VAR; nv++) {
@@ -354,41 +329,30 @@ void Domain::vtkfile(int step)
 				sprintf(name, "varIP");
 
 #if BINARY == 1
-			fprintf(vf,
-				"  <PDataArray Name=\"%s\" type=\"Float32\" format=\"binary\" encoding=\"base64\" NumberOfComponents=\"1\"/>\n",
-				name);
+			fprintf(vf, "  <PDataArray Name=\"%s\" type=\"Float32\" format=\"binary\" encoding=\"base64\" NumberOfComponents=\"1\"/>\n", name);
 #else
-			fprintf(vf,
-				"  <PDataArray Name=\"%s\" type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n",
-				name);
+			fprintf(vf, "  <PDataArray Name=\"%s\" type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n", name);
 #endif
 		}
 		fprintf(vf, " </PCellData>\n");
 		fprintf(vf, " <PCoordinates>\n");
-		fprintf(vf,
-			"  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
-		fprintf(vf,
-			"  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
-		fprintf(vf,
-			"  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
+		fprintf(vf, "  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
+		fprintf(vf, "  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
+		fprintf(vf, "  <PDataArray type=\"Float32\" format=\"ascii\" NumberOfComponents=\"1\"/>\n");
 		fprintf(vf, " </PCoordinates>\n");
 		for (i = 0; i < m_nProc; i++) {
 			int box[8];
 			memset(box, 0, 8 * sizeof(int));
-			CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1,
-				       box, i);
+			CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, box, i);
 			sprintf(name, "Hydro_%05d_%04d.vtr", i, step);
-			fprintf(vf,
-				" <Piece Extent=\"%d %d %d %d %d %d\" Source=\"%s\"/>\n",
-				box[XMIN_D], box[XMAX_D], box[YMIN_D],
-				box[YMAX_D], 0, 1, name);
+			fprintf(vf, " <Piece Extent=\"%d %d %d %d %d %d\" Source=\"%s\"/>\n", box[XMIN_D], box[XMAX_D], box[YMIN_D], box[YMAX_D], 0, 1, name);
 		}
 		fprintf(vf, "</PRectilinearGrid>\n");
 		fprintf(vf, "</VTKFile>\n");
 		fclose(vf);
 
 		// We make the time step available only now to ensure consistency
-		vtkwpvd(step, (const char *) ("Dep"));
+		vtkwpvd(step, (const char *)("Dep"));
 	}
 }
 

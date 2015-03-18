@@ -35,7 +35,7 @@ using namespace std;
 
 void Domain::boundary_init()
 {
-	uint32_t size, ivar, i, j, i0, j0;
+	int32_t size, ivar, i, j, i0, j0;
 	int sign;
 #ifdef MPI_ON
 	MPI_Request requests[4];
@@ -56,27 +56,19 @@ void Domain::boundary_init()
 			size = pack_arrayv(m_nx, m_sendbufru);
 
 			if (m_box[RIGHT_D] != -1) {
-				MPI_Isend(m_sendbufru, size, mpiFormat,
-					  m_box[RIGHT_D], 123, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Isend(m_sendbufru, size, mpiFormat, m_box[RIGHT_D], 123, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[LEFT_D] != -1) {
-				MPI_Isend(m_sendbufld, size, mpiFormat,
-					  m_box[LEFT_D], 246, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Isend(m_sendbufld, size, mpiFormat, m_box[LEFT_D], 246, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[RIGHT_D] != -1) {
-				MPI_Irecv(m_recvbufru, size, mpiFormat,
-					  m_box[RIGHT_D], 246, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Irecv(m_recvbufru, size, mpiFormat, m_box[RIGHT_D], 246, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[LEFT_D] != -1) {
-				MPI_Irecv(m_recvbufld, size, mpiFormat,
-					  m_box[LEFT_D], 123, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Irecv(m_recvbufld, size, mpiFormat, m_box[LEFT_D], 123, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 		}
@@ -90,27 +82,19 @@ void Domain::boundary_init()
 			size = pack_arrayh(m_ny, m_sendbufru);
 
 			if (m_box[DOWN_D] != -1) {
-				MPI_Isend(m_sendbufld, size, mpiFormat,
-					  m_box[DOWN_D], 123, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Isend(m_sendbufld, size, mpiFormat, m_box[DOWN_D], 123, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[UP_D] != -1) {
-				MPI_Isend(m_sendbufru, size, mpiFormat,
-					  m_box[UP_D], 246, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Isend(m_sendbufru, size, mpiFormat, m_box[UP_D], 246, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[DOWN_D] != -1) {
-				MPI_Irecv(m_recvbufld, size, mpiFormat,
-					  m_box[DOWN_D], 246, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Irecv(m_recvbufld, size, mpiFormat, m_box[DOWN_D], 246, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 			if (m_box[UP_D] != -1) {
-				MPI_Irecv(m_recvbufru, size, mpiFormat,
-					  m_box[UP_D], 123, MPI_COMM_WORLD,
-					  &requests[reqcnt]);
+				MPI_Irecv(m_recvbufru, size, mpiFormat, m_box[UP_D], 123, MPI_COMM_WORLD, &requests[reqcnt]);
 				reqcnt++;
 			}
 		}
@@ -126,8 +110,8 @@ void Domain::boundary_init()
 
 void Domain::boundary_process()
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t size, ivar, i, j, i0, j0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t size, ivar, i, j, i0, j0;
 	int sign;
 #ifdef MPI_ON
 	MPI_Request requests[4];
@@ -168,8 +152,8 @@ void Domain::boundary_process()
 					} else {
 						i0 = m_nx + i;	// CL periodique
 					}
-					for (j = ymin + m_ExtraLayer;
-					     j < ymax - m_ExtraLayer; j++) {
+#pragma ivdep
+					for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
 						uold(i, j) = uold(i0, j) * sign;
 					}
 				}
@@ -180,12 +164,10 @@ void Domain::boundary_process()
 			// Right boundary
 			for (ivar = 0; ivar < NB_VAR; ivar++) {
 				Matrix2 < real_t > &uold = *(*m_uold) (ivar);
-				for (i = m_nx + m_ExtraLayer;
-				     i < m_nx + 2 * m_ExtraLayer; i++) {
+				for (i = m_nx + m_ExtraLayer; i < m_nx + 2 * m_ExtraLayer; i++) {
 					sign = 1.0;
 					if (m_boundary_right == 1) {
-						i0 = 2 * m_nx +
-						    2 * m_ExtraLayer - i - 1;
+						i0 = 2 * m_nx + 2 * m_ExtraLayer - i - 1;
 						if (ivar == IU_VAR) {
 							sign = -1;
 						}
@@ -194,8 +176,8 @@ void Domain::boundary_process()
 					} else {
 						i0 = i - m_nx;
 					}
-					for (j = ymin + m_ExtraLayer;
-					     j < ymax - m_ExtraLayer; j++) {
+#pragma ivdep
+					for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
 						uold(i, j) = uold(i0, j) * sign;
 					}
 				}
@@ -229,8 +211,8 @@ void Domain::boundary_process()
 					} else {
 						j0 = m_ny + j;
 					}
-					for (i = xmin + m_ExtraLayer;
-					     i < xmax - m_ExtraLayer; i++) {
+#pragma ivdep
+					for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 						uold(i, j) = uold(i, j0) * sign;
 					}
 				}
@@ -240,12 +222,10 @@ void Domain::boundary_process()
 		if (m_boundary_up > 0) {
 			for (ivar = 0; ivar < NB_VAR; ivar++) {
 				Matrix2 < real_t > &uold = *(*m_uold) (ivar);
-				for (j = m_ny + m_ExtraLayer;
-				     j < m_ny + 2 * m_ExtraLayer; j++) {
+				for (j = m_ny + m_ExtraLayer; j < m_ny + 2 * m_ExtraLayer; j++) {
 					sign = 1;
 					if (m_boundary_up == 1) {
-						j0 = 2 * m_ny +
-						    2 * m_ExtraLayer - j - 1;
+						j0 = 2 * m_ny + 2 * m_ExtraLayer - j - 1;
 						if (ivar == IV_VAR) {
 							sign = -1;
 						}
@@ -254,8 +234,8 @@ void Domain::boundary_process()
 					} else {
 						j0 = j - m_ny;
 					}
-					for (i = xmin + m_ExtraLayer;
-					     i < xmax - m_ExtraLayer; i++) {
+#pragma ivdep
+					for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 						uold(i, j) = uold(i, j0) * sign;
 					}
 				}
@@ -267,13 +247,13 @@ void Domain::boundary_process()
 		uold.printFormatted("uold boundary_process");
 }
 
-uint32_t Domain::pack_arrayv(uint32_t xoffset, real_t * buffer)
+int32_t Domain::pack_arrayv(int32_t xoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	real_t v;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-	
+
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = ymin; j < ymax; j++) {
@@ -286,12 +266,12 @@ uint32_t Domain::pack_arrayv(uint32_t xoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Domain::unpack_arrayv(uint32_t xoffset, real_t * buffer)
+int32_t Domain::unpack_arrayv(int32_t xoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-	
+
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = ymin; j < ymax; j++) {
@@ -303,10 +283,10 @@ uint32_t Domain::unpack_arrayv(uint32_t xoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Domain::pack_arrayh(uint32_t yoffset, real_t * buffer)
+int32_t Domain::pack_arrayh(int32_t yoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
@@ -320,10 +300,10 @@ uint32_t Domain::pack_arrayh(uint32_t yoffset, real_t * buffer)
 	return p;
 }
 
-uint32_t Domain::unpack_arrayh(uint32_t yoffset, real_t * buffer)
+int32_t Domain::unpack_arrayh(int32_t yoffset, real_t * buffer)
 {
-	uint32_t xmin, xmax, ymin, ymax;
-	uint32_t ivar, i, j, p = 0;
+	int32_t xmin, xmax, ymin, ymax;
+	int32_t ivar, i, j, p = 0;
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (ivar = 0; ivar < NB_VAR; ivar++) {
