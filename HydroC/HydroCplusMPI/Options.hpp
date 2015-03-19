@@ -43,10 +43,10 @@
 
 #ifdef __MIC__
 #define SCHEDULE schedule(dynamic)
-static char * Schedule = "schedule(dynamic)";
+static const char * Schedule = "schedule(dynamic)";
 #else
 #define SCHEDULE schedule(guided)
-static char * Schedule = "schedule(guided)";
+static const char * Schedule = "schedule(guided)";
 #endif
 
 #define WITH_TIMERS 0
