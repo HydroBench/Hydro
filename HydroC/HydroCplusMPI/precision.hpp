@@ -23,4 +23,6 @@ const real_t PRECISION = 1.e-6f;
 
 #endif
 
+typedef real_t * __restrict__ Preal_t;
+
 #endif

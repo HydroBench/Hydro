@@ -48,14 +48,14 @@ class Tile {
 	real_t *m_sgnm;		//
 	real_t *m_pl;
 #if RIEMANNINREGS == 0
-	real_t *m_pstar;
-	real_t *m_rl;
-	real_t *m_ul;
-	real_t *m_ur;
-	real_t *m_pr;
-	real_t *m_cl;
-	real_t *m_cr;
-	real_t *m_rr;
+	Preal_t m_pstar;
+	Preal_t m_rl;
+	Preal_t m_ul;
+	Preal_t m_ur;
+	Preal_t m_pr;
+	Preal_t m_cl;
+	Preal_t m_cr;
+	Preal_t m_rr;
 	long *m_goon;		// 
 #endif
 
@@ -70,82 +70,82 @@ class Tile {
 	// mpi
 	int32_t m_nproc, m_mype;
 	// working arrays
-	real_t *m_recvbufru;	// receive right or up
-	real_t *m_recvbufld;	// receive left or down
-	real_t *m_sendbufru;	// send right or up
-	real_t *m_sendbufld;	// send left or down
+	Preal_t m_recvbufru;	// receive right or up
+	Preal_t m_recvbufld;	// receive left or down
+	Preal_t m_sendbufru;	// send right or up
+	Preal_t m_sendbufld;	// send left or down
 
 	// 
 
 	// compute routines
-	void slopeOnRow(int32_t xmin, int32_t xmax, real_t * __restrict__ qS, real_t * __restrict__ dqS);	// fait
+	void slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS);	// fait
 	void slope();		// fait
-	void traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, real_t zerol, real_t project, real_t * __restrict__ cS, real_t * __restrict__ qIDS, real_t * __restrict__ qIUS, real_t * __restrict__ qIVS, real_t * __restrict__ qIPS, real_t * __restrict__ dqIDS, real_t * __restrict__ dqIUS, real_t * __restrict__ dqIVS, real_t * __restrict__ dqIPS, real_t * __restrict__ pqxpIDS, real_t * __restrict__ pqxpIUS, real_t * __restrict__ pqxpIVS, real_t * __restrict__ pqxpIPS, real_t * __restrict__ pqxmIDS, real_t * __restrict__ pqxmIUS, real_t * __restrict__ pqxmIVS, real_t * __restrict__ pqxmIPS);	// fait
+	void traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, real_t zerol, real_t project, Preal_t cS, Preal_t qIDS, Preal_t qIUS, Preal_t qIVS, Preal_t qIPS, Preal_t dqIDS, Preal_t dqIUS, Preal_t dqIVS, Preal_t dqIPS, Preal_t pqxpIDS, Preal_t pqxpIUS, Preal_t pqxpIVS, Preal_t pqxpIPS, Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS);	// fait
 	void trace();		// fait
-	void qleftrOnRow(int32_t xmin, int32_t xmax, real_t * __restrict__ pqleftS, real_t * __restrict__ pqrightS, real_t * __restrict__ pqxmS, real_t * __restrict__ pqxpS);	// fait
+	void qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS, Preal_t pqxpS);	// fait
 	void qleftr();		// fait
-	void compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, real_t * __restrict__ qgdnvIDS, real_t * __restrict__ qgdnvIUS, real_t * __restrict__ qgdnvIVS, real_t * __restrict__ qgdnvIPS, real_t * __restrict__ fluxIVS, real_t * __restrict__ fluxIUS, real_t * __restrict__ fluxIPS, real_t * __restrict__ fluxIDS);	// fait
+	void compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS);	// fait
 	void compflx();		// fait
-	void eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t * __restrict__ qIDS, real_t * __restrict__ eS, real_t * __restrict__ qIPS, real_t * __restrict__ cS);	// fait
+	void eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS);	// fait
 	void eos(tileSpan_t span);	// fait
 	void constprimOnRow(int32_t xmin, int32_t xmax,
-			    real_t * __restrict__ qIDS,
-			    real_t * __restrict__ qIPS,
-			    real_t * __restrict__ qIVS,
-			    real_t * __restrict__ qIUS,
-			    real_t * __restrict__ uIDS, real_t * __restrict__ uIPS, real_t * __restrict__ uIVS, real_t * __restrict__ uIUS, real_t * __restrict__ eS);
+			    Preal_t qIDS,
+			    Preal_t qIPS,
+			    Preal_t qIVS,
+			    Preal_t qIUS,
+			    Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS);
 	void constprim();	// fait
-	void riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp, real_t * __restrict__ qgdnvIDS, real_t * __restrict__ qgdnvIUS, real_t * __restrict__ qgdnvIPS, real_t * __restrict__ qgdnvIVS, real_t * __restrict__ qleftIDS, real_t * __restrict__ qleftIUS, real_t * __restrict__ qleftIPS, real_t * __restrict__ qleftIVS, real_t * __restrict__ qrightIDS, real_t * __restrict__ qrightIUS, real_t * __restrict__ qrightIPS, real_t * __restrict__ qrightIVS, long *__restrict__ goon, real_t * __restrict__ sgnm, real_t * __restrict__ pstar, real_t * __restrict__ rl, real_t * __restrict__ ul, real_t * __restrict__ pl, real_t * __restrict__ rr, real_t * __restrict__ ur, real_t * __restrict__ pr, real_t * __restrict__ cl, real_t * __restrict__ cr);	// fait
+	void riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIPS, Preal_t qgdnvIVS, Preal_t qleftIDS, Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul, Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr);	// fait
 	void
 	 riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
-			    real_t smallpp, real_t * __restrict__ qgdnvIDS,
-			    real_t * __restrict__ qgdnvIUS,
-			    real_t * __restrict__ qgdnvIPS,
-			    real_t * __restrict__ qgdnvIVS,
-			    real_t * __restrict__ qleftIDS,
-			    real_t * __restrict__ qleftIUS,
-			    real_t * __restrict__ qleftIPS,
-			    real_t * __restrict__ qleftIVS,
-			    real_t * __restrict__ qrightIDS,
-			    real_t * __restrict__ qrightIUS, real_t * __restrict__ qrightIPS, real_t * __restrict__ qrightIVS, real_t * __restrict__ sgnm);
+			    real_t smallpp, Preal_t qgdnvIDS,
+			    Preal_t qgdnvIUS,
+			    Preal_t qgdnvIPS,
+			    Preal_t qgdnvIVS,
+			    Preal_t qleftIDS,
+			    Preal_t qleftIUS,
+			    Preal_t qleftIPS,
+			    Preal_t qleftIVS,
+			    Preal_t qrightIDS,
+			    Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
 	void riemann();		// fait
-	void compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int32_t xmax, real_t * __restrict__ cS, real_t * __restrict__ qIUS, real_t * __restrict__ qIVS);
+	void compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int32_t xmax, Preal_t cS, Preal_t qIUS, Preal_t qIVS);
 	void compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
-				   real_t * __restrict__ qIDS,
-				   real_t * __restrict__ qIPS,
-				   real_t * __restrict__ qIUS,
-				   real_t * __restrict__ qIVS,
-				   real_t * __restrict__ uoldIDS,
-				   real_t * __restrict__ uoldIUS, real_t * __restrict__ uoldIVS, real_t * __restrict__ uoldIPS, real_t * __restrict__ eS);
+				   Preal_t qIDS,
+				   Preal_t qIPS,
+				   Preal_t qIUS,
+				   Preal_t qIVS,
+				   Preal_t uoldIDS,
+				   Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS);
 	real_t compute_dt();
 	void gatherconservXscan(int32_t xmin, int32_t xmax,
-				real_t * __restrict__ uIDS,
-				real_t * __restrict__ uIUS,
-				real_t * __restrict__ uIVS,
-				real_t * __restrict__ uIPS,
-				real_t * __restrict__ uoldIDS, real_t * __restrict__ uoldIUS, real_t * __restrict__ uoldIVS, real_t * __restrict__ uoldIPS);
+				Preal_t uIDS,
+				Preal_t uIUS,
+				Preal_t uIVS,
+				Preal_t uIPS,
+				Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS);
 	void gatherconservYscan();
 	void updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
-				real_t * __restrict__ uIDS,
-				real_t * __restrict__ uIUS,
-				real_t * __restrict__ uIVS,
-				real_t * __restrict__ uIPS,
-				real_t * __restrict__ uoldIDS,
-				real_t * __restrict__ uoldIUS,
-				real_t * __restrict__ uoldIVS,
-				real_t * __restrict__ uoldIPS,
-				real_t * __restrict__ fluxIDS, real_t * __restrict__ fluxIVS, real_t * __restrict__ fluxIUS, real_t * __restrict__ fluxIPS);
+				Preal_t uIDS,
+				Preal_t uIUS,
+				Preal_t uIVS,
+				Preal_t uIPS,
+				Preal_t uoldIDS,
+				Preal_t uoldIUS,
+				Preal_t uoldIVS,
+				Preal_t uoldIPS,
+				Preal_t fluxIDS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS);
 	void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 				int32_t ymin, int32_t ymax, real_t dtdx,
 				Matrix2 < real_t > &uoldID,
 				Matrix2 < real_t > &uoldIP,
 				Matrix2 < real_t > &uoldIV,
 				Matrix2 < real_t > &uoldIU,
-				real_t * __restrict__ fluxIVS,
-				real_t * __restrict__ fluxIUS,
-				real_t * __restrict__ fluxIPS,
-				real_t * __restrict__ fluxIDS,
-				real_t * __restrict__ uIDS, real_t * __restrict__ uIPS, real_t * __restrict__ uIVS, real_t * __restrict__ uIUS, real_t * __restrict__ pl);
+				Preal_t fluxIVS,
+				Preal_t fluxIUS,
+				Preal_t fluxIPS,
+				Preal_t fluxIDS,
+				Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
 
 	// utilities on tile
 	void getExtends(tileSpan_t span, int32_t & xmin, int32_t & xmax, int32_t & ymin, int32_t & ymax) {
@@ -168,10 +168,10 @@ class Tile {
 	};
 
 	// pack/unpack array for ghost cells exchange. Works either for OpenMP
-	int32_t pack_arrayv(int32_t xoffset, real_t * buffer);
-	int32_t unpack_arrayv(int32_t xoffset, real_t * buffer);
-	int32_t pack_arrayh(int32_t yoffset, real_t * buffer);
-	int32_t unpack_arrayh(int32_t yoffset, real_t * buffer);
+	int32_t pack_arrayv(int32_t xoffset, Preal_t buffer);
+	int32_t unpack_arrayv(int32_t xoffset, Preal_t buffer);
+	int32_t pack_arrayh(int32_t yoffset, Preal_t buffer);
+	int32_t unpack_arrayh(int32_t yoffset, Preal_t buffer);
 
 	// 
 
