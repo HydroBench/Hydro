@@ -102,7 +102,7 @@ oclGetUoldFromDevice(const hydroparam_t H, hydrovar_t * Hv)
   oclCheckErr(err, "clReleaseEvent");
 }
 
-static void ClearArrayDble(cl_mem array, size_t lgr)
+static void ClearArrayDble(cl_mem array, long lgr)
 {
   real_t lzero = 0.;
   assert(array != NULL);
