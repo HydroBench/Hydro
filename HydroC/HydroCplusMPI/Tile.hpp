@@ -19,8 +19,9 @@
 
 // template <typename T>
 class Tile {
- private:
+private:
 	Tile * m_voisin[4];
+	int32_t m_hasBeenProcessed;
 	ThreadBuffers *m_myBuffers;	// the link to our ThreadBuffers
 	int m_prt;
 
@@ -42,7 +43,7 @@ class Tile {
 	// work arrays for a tile which can be shared across threads
 	Soa *m_q, *m_qxm, *m_qxp, *m_dq;	// NXT, NYT
 	Soa *m_qleft, *m_qright, *m_qgdnv;	// NX + 1, NY + 1
-	 Matrix2 < real_t > *m_c, *m_e;	// NXT, NYT
+	Matrix2 < real_t > *m_c, *m_e;	// NXT, NYT
 
 	// work arrays for a single row/column
 	real_t *m_sgnm;		//
@@ -97,17 +98,17 @@ class Tile {
 	void constprim();	// fait
 	void riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIPS, Preal_t qgdnvIVS, Preal_t qleftIDS, Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul, Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr);	// fait
 	void
-	 riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
-			    real_t smallpp, Preal_t qgdnvIDS,
-			    Preal_t qgdnvIUS,
-			    Preal_t qgdnvIPS,
-			    Preal_t qgdnvIVS,
-			    Preal_t qleftIDS,
-			    Preal_t qleftIUS,
-			    Preal_t qleftIPS,
-			    Preal_t qleftIVS,
-			    Preal_t qrightIDS,
-			    Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
+	riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
+			   real_t smallpp, Preal_t qgdnvIDS,
+			   Preal_t qgdnvIUS,
+			   Preal_t qgdnvIPS,
+			   Preal_t qgdnvIVS,
+			   Preal_t qleftIDS,
+			   Preal_t qleftIUS,
+			   Preal_t qleftIPS,
+			   Preal_t qleftIVS,
+			   Preal_t qrightIDS,
+			   Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
 	void riemann();		// fait
 	void compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int32_t xmax, Preal_t cS, Preal_t qIUS, Preal_t qIVS);
 	void compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
@@ -175,15 +176,17 @@ class Tile {
 
 	// 
 
- protected:
- public:
+protected:
+public:
 	// basic constructor
 	Tile(void);		// default constructor
 	// destructor
 	~Tile();
 
 	void setNeighbourTile(tileNeighbour_t type, Tile * tile);
-
+	Tile * getNeighbourTile(tileNeighbour_t type) {
+		return m_voisin[type];
+	}
 	void initTile(Soa * uold);
 	void initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type, int32_t niter_riemann, int32_t order, int32_t scheme);
 	void setMpi(int32_t nproc, int32_t mype);
@@ -214,10 +217,19 @@ class Tile {
 	};
 	void setPrt(int prt) {
 		m_prt = prt;
-	}
+	};
 	void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy, real_t dx);
 	void setVoisins(Tile * left, Tile * right, Tile * up, Tile * down);
 	void setBuffers(ThreadBuffers * buf);
+	void notProcessed() { 
+		m_hasBeenProcessed = 0; 
+	};
+	void doneProcessed() { 
+		m_hasBeenProcessed = 1; 
+	};
+	int32_t isProcessed() { 
+		return m_hasBeenProcessed; 
+	};
 };
 #endif
 //EOF

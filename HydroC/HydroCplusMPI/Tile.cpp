@@ -18,6 +18,7 @@ using namespace std;
 //
 
 #include "Options.hpp"
+#define LAMBDAFUNC 1
 
 #if  USEINTRINSICS != 0
 #include "arch.hpp"
@@ -488,6 +489,13 @@ void Tile::compflx()
 		fluxIP.printFormatted("Tile fluxIP compflx");
 }
 
+template < typename LOOP_BODY >
+void forall (int begin, int end, LOOP_BODY body )
+{
+	for (int i = begin; i < end; ++i) 
+		body(i);
+}
+
 void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 			      Preal_t uIDS,
 			      Preal_t uIUS,
@@ -502,6 +510,8 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
+
+#ifndef LAMBDAFUNC
 // #pragma simd
 	for (int32_t i = xmin; i < xmax; i++) {
 		uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
@@ -509,6 +519,15 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 		uoldIUS[i + m_offx] = uIUS[i] + (fluxIUS[i - 2] - fluxIUS[i - 1]) * dtdx;
 		uoldIPS[i + m_offx] = uIPS[i] + (fluxIPS[i - 2] - fluxIPS[i - 1]) * dtdx;
 	}
+#else
+	forall(xmin, xmax, [&,dtdx](int i) {
+			int im = i + m_offx, i2 = i - 2, i1 = i - 1;
+			uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
+			uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
+			uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx;
+			uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
+		});
+#endif
 }
 
 void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
@@ -895,7 +914,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax,
 {
 
 #if ALIGNED > 0
-// #pragma message "constprimOnRow aligned"
+#pragma message "constprimOnRow aligned"
 #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
