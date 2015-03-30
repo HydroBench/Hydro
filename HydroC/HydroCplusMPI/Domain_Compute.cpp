@@ -30,6 +30,10 @@
  */
 using namespace std;
 
+#ifndef LIGHTSYNC
+#define LIGHTSYNC 0
+#endif
+
 #include "EnumDefs.hpp"
 #include "Domain.hpp"
 #include "Soa.hpp"
@@ -126,6 +130,7 @@ real_t Domain::computeTimeStep()
 		real_t *pm_localDt = m_localDt;
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
+			// int lockStep = 0;
 			int32_t i = t;
 			int32_t thN = 0;
 #if WITH_TIMERS == 1
@@ -141,11 +146,12 @@ real_t Domain::computeTimeStep()
 			m_tiles[i]->setTcur(m_tcur);
 			m_tiles[i]->setDt(m_dt);
 			// cerr << i << " demarre " << endl; cerr.flush();
-			m_tiles[i]->notProcessed();
+			// lockStep = 1;
+			// m_tiles[i]->notProcessed();
 			m_tiles[i]->gatherconserv();	// input uold      output u
+			// m_tiles[i]->doneProcessed(lockStep);
 			m_tiles[i]->godunov();
-			m_tiles[i]->doneProcessed();
-
+			// m_tiles[i]->doneProcessed(lockStep);
 #if WITH_TIMERS == 1
 			endT = dcclock();
 			(m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);

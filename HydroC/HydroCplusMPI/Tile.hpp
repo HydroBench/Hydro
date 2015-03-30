@@ -10,6 +10,9 @@
 #include <cassert>
 #include <cerrno>
 #include <stdint.h>		// for the definition of int32_t
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "Options.hpp"
 #include "Soa.hpp"
@@ -22,6 +25,10 @@ class Tile {
 private:
 	Tile * m_voisin[4];
 	int32_t m_hasBeenProcessed;
+#ifdef _OPENMP
+	omp_lock_t m_lock;
+#endif
+
 	ThreadBuffers *m_myBuffers;	// the link to our ThreadBuffers
 	int m_prt;
 
@@ -224,12 +231,13 @@ public:
 	void notProcessed() { 
 		m_hasBeenProcessed = 0; 
 	};
-	void doneProcessed() { 
-		m_hasBeenProcessed = 1; 
+	void doneProcessed(int step) { 
+		m_hasBeenProcessed = step; 
 	};
-	int32_t isProcessed() { 
-		return m_hasBeenProcessed; 
+	int32_t isProcessed(int step) { 
+		return m_hasBeenProcessed == step;
 	};
+	void waitVoisin(Tile *voisin, int step);
 };
 #endif
 //EOF

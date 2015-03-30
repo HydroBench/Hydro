@@ -12,6 +12,9 @@
 #include <malloc.h>
 #include <sys/time.h>
 #include <float.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 using namespace std;
 
@@ -37,11 +40,17 @@ Tile::Tile()
 	m_ExtraLayer = 2;
 	m_scan = X_SCAN;
 	m_uold = 0;
+#ifdef _OPENMP
+	omp_init_lock(&m_lock);
+#endif
 }
 
 // template <typename T> 
 Tile::~Tile()
 {
+#ifdef _OPENMP
+	omp_destroy_lock(&m_lock);
+#endif
 	delete m_u;
 	delete m_flux;
 }
@@ -1589,6 +1598,23 @@ void Tile::setBuffers(ThreadBuffers * buf)
 	m_rr = m_myBuffers->getRR();
 	m_goon = m_myBuffers->getGOON();
 #endif
+}
+void Tile::waitVoisin(Tile *voisin, int step)
+{
+	int okToGO = 0;
+	if (voisin == 0) return;
+	while (!okToGO) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+		{
+			okToGO = voisin->isProcessed(step);
+		}
+		if (!okToGO) {
+			sched_yield();
+		}
+	}
+	return;
 }
 
 //EOF
