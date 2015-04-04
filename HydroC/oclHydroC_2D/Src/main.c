@@ -37,7 +37,9 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #include <stdio.h>
 #include <time.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 
 #include "parametres.h"
 #include "hydro_funcs.h"
@@ -150,19 +152,24 @@ main(int argc, char **argv)
   char cdt;
   struct timespec start, end;
 
-
+#ifdef MPI
   MPI_Init(&argc, &argv);
+#endif
   start_time = dcclock ();
   process_args(argc, argv, &H);
   if (H.mype == 0) {
     fprintf(stdout, "Hydro starts in %s.\n", (sizeof(real_t) == sizeof(double))? "double precision": "single precision");
     fflush(stdout);
   }
-  
+
+#ifdef MPI
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
   oclInitCode(H.nproc, H.mype);
+#ifdef MPI
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
   hydro_init(&H, &Hv);
   // PRINTUOLD(stdout, H, &Hv);
@@ -207,6 +214,7 @@ main(int argc, char **argv)
         dt = dt / 2.0;
       }
       if (H.nproc > 1) {
+#ifdef MPI
 	real_t dtmin;
 	int uno = 1;
 	start = cclock();
@@ -216,6 +224,7 @@ main(int argc, char **argv)
 	end = cclock();
 	functim[TIM_ALLRED] += ccelaps(start, end);
 	dt = dtmin;
+#endif
       }
     }
     if ((H.nstep % 2) == 0) {
@@ -284,6 +293,7 @@ main(int argc, char **argv)
   }
 
   if (H.nproc > 1) {
+#ifdef MPI
     double timMAX[TIM_END];
     double timMIN[TIM_END];
     double timSUM[TIM_END];
@@ -305,6 +315,7 @@ main(int argc, char **argv)
       printTimings(timSUM, TIM_END, sizeFmt);
       fprintf(stdout, "\n");
     }
+#endif
   }
 
   oclFreeOnDevice();
@@ -315,6 +326,8 @@ main(int argc, char **argv)
 	  avgMcps /= nAvgMcps;
 	  fprintf(stdout, "Average MC/s: %.1lf\n", avgMcps);
   }
+#ifdef MPI
   MPI_Finalize();
+#endif
   return 0;
 }

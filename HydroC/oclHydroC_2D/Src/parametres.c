@@ -39,7 +39,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <values.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include "SplitSurface.h"
 
 #include "parametres.h"
@@ -265,9 +267,11 @@ process_args(long argc, char **argv, hydroparam_t * H)
   char rununit[512];
 
   default_values(H);
-
+#ifdef  MPI
   MPI_Comm_size(MPI_COMM_WORLD, &H->nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &H->mype);
+#endif
+  
   while (n < argc) {
     if (strcmp(argv[n], "--help") == 0 || strcmp(argv[n], "-h") == 0) {
       usage();
@@ -349,7 +353,11 @@ process_args(long argc, char **argv, hydroparam_t * H)
     }
 
     if (H->nx == 0 || H->ny == 0) {
+#ifdef MPI
       MPI_Abort(MPI_COMM_WORLD, 123);
+#else
+      abort();
+#endif
     }
 
     // adapt the boundary conditions 
