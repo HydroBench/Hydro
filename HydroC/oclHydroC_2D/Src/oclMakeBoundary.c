@@ -39,7 +39,9 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include <assert.h>
 
 #include "parametres.h"
@@ -111,8 +113,10 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   real_t *recvbufld;
 
   cl_mem recvbufruDEV, recvbufldDEV, sendbufldDEV, sendbufruDEV;
+#ifdef MPI  
   MPI_Request requests[4];
   MPI_Status status[4];
+#endif
   int reqcnt = 0;
 
   static FILE *fic = NULL;
@@ -124,6 +128,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
   // }
 
   if (H.nproc > 1) {
+#ifdef MPI
     sendbufld = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
     assert(sendbufld);
     sendbufru = (real_t *) malloc(ExtraLayer * H.nxyt * H.nvar * sizeof(real_t));
@@ -141,11 +146,13 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
     oclCheckErr(error, "");
     sendbufruDEV = clCreateBuffer(ctx, CL_MEM_READ_WRITE, ExtraLayer * H.nxyt * H.nvar * sizeof(real_t), NULL, &error);
     oclCheckErr(error, "");
+#endif
   }
 
   WHERE("make_boundary");
   if (idim == 1) {
     if (H.nproc > 1) {
+#ifdef MPI
       i = ExtraLayer;
       // fprintf(stderr, "make_boundary 01--%d\n", H.mype);
       OCLSETARG06(ker[kpack_arrayv], i, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
@@ -210,6 +217,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         OCLSETARG06(ker[kunpack_arrayv], i, H.nxt, H.nyt, H.nvar, recvbufldDEV, uoldDEV);
         oclLaunchKernel(ker[kunpack_arrayv], cqueue, H.nyt, THREADSSZ, __FILE__, __LINE__);
       }
+#endif
     }
     // Left boundary
     n = ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer));
@@ -251,6 +259,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
     }
   } else {
     if (H.nproc > 1) {
+#ifdef MPI
       // SetBlockDims(H.nxt, THREADSSZ, block, grid);
       j = ExtraLayer;
       // fprintf(stderr, "make_boundary 05--%d\n", H.mype);
@@ -317,6 +326,7 @@ oclMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, cl_mem uoldDEV
         OCLSETARG06(ker[kunpack_arrayh], j, H.nxt, H.nyt, H.nvar, recvbufruDEV, uoldDEV);
         oclLaunchKernel(ker[kunpack_arrayh], cqueue, H.nxt, THREADSSZ, __FILE__, __LINE__);
       }
+#endif      
     }
     n = ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
     // Lower boundary

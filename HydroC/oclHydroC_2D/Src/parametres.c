@@ -39,7 +39,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <values.h>
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include "SplitSurface.h"
 
 #include "parametres.h"
@@ -265,9 +267,12 @@ process_args(long argc, char **argv, hydroparam_t * H)
   char rununit[512];
 
   default_values(H);
-
+#ifdef  MPI
   MPI_Comm_size(MPI_COMM_WORLD, &H->nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &H->mype);
+#endif
+
+  runUnit = RUN_NOTDEF; // to force specifying -u parameter
   while (n < argc) {
     if (strcmp(argv[n], "--help") == 0 || strcmp(argv[n], "-h") == 0) {
       usage();
@@ -302,6 +307,18 @@ process_args(long argc, char **argv, hydroparam_t * H)
     fprintf(stderr, "Key %s is unkown\n", argv[n]);
     n++;
   }
+
+  if (runUnit == RUN_NOTDEF) {
+    if (H->mype == 0) {
+      fprintf(stderr, "\nHydroC: switch -u [C|G|A] was not specified, please provide on run option.\n\n");
+    }
+#ifdef MPI
+    MPI_Abort(MPI_COMM_WORLD, 987);
+#else
+    exit(987);
+#endif
+  }
+  
   if (donnees != NULL) {
     process_input(donnees, H);
   } else {
@@ -311,7 +328,7 @@ process_args(long argc, char **argv, hydroparam_t * H)
   // Output the type of device selected
   if (H->mype == 0) {
     switch (runUnit) {
-    case RUN_CPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = CPU\n"); 
+    case RUN_CPU:fprintf(stdout, "Hydro: OpenCL compute unit type = CPU\n"); 
       break;
     case RUN_GPU:fprintf(stdout, "Hydro:  OpenCL compute unit type = GPU\n"); 
       break;
@@ -349,7 +366,11 @@ process_args(long argc, char **argv, hydroparam_t * H)
     }
 
     if (H->nx == 0 || H->ny == 0) {
+#ifdef MPI
       MPI_Abort(MPI_COMM_WORLD, 123);
+#else
+      abort();
+#endif
     }
 
     // adapt the boundary conditions 

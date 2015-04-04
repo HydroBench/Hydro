@@ -76,6 +76,7 @@ typedef enum {
 } myKernel_t;
 
 typedef enum {
+  RUN_NOTDEF,
   RUN_CPU,
   RUN_GPU,
   RUN_ACC
