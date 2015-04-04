@@ -153,11 +153,17 @@ main(int argc, char **argv)
   struct timespec start, end;
 
 #ifdef MPI
+#pragma message "Building an MPI version"
   MPI_Init(&argc, &argv);
 #endif
   start_time = dcclock ();
   process_args(argc, argv, &H);
   if (H.mype == 0) {
+#ifdef MPI
+    fprintf(stdout, "Hydro: build made for MPI usage\n");
+#else
+    fprintf(stdout, "Hydro: single node build (no MPI)\n");  
+#endif
     fprintf(stdout, "Hydro starts in %s.\n", (sizeof(real_t) == sizeof(double))? "double precision": "single precision");
     fflush(stdout);
   }
