@@ -1,0 +1,75 @@
+# C compiler
+#------------------
+CC = gcc -DNVIDIA 
+
+# Cuda compiler
+#------------------
+NVCC = 
+
+# Fortran compilers
+#------------------
+F90 = ifort
+
+# MPI C compiler
+#------------------
+MPICC = mpcc
+
+# MPI Fortran compilers
+#------------------
+MPIF90 = mpif90
+
+# C compilation options
+#-----------------------------
+OCLINC=-I/opt/ocl/include
+CFLAGS = -g $(OCLINC)
+
+# Fortran compilation options
+#-----------------------------
+FFLAGS = -g
+
+# Linker options
+#---------------
+OCLLIB=/opt/ocl/lib/x86_64
+LDFLAGS = -g
+SYSLIB+=-L$(OCLLIB) -Wl,-rpath,$(OCLLIB) -lOpenCL -lm -lrt
+
+# OpenMP C compilation options
+#---------------------------
+CFLAGS_OMP = -openmp
+
+# Cuda compilation options
+#---------------------------
+NVCFLAGS_OMP = 
+
+# OpenMP Fortran compilation options
+#---------------------------
+FFLAGS_OMP = -fopenmp
+
+# MPI C compilation options
+#---------------------------
+# MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
+ifeq ($(MPI),O)
+MPIROOT=/usr/local/Intel_compilers/impi/4.1.0.030/intel64
+MPIROOT=/usr/local/Intel_compilers/impi/4.1.0.030/intel64
+MPIROOT=/usr/include/openmpi-x86_64/
+CFLAGS_MPI = -DMPI -I$(MPIROOT)
+# NVCFLAGS_MPI = -I$(MPIROOT)/include
+endif
+
+# MPI Fortran compilation options
+#---------------------------
+FFLAGS_MPI =
+
+# OpenMP link options
+#--------------------
+LDFLAGS_OMP = -openmp
+
+# MPI link options
+#--------------------
+# LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+ifeq ($(MPI),O)
+LDFLAGS_MPI = -L/usr/lib64/openmpi/lib/ -lmpi
+endif
+
+#EOF
+
