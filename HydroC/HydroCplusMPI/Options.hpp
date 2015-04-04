@@ -24,11 +24,11 @@
 #define TILESIZ 124
 #endif
 
-// #ifdef __INTEL_COMPILER
-// #define USEINTRINSICS 1
-// #else
-// #define USEINTRINSICS 0
-// #endif
+#ifdef __INTEL_COMPILER
+#define USEINTRINSICS 1
+#else
+#define USEINTRINSICS 0
+#endif
 
 #ifdef __MIC__
 #define KNC 1

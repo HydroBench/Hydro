@@ -1,6 +1,9 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
+#ifdef MPI_ON
+#include <mpi.h>
+#endif
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
@@ -45,7 +48,17 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	_padw = cmpPad(_w);
 	padh = cmpPad(_h);
 
-	assert((_padw * padh) != 0);
+	if ((_padw * padh) == 0) {
+		cerr << _w << endl;
+		cerr << _h << endl;
+		cerr << _padw << endl;
+		cerr << padh << endl;
+#ifdef MPI_ON
+		MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+		abort(1);
+#endif
+	}
 
 	_arr_alloc = new T[_padw * padh + _align_value];
 	memset(_arr_alloc, 0, (_padw * padh + _align_value) * sizeof(T));
