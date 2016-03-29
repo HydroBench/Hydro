@@ -1,8 +1,9 @@
-This is the CUDA version of the Hydro benchmark.
-------------------------------------------------
+This is the OpenCL version of the Hydro benchmark.
+--------------------------------------------------
 
 Guillaume Colin de Verdiere
 July 5th, 2012
+updated, April 8th, 2015
 
 
 Compilation
@@ -11,10 +12,39 @@ Compilation
 1) adapt the ../../../Arch/make.inc file to your local system
 2) to generate the code: make clean hydro
 
-if you have modified or added any .h .c .cu file you probably want to
-rebuild the dependecies. See the last line of the Makefile. You may
-have to adapt the two scripts "dependre" and "makedeps" to fit to your
-local system.
+The code can be generated with or without MPI.
+
+Without MPI, the executable will work ONLY on device 0 (if one or more GPU / ACCELERATOR is present). 
+Just comment out the MPI related variables in the makefiles.
+
+With MPI, all files must be compiled with the -DMPI option and the proper MPI related variables adapted 
+to your local installation (in the makefiles).
+
+A common mistake is to start a build without MPI and finish it with MPI (or the other way round).
+Since the code is not that long a make clean helps a lot in case of doubt. I'll rewrite the Makefile for 
+clarity sake if time permits. I have also added #pragma message in some files, just to have a visible track
+of what is being built.
+
+if you have modified or added any .h .c .cl file you probably want to adapt the SRC variable of the Makefile and
+rebuild the dependecies. See the last line of the Makefile. You may have to adapt the two scripts "dependre" and 
+"makedeps" to fit to your local system.
+
+CPU/GPU/ACCELERATOR usage
+-------------------------
+the -u (for unit) pilots the compute unit to use. It is now mandatory (no more default) to avoid ambiguities.
+
+c or C stands for CPU           tested on Intel CPU
+g or G stands for GPU           tested on various NVIDIA GPU
+a or A stands for accelerator   tested on a Xeon Phi (KNC) in accelerator mode.
+
+(This version has also been successfully tested on AMD GPUs and with a little tweak [not integrated here] 
+on Montblanc (ARM + GPU).)
+
+The MPI version makes the following assumption : a single MPI process will use only one device in an exclusive manner. 
+Therefore the getDevice.c file tries to determine which GPU/ACC to use to satisfy the previous statement. 
+If you have 3 MPI processes for 2 devices, the code will abort.
+If MPI is disabled at compile time, only device 0 will be used (forced by ifdef in getDevice.c).
+The limitation doesn't apply for the CPU case.
 
 Running a test case
 -------------------
