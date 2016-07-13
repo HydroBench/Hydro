@@ -41,6 +41,11 @@ int main(int argc, char **argv)
 	domain.compute();
 #ifdef MPI_ON
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
+//	if (domain.getMype() == 0) {
+//		system("top -b -n1 -u coling");
+//	}
+#ifdef MPI_ON
 	MPI_Finalize();
 #endif
 	// cerr << "End main " << domain.getMype() << endl;

@@ -25,7 +25,7 @@
 #endif
 
 #ifdef __INTEL_COMPILER
-#define USEINTRINSICS 1
+#define USEINTRINSICS 0
 #else
 #define USEINTRINSICS 0
 #endif
@@ -42,11 +42,43 @@
 #define DOUBLE 1
 
 #ifdef __MIC__
-#define SCHEDULE schedule(dynamic)
-static const char * Schedule = "schedule(dynamic)";
-#else
+#ifndef SCHEDDEF
+#define SCHEDDEF 1
+#endif
+#endif
+
+#ifndef SCHEDDEF
+#define SCHEDDEF 1
+#endif
+
+#if SCHEDDEF == 0
 #define SCHEDULE schedule(guided)
-static const char * Schedule = "schedule(guided)";
+static const char *Schedule = "schedule(guided)";
+#endif
+
+#if SCHEDDEF == 1
+#define SCHEDULE schedule(dynamic)
+static const char *Schedule = "schedule(dynamic)";
+#endif
+
+#if SCHEDDEF == 2
+#define SCHEDULE schedule(static,1)
+static const char *Schedule = "schedule(static,1)";
+#endif
+
+#if SCHEDDEF == 3
+#define SCHEDULE schedule(static,2)
+static const char *Schedule = "schedule(static,2)";
+#endif
+
+#if SCHEDDEF == 4
+#define SCHEDULE schedule(static,4)
+static const char *Schedule = "schedule(static,4)";
+#endif
+
+#if SCHEDDEF == 5
+#define SCHEDULE schedule(runtime)
+static const char *Schedule = "schedule(runtime)";
 #endif
 
 #define WITH_TIMERS 0

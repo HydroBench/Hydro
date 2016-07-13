@@ -1,0 +1,26 @@
+PNG=O
+ifeq ($(MPI),O)
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include
+      LIBS+=-L$(I_MPI_ROOT)/lib -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   else
+      INCS+=-I$(MPI_ROOT)/include
+      LIBS+=-L$(MPI_ROOT)/lib -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+endif
+
+ifeq ($(CXX),icpc)
+   OPTIM+=-march=core-avx2 -DAVX -D__vectorize_avx -O3
+   OPTIM+=-mCG_use_zeroupper=0
+   OPTIM+=-mP1OPT_max_rec_copy_size=128
+   OPTIM+=-qopt-report -qopt-report-phase=vec
+endif
+
+ifeq ($(CXX),g++)
+   OPTIM+=-mavx2
+endif
+
+ARCHEXT=avx2
+#EOF

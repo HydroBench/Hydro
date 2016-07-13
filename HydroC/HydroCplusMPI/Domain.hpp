@@ -33,7 +33,7 @@ class Domain {
 	int m_nvtk;
 	int m_npng;
 	real_t m_tcur, m_dt;	//=
-	int32_t m_iter;	// current iteration
+	int32_t m_iter;		// current iteration
 	int32_t m_nbRun;
 	double m_elapsTotal;
 
@@ -100,7 +100,7 @@ class Domain {
 	int32_t m_shrink;
 	int32_t m_shrinkSize;
 	double m_timeGuard;
-	int32_t m_numa;	// try to cope with numa effects
+	int32_t m_numa;		// try to cope with numa effects
 
 	// timing of functions
 	double **m_timerLoops;
@@ -192,6 +192,9 @@ class Domain {
 	bool isStopped();
 	int getMype() {
 		return m_myPe;
+	};
+	int getNbpe() {
+		return m_nProc;
 	};
 	void compute();
 	int32_t myThread() {

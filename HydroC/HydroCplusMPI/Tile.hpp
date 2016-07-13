@@ -22,7 +22,7 @@
 
 // template <typename T>
 class Tile {
-private:
+ private:
 	Tile * m_voisin[4];
 	int32_t m_hasBeenProcessed;
 #ifdef _OPENMP
@@ -50,7 +50,7 @@ private:
 	// work arrays for a tile which can be shared across threads
 	Soa *m_q, *m_qxm, *m_qxp, *m_dq;	// NXT, NYT
 	Soa *m_qleft, *m_qright, *m_qgdnv;	// NX + 1, NY + 1
-	Matrix2 < real_t > *m_c, *m_e;	// NXT, NYT
+	 Matrix2 < real_t > *m_c, *m_e;	// NXT, NYT
 
 	// work arrays for a single row/column
 	real_t *m_sgnm;		//
@@ -96,64 +96,38 @@ private:
 	void compflx();		// fait
 	void eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS);	// fait
 	void eos(tileSpan_t span);	// fait
-	void constprimOnRow(int32_t xmin, int32_t xmax,
-			    Preal_t qIDS,
-			    Preal_t qIPS,
-			    Preal_t qIVS,
-			    Preal_t qIUS,
-			    Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS);
+	void constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS);
 	void constprim();	// fait
 	void riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIPS, Preal_t qgdnvIVS, Preal_t qleftIDS, Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul, Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr);	// fait
 	void
-	riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
-			   real_t smallpp, Preal_t qgdnvIDS,
-			   Preal_t qgdnvIUS,
-			   Preal_t qgdnvIPS,
-			   Preal_t qgdnvIVS,
-			   Preal_t qleftIDS,
-			   Preal_t qleftIUS,
-			   Preal_t qleftIPS,
-			   Preal_t qleftIVS,
-			   Preal_t qrightIDS,
-			   Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
+	 riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
+			    real_t smallpp, Preal_t qgdnvIDS,
+			    Preal_t qgdnvIUS,
+			    Preal_t qgdnvIPS,
+			    Preal_t qgdnvIVS,
+			    Preal_t qleftIDS,
+			    Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
 	void riemann();		// fait
 	void compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int32_t xmax, Preal_t cS, Preal_t qIUS, Preal_t qIVS);
 	void compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
-				   Preal_t qIDS,
-				   Preal_t qIPS,
-				   Preal_t qIUS,
-				   Preal_t qIVS,
-				   Preal_t uoldIDS,
-				   Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS);
+				   Preal_t qIDS, Preal_t qIPS, Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS);
 	real_t compute_dt();
 	void gatherconservXscan(int32_t xmin, int32_t xmax,
-				Preal_t uIDS,
-				Preal_t uIUS,
-				Preal_t uIVS,
-				Preal_t uIPS,
-				Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS);
+				Preal_t uIDS, Preal_t uIUS, Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS);
 	void gatherconservYscan();
 	void updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 				Preal_t uIDS,
 				Preal_t uIUS,
 				Preal_t uIVS,
 				Preal_t uIPS,
-				Preal_t uoldIDS,
-				Preal_t uoldIUS,
-				Preal_t uoldIVS,
-				Preal_t uoldIPS,
-				Preal_t fluxIDS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS);
+				Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS);
 	void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 				int32_t ymin, int32_t ymax, real_t dtdx,
 				Matrix2 < real_t > &uoldID,
 				Matrix2 < real_t > &uoldIP,
 				Matrix2 < real_t > &uoldIV,
 				Matrix2 < real_t > &uoldIU,
-				Preal_t fluxIVS,
-				Preal_t fluxIUS,
-				Preal_t fluxIPS,
-				Preal_t fluxIDS,
-				Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
+				Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
 
 	// utilities on tile
 	void getExtends(tileSpan_t span, int32_t & xmin, int32_t & xmax, int32_t & ymin, int32_t & ymax) {
@@ -183,15 +157,15 @@ private:
 
 	// 
 
-protected:
-public:
+ protected:
+ public:
 	// basic constructor
 	Tile(void);		// default constructor
 	// destructor
 	~Tile();
 
 	void setNeighbourTile(tileNeighbour_t type, Tile * tile);
-	Tile * getNeighbourTile(tileNeighbour_t type) {
+	Tile *getNeighbourTile(tileNeighbour_t type) {
 		return m_voisin[type];
 	}
 	void initTile(Soa * uold);
@@ -228,16 +202,16 @@ public:
 	void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy, real_t dx);
 	void setVoisins(Tile * left, Tile * right, Tile * up, Tile * down);
 	void setBuffers(ThreadBuffers * buf);
-	void notProcessed() { 
-		m_hasBeenProcessed = 0; 
+	void notProcessed() {
+		m_hasBeenProcessed = 0;
 	};
-	void doneProcessed(int step) { 
-		m_hasBeenProcessed = step; 
+	void doneProcessed(int step) {
+		m_hasBeenProcessed = step;
 	};
-	int32_t isProcessed(int step) { 
+	int32_t isProcessed(int step) {
 		return m_hasBeenProcessed == step;
 	};
-	void waitVoisin(Tile *voisin, int step);
+	void waitVoisin(Tile * voisin, int step);
 };
 #endif
 //EOF

@@ -222,7 +222,8 @@ typedef F64vec2 VINT_T;
 namespace std {
 	inline F64vec2 sqrt(const F64vec2 & v) {
 		return _mm_sqrt_pd(v);
-	} inline F64vec2 abs(const F64vec2 & a) {
+	}
+	inline F64vec2 abs(const F64vec2 & a) {
 		static const union {
 			int i[4];
 			__m128d m;
@@ -354,7 +355,8 @@ typedef F64vec4 VINT_T;
 namespace std {
 	inline F64vec4 sqrt(const F64vec4 & v) {
 		return _mm256_sqrt_pd(v);
-	} inline F64vec4 abs(const F64vec4 & a) {
+	}
+	inline F64vec4 abs(const F64vec4 & a) {
 		static const union {
 			int i[8];
 			__m256d m;
@@ -492,7 +494,8 @@ typedef F64vec8 VINT_T;
 namespace std {
 	inline F64vec8 sqrt(const F64vec8 & v) {
 		return _mm512_sqrt_pd(v);
-	} inline F64vec8 abs(const F64vec8 & a) {
+	}
+	inline F64vec8 abs(const F64vec8 & a) {
 		static const union {
 			int i[16];
 			__m512 m;

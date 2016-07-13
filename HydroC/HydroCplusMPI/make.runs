@@ -1,0 +1,265 @@
+run: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=64 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jvectst ./hydroc.avx2 -i Inputs/input.nml
+
+runnosoc: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=16 KMP_AFFINITY=verbose,granularity=fine,compact,1 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jnosoc ./hydroc -i Inputs/input.nml
+
+runsoc0: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=16 KMP_AFFINITY=verbose,granularity=fine,compact,1 MEMKIND_HBW_NODES=0 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jsock0 numactl --membind=1 --cpunodebind=0 ./hydroc -i Inputs/input.nml
+
+runsoc1: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=16 KMP_AFFINITY=verbose,granularity=fine,compact,1 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jsock1 numactl --membind=1 --cpunodebind=0 ./hydroc -i Inputs/input.nml
+
+runsde: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=64 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jvectst sde64 -hsw -mix -- ./hydroc -i Inputs/input.nml
+	env OMP_NUM_THREADS=64 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jvectst sde64 -hsw -footprint -- ./hydroc -i Inputs/input.nml
+
+lrun: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=32 ./hydroc -i input.nml
+
+vecmic: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=240 ccc_mprun -p knc -T 14400 -c60 -x -E-Jvecmic ./hydroc -i Inputs/input.nml
+
+grun: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/* Image.png
+	env OMP_NUM_THREADS=12 time ccc_mprun -n16 -N8 -p hybridk40 -T 6400 gdb -x runcmd ./hydroc
+	if [ -f Image.png ] ; then display Image.png; fi
+
+runipm: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/* Image*.png Continue.dump
+	env LD_PRELOAD=$$IPM_ROOT/lib/libipm.so OMP_NUM_THREADS=4 IPM_HPM=PAPI_FP_OPS,PAPI_TOT_INS,PAPI_L1_DCM,PAPI_L1_DCA,PAPI_VEC_INS ccc_mprun -p hybridk40 -T 6400 -N4 -n8 -c4 ./hydroc -i input.nml
+
+FREQ=500000
+runhpctk: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/* Image*.png Continue.dump HPCTkDir hpctoolkit-database
+	# -e PAPI_VEC_INS@5000 
+	# -e PAPI_TOT_CYC@$(FREQ) -e PAPI_L2_TCM@$(FREQ) -e PAPI_FP_OPS@$(FREQ) 
+	# env OMP_NUM_THREADS=1 ccc_mprun -p hybridk40 -T 6400 -n1 -c1 hpcrun -o HPCTkDir ./hydroc -i input.nml
+	env OMP_NUM_THREADS=1 hpcrun -o HPCTkDir ./hydroc -i input.nml
+	hpcstruct hydroc
+	hpcprof -S hydroc.hpcstruct HPCTkDir 2> hpcprof.log
+	hpcviewer hpctoolkit-database
+
+runk40: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make  clean AVX=O hydroc
+	rm -rf Dep/* Image.png
+	env OMP_NUM_THREADS=24 time ccc_mprun -p hybridk40 -T 6400 -n1 -N1 -x -c24 ./hydroc -i input.nml
+
+runatom: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make clean ATOM=O hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp time ccc_mprun -p atom -A rdhp -n4 -N4 -x -c8 -T 6400 ./hydroc -i input.nml
+
+runarm: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=8 time ccc_mprun -p arm -A rdhp -n2 -N2 -x -c8 -T 6400 ./hydroc -i input.nml
+# export OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp SLURM_DISTRIBUTION=block SLURM_CPU_BIND=none ; 
+runmic: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make clean MIC=O hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=240 time ccc_mprun -p knc -n1 -N1 -x -T 6400 ./hydroc -i input.nml
+
+NTH=32
+haswell: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make clean AVX=O hydroc
+	rm -rf Dep/* *.dump
+	env OMP_NUM_THREADS=$(NTH) ccc_mprun -p haswell  -T 6400 -c $(NTH) ./hydroc -i input.nml
+	make clean AVX2=O hydroc
+	rm -rf Dep/* *.dump
+	env OMP_NUM_THREADS=$(NTH) ccc_mprun -p haswell  -T 6400 -c $(NTH) ./hydroc -i input.nml
+	# ccc_mprun -p haswell maqao perf -d=SX -uarch=HASWELL -xp=toto -- hydroc
+	make clean NOVEC=O hydroc
+	rm -rf Dep/* *.dump
+	env OMP_NUM_THREADS=$(NTH) ccc_mprun -p haswell  -T 6400 -c $(NTH) ./hydroc -i input.nml
+
+haswellb: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make AVX2=O MPI=O PNG=O hydroc
+	rm -rf Dep/* *.dump STOP
+	env OMP_NUM_THREADS=$(NTH) ccc_mprun -x -p haswell -T 6400 -c 16 -n1 -N1 ./hydroc -i input.nml
+numa:
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make AVX2=O MPI=O PNG=O hydroc
+	rm -rf Dep/* *.dump
+	env OMP_NUM_THREADS=$(NTH) ccc_mprun -p haswell  -T 6400 -c $(NTH)./hydroc -i input.nml
+
+NT=1
+hasrep: hydroc
+	rm -rf Dep/*
+	for t in `seq 1 2000` ; do \
+	echo '-------------------------------' ;\
+	env OMP_NUM_THREADS=4 ccc_mprun -p haswell -T 60  -n $(NT) -c2 ./hydroc -i input.nml; \
+	i="Continue.dump"; if [ -e $$i ] ; then validprot $$i $$NT; if [ $$? -ne 0 ] ; then exit 1 ; fi ; fi ;\
+	if [ -e STOP ]; then exit 0; fi;\
+	done
+
+atorep: hydroc
+	rm -rf Dep/*
+	for t in `seq 1 2000` ; do \
+	echo '-------------------------------' ;\
+	env OMP_NUM_THREADS=4 I_MPI_FABRICS_LIST=tcp ccc_mprun -p atom -T 60 -A rdhp -n $(NT) -c4 ./hydroc -i input.nml; \
+	i="Continue.dump"; if [ -e $$i ] ; then validprot $$i $$NT; if [ $$? -ne 0 ] ; then exit 1 ; fi ; fi ;\
+	if [ -e STOP ]; then exit 0; fi;\
+	done
+
+atom: hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp ccc_mprun -p atom -T 60 -A rdhp -n 1 -c8 ./hydroc -i input.nml
+
+run16: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=16 time ./hydroc -i input.nml
+
+brun16: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/*
+	ccc_mprun -p hybrid -N1 -n1 -c16 env OMP_NUM_THREADS=16 time ./hydroc -i input.nml
+
+big: 
+	if [ -f .wasmic ] ; then make clean ; fi
+	if [ -f .waspg ] ; then make clean ; fi
+	make hydroc
+	rm -rf Dep/*
+	ccc_mprun -p standard -N40 -n80 -c4 env OMP_NUM_THREADS=4 time ./hydroc -i big.nml
+pgrun: 
+	if [ ! -f .waspg ] ; then make clean ; fi
+	make PG=O hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=1 ccc_mprun -p knc ./hydroc -i input.nml
+	gprof hydroc gmon.out | head -40 | cut -c '1-100'
+
+vrun: hydroc
+	rm -rf Dep/*
+	env OMP_NUM_THREADS=8 time ccc_mprun -p hybridk40 -T 6400 valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=no --gen-suppressions=no --suppressions=./valgrind.supp ./hydroc -i input.nml
+
+prun: hydroc
+	rm -rf Dep/*
+	-rm STOP
+	ccc_mprun -p hybridk40 -n16 -N8 ./hydroc -i input.nml
+# -display Image.png
+
+verybig: hydroc
+	rm -rf Dep/*
+	ccc_mprun -p standard -T 57600 -n 128 -c4  env OMP_NUM_THREADS=4 ./hydroc -i verybig.nml
+	# ccc_mprun -p standard  -T 57600 -n 600  env OMP_NUM_THREADS=1 gdb -x bigcmd ./hydroc
+	# ccc_mprun -p standard  -T 57600 -n 8 -c 4 env OMP_NUM_THREADS=4 valgrind --tool=memcheck ./hydroc -i verybig.nml
+	display Image.png
+
+rmic: 
+	if [ ! -f .wasmic ] ; then make clean ; fi
+	make MIC=O MPI=O hydroc
+	# ccc_mprun -p knc -n 1 env OMP_NUM_THREADS=240 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive ./hydroc -i input.nml
+	ccc_mprun -p knc -n 1 -N 1 env OMP_NUM_THREADS=237 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive ./hydroc -i input.nml
+	# KMP_AFFINITY=scatter ou compact ou balanced
+
+prmic: 
+	if [ ! -f .wasmic ] ; then make clean ; fi
+	make MIC=O hydroc
+	ccc_mprun -p knc -n2 -N1 env OMP_NUM_THREADS=120 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive mpiexec -n2 ./hydroc -i input.nml
+
+rmicg: hydroc
+	ccc_mprun -p knc -n 1 gdb -x runcmd ./hydroc 
+
+scan: hydroc
+	for i in 1 2 4 8 16 32 ; do env OMP_NUM_THREADS=$$i ./hydroc -i input.nml | tail -1 ; done
+
+mscan: hydroc
+	for i in 1 2 4 8 16 32 64 128 240 ; do env OMP_NUM_THREADS=$$i ccc_mprun -p knc ./hydroc -i input.nml | tail -2 ; done
+
+lscan: hydroc
+	for i in 1 2 4 8 16 32; do env OMP_NUM_THREADS=$$i ./hydroc -i input.nml | tail -2 ; done
+
+prof: hydroc
+	./hydroc
+	gprof hydroc gmon.out | head -20
+
+maq: hydroc
+	if [ -f .wasmic ] ; then make clean ; make hydroc ; fi
+	rm -rf toto/*
+	env OMP_NUM_THREADS=1 ccc_mprun -p hybrid maqao perf -t=SX -xp=toto -g=small -uarch=SANDY_BRIDGE -- hydroc -i input.nml | tee maqao_run.lst	
+	rm -rf loops.csv maqao_loopslist.lst maqao_loopsdetail.lst maqao_loopsdetailLVL1.lst
+	maqao --version
+	#maqao perf -d=SX  -uarch=SANDY_BRIDGE -xp=toto -oformat=html -- hydroc
+	maqao perf -d=SFX -uarch=SANDY_BRIDGE -xp=toto -- hydroc
+	maqao perf -d=SLX -uarch=SANDY_BRIDGE -xp=toto -- hydroc > maqao_loopslist.lst
+	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; maqao cqa -uarch=SANDY_BRIDGE -loop=$$i  -- hydroc >> maqao_loopsdetail.lst; done
+	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; maqao cqa -uarch=SANDY_BRIDGE -loop=$$i  -lvl=1 -- hydroc >> maqao_loopsdetailLVL1.lst; done
+
+maqmicrep:
+	maqaoi64phi --version
+	ccc_mprun -p knc -n1 maqaophi perf -d=SX -uarch=KNC -xp=toto -oformat=html --system-map=/lib/firmware/mic/System.map -- hydroc
+	maqaoi64phi perf -d=SFX -bin='hydroc' -uarch=KNC -xp=toto | tee maqao_funcs.lst		
+	maqaoi64phi perf -d=SLX -bin='hydroc' -uarch=KNC -xp=toto | tee maqao_loopslist.lst	
+	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do maqaoi64phi cqa -uarch=KNC -loop=$$i  -- hydroc >> maqao_loopsdetail.lst; done
+	# for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do maqaoi64phi cqa -uarch=KNC -loop=$$i -lvl=1 -- hydroc >> maqao_loopsdetail.lst; done
+
+maqmic: 
+	if [ ! -f .wasmic ] ; then make clean ; fi
+	make MIC=O hydroc
+	rm -rf toto/* maqao_funcs.lst maqao_loopslist.lst maqao_loopsdetail.lst
+	env OMP_NUM_THREADS=240 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive ccc_mprun -p knc -n1 maqaophi perf -mIOMP -t=SX -xp=toto -g=small -uarch=KNC -- hydroc -i input.nml | tee maqao_run.lst
+	# make maqmicrep
+
+ref4_128:
+	env OMP_NUM_THREADS=8 ccc_mprun -p standard -n64 -N64 -x -c8 ./hydroc -i inputBIG.nml
+
+ref512:
+	env OMP_NUM_THREADS=1 ccc_mprun -p standard -n512 -x -c1 ./hydroc -i inputBIG.nml
+
+refM:
+	env OMP_NUM_THREADS=8 ccc_mprun -p standard -n1 -N1 -c8 ./hydroc -i inputMEDIUM.nml
+
+
+mpcrun:
+	mpcrun --opt=" -p haswell @haswell" -l=salloc_hydra -n=56 -p=2 -N=2 -c=28 ./hydroc -i input.nml
+#
+# - - - end of runs section - - -
+#
+
+listing:
+	a2ps --medium=A4dj -C -1 -R -l90 --toc -E --prologue=color --file-align=fill -o listing.ps *.hpp *.cpp Makefile
+	ps2pdf -sPAPERSIZE=a4 listing.ps
+	rm listing.ps
+
+kirill: 
+	rm -rf Kirill
+	mkdir Kirill
+	cp *.cpp *.hpp *.c *.h Makefile input.nml inputSmall.nml runme Kirill
+	cp ~/bin/faitfilm Kirill
+	cp inputFull1k.nml Kirill
+	cp -r /cea/ghome/ocre/coling/intel/advixe/projects Kirill
+	tar czvf Kirill_$(DATEHOUR).tgz Kirill
+

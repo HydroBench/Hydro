@@ -22,6 +22,9 @@ using namespace std;
 
 #include "Options.hpp"
 #define LAMBDAFUNC 1
+#if LAMBDAFUNC == 1
+#pragma message "Activation des lambdas function"
+#endif
 
 #if  USEINTRINSICS != 0
 #include "arch.hpp"
@@ -56,7 +59,7 @@ Tile::~Tile()
 }
 
 void
-Tile::setNeighbourTile(tileNeighbour_t type, Tile * tile)
+ Tile::setNeighbourTile(tileNeighbour_t type, Tile * tile)
 {
 	m_voisin[type] = tile;
 }
@@ -144,7 +147,7 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS)
 #ifndef NOTDEF
 		llftrgt = ((dlft * drgt) <= zero);
 		t1 = Min(Fabs(dlft), Fabs(drgt));
-		dqS[i] = dsgn * Min((1 - llftrgt) * t1, Fabs(dcen));
+		dqS[i] = dsgn * Min((one - llftrgt) * t1, Fabs(dcen));
 #else
 		slop = Min(Fabs(dlft), Fabs(drgt));
 		dlim = slop;
@@ -264,11 +267,7 @@ void Tile::traceonRow(int32_t xmin,
 		      Preal_t dqIDS,
 		      Preal_t dqIUS,
 		      Preal_t dqIVS,
-		      Preal_t dqIPS,
-		      Preal_t pqxpIDS,
-		      Preal_t pqxpIUS,
-		      Preal_t pqxpIVS,
-		      Preal_t pqxpIPS, Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS)
+		      Preal_t dqIPS, Preal_t pqxpIDS, Preal_t pqxpIUS, Preal_t pqxpIVS, Preal_t pqxpIPS, Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS)
 {
 #if ALIGNED > 0
 #pragma vector aligned
@@ -378,11 +377,7 @@ void Tile::qleftr()
 
 void Tile::compflxOnRow(int32_t xmin,
 			int32_t xmax,
-			real_t entho,
-			Preal_t qgdnvIDS,
-			Preal_t qgdnvIUS,
-			Preal_t qgdnvIVS,
-			Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS)
+			real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS)
 {
 #if USEINTRINSICS == 0
 #if ALIGNED > 0
@@ -498,10 +493,10 @@ void Tile::compflx()
 		fluxIP.printFormatted("Tile fluxIP compflx");
 }
 
-template < typename LOOP_BODY >
-void forall (int begin, int end, LOOP_BODY body )
+template < typename LOOP_BODY > void forall(int begin, int end, LOOP_BODY body)
 {
-	for (int i = begin; i < end; ++i) 
+#pragma omp simd
+	for (int i = begin; i < end; ++i)
 		body(i);
 }
 
@@ -509,19 +504,14 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 			      Preal_t uIDS,
 			      Preal_t uIUS,
 			      Preal_t uIVS,
-			      Preal_t uIPS,
-			      Preal_t uoldIDS,
-			      Preal_t uoldIUS,
-			      Preal_t uoldIVS,
-			      Preal_t uoldIPS,
-			      Preal_t fluxIDS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS)
+			      Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS)
 {
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
 
 #ifndef LAMBDAFUNC
-// #pragma simd
+#pragma omp simd
 	for (int32_t i = xmin; i < xmax; i++) {
 		uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
 		uoldIVS[i + m_offx] = uIVS[i] + (fluxIVS[i - 2] - fluxIVS[i - 1]) * dtdx;
@@ -529,13 +519,14 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 		uoldIPS[i + m_offx] = uIPS[i] + (fluxIPS[i - 2] - fluxIPS[i - 1]) * dtdx;
 	}
 #else
-	forall(xmin, xmax, [&,dtdx](int i) {
-			int im = i + m_offx, i2 = i - 2, i1 = i - 1;
-			uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
-			uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
-			uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx;
-			uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
-		});
+	forall(xmin, xmax,[&, dtdx] (int i) {
+	       int im = i + m_offx, i2 = i - 2, i1 = i - 1;
+	       uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
+	       uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
+	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; 
+	       uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
+		}
+	);
 #endif
 }
 
@@ -545,16 +536,12 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 			      Matrix2 < real_t > &uoldIP,
 			      Matrix2 < real_t > &uoldIV,
 			      Matrix2 < real_t > &uoldIU,
-			      Preal_t fluxIVS,
-			      Preal_t fluxIUS,
-			      Preal_t fluxIPS,
-			      Preal_t fluxIDS,
-			      Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl)
+			      Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl)
 {
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-// #pragma simd
+#pragma omp simd
 	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIDS[j] + (fluxIDS[j - 2] - fluxIDS[j - 1]) * dtdx;
 	}
@@ -563,7 +550,7 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-// #pragma simd
+#pragma omp simd
 	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIUS[j] + (fluxIUS[j - 2] - fluxIUS[j - 1]) * dtdx;
 	}
@@ -572,7 +559,7 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-// #pragma simd
+#pragma omp simd
 	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIVS[j] + (fluxIVS[j - 2] - fluxIVS[j - 1]) * dtdx;
 	}
@@ -581,7 +568,7 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
-// #pragma simd
+#pragma omp simd
 	for (int32_t j = xmin; j < xmax; j++) {
 		pl[j] = uIPS[j] + (fluxIPS[j - 2] - fluxIPS[j - 1]) * dtdx;
 	}
@@ -678,11 +665,7 @@ void Tile::updateconserv()
 }
 
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax,
-			      Preal_t uIDS,
-			      Preal_t uIUS,
-			      Preal_t uIVS,
-			      Preal_t uIPS,
-			      Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS)
+			      Preal_t uIDS, Preal_t uIUS, Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS)
 {
 #if ALIGNED > 0
 	// #pragma vector aligned // impossible !
@@ -690,11 +673,20 @@ void Tile::gatherconservXscan(int32_t xmin, int32_t xmax,
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
-#pragma simd
+#pragma omp simd
 	for (int32_t i = xmin; i < xmax; i++) {
 		uIDS[i] = uoldIDS[i + m_offx];
+	}
+#pragma omp simd
+	for (int32_t i = xmin; i < xmax; i++) {
 		uIUS[i] = uoldIUS[i + m_offx];
+	}
+#pragma omp simd
+	for (int32_t i = xmin; i < xmax; i++) {
 		uIVS[i] = uoldIVS[i + m_offx];
+	}
+#pragma omp simd
+	for (int32_t i = xmin; i < xmax; i++) {
 		uIPS[i] = uoldIPS[i + m_offx];
 	}
 }
@@ -766,7 +758,7 @@ void Tile::gatherconserv()
 void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS)
 {
 	if (xmin > 0) {
-// #pragma simd
+#pragma omp simd
 		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
 			real_t rrho = 1. / rho;
@@ -782,7 +774,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
-// #pragma simd
+#pragma omp simd
 		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
 			real_t rrho = 1. / rho;
@@ -819,12 +811,7 @@ void Tile::eos(tileSpan_t span)
 }
 
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
-				 Preal_t qIDS,
-				 Preal_t qIPS,
-				 Preal_t qIUS,
-				 Preal_t qIVS,
-				 Preal_t uoldIDS,
-				 Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS)
+				 Preal_t qIDS, Preal_t qIPS, Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS)
 {
 	for (int32_t i = xmin; i < xmax; i++) {
 		real_t eken, tmp;
@@ -914,12 +901,7 @@ real_t Tile::compute_dt()
 	return dt;
 }
 
-void Tile::constprimOnRow(int32_t xmin, int32_t xmax,
-			  Preal_t qIDS,
-			  Preal_t qIPS,
-			  Preal_t qIVS,
-			  Preal_t qIUS,
-			  Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS)
+void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS)
 {
 
 #if ALIGNED > 0
@@ -995,12 +977,9 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 			Preal_t qrightIUS,
 			Preal_t qrightIPS,
 			Preal_t qrightIVS,
-			long *__restrict__ goon, Preal_t sgnm,
-			Preal_t pstar, Preal_t rl,
-			Preal_t ul, Preal_t pl,
-			Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr)
+			long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul, Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr)
 {
-
+#pragma message "riemannOnRow actif"
 #if ALIGNED > 0
 #pragma vector aligned
 #if TILEUSER == 0
@@ -1175,16 +1154,9 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 			      Preal_t qgdnvIPS,
 			      Preal_t qgdnvIVS,
 			      Preal_t qleftIDS,
-			      Preal_t qleftIUS,
-			      Preal_t qleftIPS,
-			      Preal_t qleftIVS,
-			      Preal_t qrightIDS,
-			      Preal_t qrightIUS, 
-			      Preal_t qrightIPS, 
-			      Preal_t qrightIVS, 
-			      Preal_t sgnm)
+			      Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm)
 {
-
+#pragma message "riemannOnRowInRegs actif"
 #if ALIGNED > 0
 #pragma vector aligned
 #if TILEUSER == 0
@@ -1195,9 +1167,9 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 #if OMPOVERLOAD == 1
 #pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm) schedule(static, 8)
 #endif
-#pragma simd
+#pragma omp simd
 	for (int32_t i = xmin; i < xmax; i++) {
-		long goonI; 
+		long goonI;
 		real_t pstarI;
 		real_t rlI;
 		real_t ulI;
@@ -1387,10 +1359,12 @@ void Tile::riemann()
 		real_t *qrightIPS = qrightIP.getRow(s);
 		real_t *qrightIVS = qrightIV.getRow(s);
 #if RIEMANNINREGS == 0
+#pragma message "==> riemannOnRow selectionne"
 		riemannOnRow(xmin, xmax, smallp, gamma6, smallpp,
 			     qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS,
 			     qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_goon, m_sgnm, m_pstar, m_rl, m_ul, m_pl, m_rr, m_ur, m_pr, m_cl, m_cr);
 #else
+#pragma message "==> riemannOnRowInRegs selectionne"
 		riemannOnRowInRegs(xmin, xmax, smallp,
 				   gamma6, smallpp,
 				   qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_sgnm);
@@ -1599,10 +1573,12 @@ void Tile::setBuffers(ThreadBuffers * buf)
 	m_goon = m_myBuffers->getGOON();
 #endif
 }
-void Tile::waitVoisin(Tile *voisin, int step)
+
+void Tile::waitVoisin(Tile * voisin, int step)
 {
 	int okToGO = 0;
-	if (voisin == 0) return;
+	if (voisin == 0)
+		return;
 	while (!okToGO) {
 #ifdef _OPENMP
 #pragma omp critical

@@ -1,0 +1,7 @@
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+
+ifeq ($(PNG),O)
+   DEFS+=-DWITHPNG=1
+endif

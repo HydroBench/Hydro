@@ -219,7 +219,7 @@ void Domain::compute()
 		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << endl;
 		// cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
 		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << endl;
-		cout << "Hydro: OpenMP "<< Schedule << endl;
+		cout << "Hydro: OpenMP " << Schedule << endl;
 	}
 #endif
 #ifdef MPI_ON
@@ -383,7 +383,10 @@ void Domain::compute()
 #endif
 		// cout << " maxRSS " << m_maxrss;
 		cout << std::resetiosflags(std::ios::showbase) << setprecision(3) << setiosflags(ios::fixed);
-		cout << " maxMEM " << float (maxMemUsed / giga) << "GB";
+		cout << " maxMEMproc " << float (maxMemUsed / giga) << "GB";
+		if (getNbpe() > 1) {
+			cout << " maxMEMtot " << float (maxMemUsed * getNbpe() / giga) << "GB";
+		}
 		cout << endl;
 		convertToHuman(timeHuman, m_elapsTotal);
 		cout << "Total simulation time: " << timeHuman << " in " << m_nbRun << " runs" << endl;

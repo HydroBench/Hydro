@@ -597,10 +597,22 @@ void Domain::setTiles()
 		for (i = 0; i < mortonW; i++, t++) {
 			int tright = -1, tleft = -1, tup = -1, tdown = -1;
 			Tile *pright = 0, *pleft = 0, *pup = 0, *pdown = 0;
-			if (i < (mortonW-1) ) {tright = (*m_morton) (i+1, j); pright = m_tiles[tright];}
-			if (i > 0 ) {tleft = (*m_morton) (i-1, j); pleft = m_tiles[tleft]; }
-			if (j < (mortonH-1) ) {tup = (*m_morton) (i, j+1); pup = m_tiles[tup]; }
-			if (j > 0 ) {tdown = (*m_morton) (i, j-1); pdown = m_tiles[tdown];}
+			if (i < (mortonW - 1)) {
+				tright = (*m_morton) (i + 1, j);
+				pright = m_tiles[tright];
+			}
+			if (i > 0) {
+				tleft = (*m_morton) (i - 1, j);
+				pleft = m_tiles[tleft];
+			}
+			if (j < (mortonH - 1)) {
+				tup = (*m_morton) (i, j + 1);
+				pup = m_tiles[tup];
+			}
+			if (j > 0) {
+				tdown = (*m_morton) (i, j - 1);
+				pdown = m_tiles[tdown];
+			}
 			// cerr << t << " : ";
 			// cerr << tleft << " ";
 			// cerr << tright << " ";
@@ -610,7 +622,6 @@ void Domain::setTiles()
 			m_tiles[t]->setVoisins(pleft, pright, pup, pdown);
 		}
 	}
-	
 
 	// Create the shared buffers
 #ifdef _OPENMP
