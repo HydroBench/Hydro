@@ -1,10 +1,11 @@
 # C compiler
 #------------------
-CC = nvcc
+CC = gcc
 
 # Cuda compiler
 #------------------
-NVCC = nvcc -gencode arch=compute_20,code=sm_20 -gencode arch=compute_30,code=sm_30
+NVCC = nvcc -gencode arch=compute_20,code=sm_20 -gencode arch=compute_35,code=sm_35
+#NVCC = nvcc -gencode arch=compute_35,code=sm_35 -dlink
 
 # Fortran compilers
 #------------------
@@ -21,7 +22,7 @@ MPIF90 = mpif90
 # C compilation options
 #-----------------------------
 CFLAGS = -O3
-NVCFLAGS = -dlink
+NVCFLAGS =  -O3
 
 # Fortran compilation options
 #-----------------------------
@@ -46,8 +47,10 @@ FFLAGS_OMP = -openmp
 # MPI C compilation options
 #---------------------------
 #MPIROOT=/opt/mpi/bullxmpi/1.1.14.1
-#CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
-#NVCFLAGS_MPI = -I$(MPIROOT)/include
+MPIROOT=$(BULLXMPI_ROOT)
+MPIROOT=$(I_MPI_ROOT)/intel64
+CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
+NVCFLAGS_MPI = -DWITHMPI -I$(MPIROOT)/include
 
 
 # MPI Fortran compilation options
@@ -60,4 +63,4 @@ LDFLAGS_OMP = -openmp
 
 # MPI link options
 #--------------------
-#LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
+LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi

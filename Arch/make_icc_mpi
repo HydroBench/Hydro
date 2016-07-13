@@ -1,6 +1,7 @@
 # C compiler
 #------------------
-CC = icc -restrict -xHost 
+CC = icc -restrict -march=core-avx2 -DAVX -D__vectorize_avx 
+CC = icc -restrict -xHOST
 
 # Cuda compiler
 #------------------
@@ -20,7 +21,7 @@ MPIF90 = mpif90
 
 # C compilation options
 #-----------------------------
-OPT=-O3 -g -vec-report1
+OPT=-O3 -g -qopt-report-phase=vec
 CFLAGS = $(OPT)
 
 # Fortran compilation options
@@ -33,7 +34,7 @@ LDFLAGS = $(OPT) -lnuma
 
 # OpenMP C compilation options
 #---------------------------
-CFLAGS_OMP = -openmp -openmp-report1
+CFLAGS_OMP = -qopenmp -qopt-report-phase=par
 
 # Cuda compilation options
 #---------------------------
@@ -45,8 +46,8 @@ FFLAGS_OMP = -openmp
 
 # MPI C compilation options
 #---------------------------
-MPIROOT=/opt/mpi/bullxmpi/1.1.16.5
-#MPIROOT=$(I_MPI_ROOT)/intel64
+#MPIROOT=/opt/mpi/bullxmpi/1.1.16.5
+MPIROOT=$(I_MPI_ROOT)/intel64
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
 NVCFLAGS_MPI = -I$(MPIROOT)/include
 
@@ -57,7 +58,7 @@ FFLAGS_MPI =
 
 # OpenMP link options
 #--------------------
-LDFLAGS_OMP = -openmp
+LDFLAGS_OMP = -qopenmp
 
 # MPI link options
 #--------------------
@@ -67,10 +68,10 @@ LDFLAGS_MPI = -L$(MPIROOT)/lib -lmpi
 # FTI C compilation options
 #---------------------------
 FTIROOT= /path/to/fti/install/directory
-CFLAGS_FTI = -DFTI=1 -I$(FTIROOT)/include
+# CFLAGS_FTI = -DFTI=1 -I$(FTIROOT)/include
 
 #if FTI is not installed keep only -DFTI=0
 
 # FTI link options
 #--------------------
-LDFLAGS_FTI = -L$(FTIROOT)/lib -lfti
+# LDFLAGS_FTI = -L$(FTIROOT)/lib -lfti

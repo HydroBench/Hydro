@@ -23,7 +23,8 @@ MPIF90 = mpif90
 # C compilation options
 #-----------------------------
 # PROF=-pg
-CFLAGS = -O3 $(PROF) -vec-report1 -fimf-domain-exclusion=8 
+CFLAGS = -O3 $(PROF) 
+# -vec-report1 -fimf-domain-exclusion=8 
 #-no-prec-div -fimf-precision=high:/ 
 #-no-prec-sqrt
 #-no-vec 
@@ -38,7 +39,7 @@ LDFLAGS = -O3 $(PROF)
 
 # OpenMP C compilation options
 #---------------------------
-CFLAGS_OMP = -openmp -openmp-report1
+CFLAGS_OMP = -qopenmp -qopt-report-phase=par
 
 # Cuda compilation options
 #---------------------------
@@ -46,7 +47,7 @@ NVCFLAGS_OMP =
 
 # OpenMP Fortran compilation options
 #---------------------------
-FFLAGS_OMP = -openmp
+FFLAGS_OMP = -qopenmp
 
 # MPI C compilation options
 #---------------------------

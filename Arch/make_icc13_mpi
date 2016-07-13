@@ -1,7 +1,7 @@
 # C compiler
 #------------------
 CC = icc -mmic
-CC = icc -mavx
+CC = icc -msse4
 
 # Cuda compiler
 #------------------
@@ -49,7 +49,7 @@ FFLAGS_OMP = -openmp
 #---------------------------
 #MPIROOT=/opt/intel/impi/4.1.0.024/mic
 MPIROOT=/opt/intel/impi/4.1.0.024/intel64
-# MPIROOT=$(MPI_ROOT)
+MPIROOT=$(MPI_ROOT)
 CFLAGS_MPI = -DMPI -I$(MPIROOT)/include
 #NVCFLAGS_MPI = -I$(MPIROOT)/include
 
