@@ -22,6 +22,10 @@
 #include <mkl.h>
 #endif
 
+#ifdef WITHHBW
+#include <hbwmalloc.h>
+#endif
+
 using namespace std;
 
 //
@@ -56,12 +60,28 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #ifdef MPI_ON
 		MPI_Abort(MPI_COMM_WORLD, 1);
 #else
-		abort(1);
+		abort();
 #endif
 	}
 
+#if WITHHBW==0 && WITHPOSIX == 0 && WITHNEW == 0
+#define WITHNEW 1
+#endif
+	size_t lgrTab = (_padw * padh + _align_value) * sizeof(T);
+#ifdef WITHNEW
 	_arr_alloc = new T[_padw * padh + _align_value];
-	memset(_arr_alloc, 0, (_padw * padh + _align_value) * sizeof(T));
+#pragma message "C++ NEW usage activated"
+#endif
+#ifdef WITHHBW
+	_arr_alloc = (T *) hbw_malloc(lgrTab);
+#pragma message "HBW memory usage activated"
+#endif
+#ifdef WITHPOSIX
+	// _arr_alloc = (T *) malloc(lgrTab);
+#pragma message "posix_memalign activated"
+	int rc = posix_memalign((void **) &_arr_alloc, 128, lgrTab);
+#endif
+	memset(_arr_alloc, 0, lgrTab);
 	assert(_arr_alloc != 0);
 	_arr = _arr_alloc;
 
@@ -119,7 +139,14 @@ template < typename T > Matrix2 < T >::~Matrix2()
 {
 	// std::cerr << "Destruction object " << this << std::endl;
 	assert(_arr_alloc != 0);
+#ifdef WITHNEW
 	delete[]_arr_alloc;
+#endif
+#ifdef WITHHBW
+	hbw_free(_arr_alloc);
+#else
+	free(_arr_alloc);
+#endif
 	_arr_alloc = 0;
 	_arr = NULL;
 }
