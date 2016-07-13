@@ -13,6 +13,10 @@ CXX=icpc
 DEFS=-std=c++11
 DEFS+=$(DEFSEXT)
 
+ifeq ($(PI),O)
+	include make.pi
+endif
+
 ifeq ($(ARM),O)
 include make.arm
 endif
@@ -44,6 +48,7 @@ endif
 CFLAGS=$(DEFS)
 CFLAGS+=-g
 
+include make.opts
 
 ifeq ($(CXX),icpc)
 # OPTIM+=-mkl
