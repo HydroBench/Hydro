@@ -51,4 +51,7 @@ include alldeps.d
 
 
 run: hydro
-	ccc_mprun -p hybrid -x ./hydro -i input.nml
+	ccc_mprun -p hybridk40 -E-JcuHydroC ./hydro -i input.nml
+
+burn: hydro
+	ccc_mprun -E-JcuBurnK40 -p hybridk40 -n6 -N3 -T36000 ./hydro -i inputMEDIUM.nml
