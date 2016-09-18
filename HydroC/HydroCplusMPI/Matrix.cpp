@@ -43,10 +43,15 @@ template < typename T > int32_t Matrix2 < T >::cmpPad(int32_t x)
 	return pad;
 }
 
+static const int nbloc = 1024;
+static const int nshift = 10;
+static const int ninc = 128;
+
 template < typename T > void Matrix2 < T >::allocate(void)
 {
 	int32_t lgrow = 0;
 	int32_t maxPad = 0, padh = 0;
+	static int decal = 0;
 
 	// make sure that rows are aligned thru padding 
 	_padw = cmpPad(_w);
@@ -65,7 +70,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	}
 
 #if WITHHBW==0 && WITHPOSIX == 0 && WITHNEW == 0
-#define WITHNEW 1
+#define WITHPOSIX 1
 #endif
 	size_t lgrTab = (_padw * padh + _align_value) * sizeof(T);
 #ifdef WITHNEW
@@ -73,13 +78,20 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
-	_arr_alloc = (T *) hbw_malloc(lgrTab);
+	int rc = (T *) hbw_posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
 	// _arr_alloc = (T *) malloc(lgrTab);
 #pragma message "posix_memalign activated"
-	int rc = posix_memalign((void **) &_arr_alloc, 128, lgrTab);
+	int rc = posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
+#endif
+#if defined(WITHPOSIX) || defined(WITHHBW)
+	char *tmp = (char *) _arr_alloc;
+	tmp += decal;
+	decal += ninc;
+	if (decal > nbloc) decal = 0;
+	_arr_alloc = (T*) tmp;
 #endif
 	memset(_arr_alloc, 0, lgrTab);
 	assert(_arr_alloc != 0);
@@ -139,6 +151,13 @@ template < typename T > Matrix2 < T >::~Matrix2()
 {
 	// std::cerr << "Destruction object " << this << std::endl;
 	assert(_arr_alloc != 0);
+
+#if defined(WITHPOSIX) || defined(WITHHBW)
+	size_t tmp = (size_t) _arr_alloc;
+	tmp = tmp >> nshift;
+	tmp = tmp << nshift;
+	_arr_alloc = (T*) tmp;
+#endif
 #ifdef WITHNEW
 	delete[]_arr_alloc;
 #endif
