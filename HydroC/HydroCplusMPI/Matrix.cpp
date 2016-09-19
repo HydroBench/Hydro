@@ -78,7 +78,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
-	int rc = (T *) hbw_posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
+	int rc = hbw_posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
