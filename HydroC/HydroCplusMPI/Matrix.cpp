@@ -90,7 +90,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	char *tmp = (char *) _arr_alloc;
 	tmp += decal;
 	decal += ninc;
-	if (decal > nbloc) decal = 0;
+	if (decal >= nbloc) decal = 0;
 	_arr_alloc = (T*) tmp;
 #endif
 	memset(_arr_alloc, 0, lgrTab);
