@@ -65,12 +65,14 @@ class Domain {
 	int32_t m_nStepMax;	//=
 	int32_t m_nOutput;	//=
 	int32_t m_checkPoint;
+	int32_t m_forceStop;    //=
 
 	real_t *m_localDt;	//=
 	real_t m_tend;		//=
 	real_t m_dtOutput;	//=
 	real_t m_nextOutput;
 	real_t m_dtImage;	//=
+	int32_t m_nImage;       //=
 	real_t m_nextImage;
 	godunovScheme_t m_scheme;	//=
 

@@ -257,10 +257,6 @@ void Domain::compute()
 	dt = m_dt;
 
 	while (m_tcur < m_tend) {
-		if (m_nStepMax > 0) {
-			if (n >= m_nStepMax)
-				break;
-		}
 		vtkprt[0] = '\0';
 		if ((m_iter % 2) == 0) {
 			m_dt = dt;	// either the initial one or the one computed by the time step
@@ -275,20 +271,45 @@ void Domain::compute()
 		n++;		// iteration of this run
 		m_iter++;	// global iteration of the computation (accross runs)
 
-		if ((m_nOutput > 0) && ((n % m_nOutput) == 0)) {
+		if (m_nStepMax > 0) {
+			if (m_iter > m_nStepMax)
+				break;
+		}
+
+		int outputVtk = 0;
+		if (m_nOutput > 0) {
+			if ((m_iter % m_nOutput) == 0) {
+				outputVtk++;
+			}
+		}
+		if (m_dtOutput > 0) {
+			if (m_tcur > m_nextOutput) {
+				m_nextOutput += m_dtOutput;
+				outputVtk++;
+			}
+		}
+		if (outputVtk) {
 			vtkOutput(m_nvtk);
 			sprintf(vtkprt, "[%05d]", m_nvtk);
 			m_nvtk++;
 		}
-		if ((m_dtOutput > 0) && (m_tcur > m_nextOutput)) {
-			m_nextOutput += m_dtOutput;
-			vtkOutput(m_nvtk);
-			sprintf(vtkprt, "[%05d]", m_nvtk);
-			m_nvtk++;
+
+		int outputImage = 0;
+		if (m_dtImage > 0) {
+			if (m_tcur > m_nextImage) {
+				m_nextImage += m_dtImage;
+				outputImage++;
+			}
 		}
-		if ((m_dtImage > 0) && (m_tcur > m_nextImage)) {
-			m_nextImage += m_dtImage;
+		if (m_nImage > 0) {
+			if ((m_iter % m_nImage) == 0) {
+				outputImage++;
+			}
+		}
+
+		if (outputImage) {
 			char pngName[256];
+			m_npng++;
 			pngProcess();
 #if WITHPNG > 0
 			sprintf(pngName, "%s_%06d.png", "Image", m_npng);
@@ -298,7 +319,6 @@ void Domain::compute()
 			pngWriteFile(pngName);
 			pngCloseFile();
 			sprintf(vtkprt, "%s (%05d)", vtkprt, m_npng);
-			m_npng++;
 		}
 		double resteAll = m_tr.timeRemain() - m_timeGuard;
 		if (m_myPe == 0) {
@@ -352,6 +372,14 @@ void Domain::compute()
 			double elaps = (end - start);
 			convertToHuman(txt, elaps);
 			cerr << "Write protection in " << txt << " (" << elaps << "s)" << endl;
+		}
+	}
+
+	if (m_nStepMax > 0) { 
+		if (m_iter > m_nStepMax) { 
+			if (m_forceStop) {
+				StopComputation();
+			}
 		}
 	}
 	if (m_tcur >= m_tend) {

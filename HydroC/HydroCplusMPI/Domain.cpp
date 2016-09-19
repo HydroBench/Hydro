@@ -45,11 +45,13 @@ Domain::Domain(int argc, char **argv)
 	m_numa = 0;
 	m_nextOutput = 0;
 	m_nextImage = 0;
+	m_nImage = 0;
 	m_nbRun = 0;
 	m_elapsTotal = 0.0;
 	m_dtImage = 0;
 	m_iter = 0;
 	m_checkPoint = 0;
+	m_forceStop = 0;
 	m_withPng = 0;
 	m_npng = 0;
 	m_shrink = 1;
@@ -265,25 +267,27 @@ void
 void Domain::printSummary()
 {
 	if (m_myPe == 0) {
-		printf("+-------------------+\n");
-		printf("|GlobNx=%-7d     |\n", m_globNx);
-		printf("|GlobNy=%-7d     |\n", m_globNy);
-		printf("|nx=%-7d         |\n", m_nx);
-		printf("|ny=%-7d         |\n", m_ny);
+		printf("|+=+=+=+=+=+=+=\n");
+		printf("|    GlobNx=     %d\n", m_globNx);
+		printf("|    GlobNy=     %d\n", m_globNy);
+		printf("|    nx=         %d\n", m_nx);
+		printf("|    ny=         %d\n", m_ny);
 #if TILEUSER == 1
-		printf("|ts=%-7d         |\n", m_tileSize);
+		printf("|    ts=         %d\n", m_tileSize);
 #else
-		printf("|ts=%-7d         |\n", TILESIZ);
+		printf("|    ts=         %d\n", TILESIZ);
 #endif
-		printf("|nt=%-7d         |\n", m_nbtiles);
-		printf("|morton=%-7u     |\n", m_withMorton);
-		printf("|numa=%-7u       |\n", m_numa);
-		printf("|tend=%-10.3f    |\n", m_tend);
-		printf("|nstepmax=%-7d   |\n", m_nStepMax);
-		printf("|noutput=%-7d    |\n", m_nOutput);
-		printf("|dtoutput=%-10.3f|\n", m_dtOutput);
-		printf("|dtimage=%-10.3f|\n", m_dtImage);
-		printf("+-------------------+\n");
+		printf("|    nt=         %d\n", m_nbtiles);
+		printf("|    morton=     %u\n", m_withMorton);
+		printf("|    numa=       %u\n", m_numa);
+		printf("|    tend=       %lf\n", m_tend);
+		printf("|    nstepmax=   %d\n", m_nStepMax);
+		printf("|    noutput=    %d\n", m_nOutput);
+		printf("|    dtoutput=   %lf\n", m_dtOutput);
+		printf("|    dtimage=    %lf\n", m_dtImage);
+		printf("|    nimage=     %d\n", m_nImage);
+		printf("|    forcestop=  %d\n", m_forceStop);
+		printf("|+=+=+=+=+=+=+=\n\n");
 	}
 }
 
@@ -428,6 +432,14 @@ void Domain::readInput()
 		}
 		if (strcmp(pkey, "dtimage") == 0) {
 			sscanf(pval, realFmt, &m_dtImage);
+			continue;
+		}
+		if (strcmp(pkey, "nimage") == 0) {
+			sscanf(pval, "%d", &m_nImage);
+			continue;
+		}
+		if (strcmp(pkey, "forcestop") == 0) {
+			sscanf(pval, "%d", &m_forceStop);
 			continue;
 		}
 		if (strcmp(pkey, "testcase") == 0) {

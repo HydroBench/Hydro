@@ -128,6 +128,9 @@ long Domain::protectScalars(const protectionMode_t mode, const int f)
 	lgrdstScal(f, mode, l, &m_elapsTotal);
 	lgrdstScal(f, mode, l, &m_nextOutput);
 	lgrdstScal(f, mode, l, &m_nextImage);
+	lgrdstScal(f, mode, l, &m_nImage);
+	lgrdstScal(f, mode, l, &m_nStepMax);
+	// lgrdstScal(f, mode, l, &m_forceStop);
 	return l;
 }
 
