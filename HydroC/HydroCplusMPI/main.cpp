@@ -27,24 +27,26 @@ void validmatrix()
 
 int main(int argc, char **argv)
 {
-	Domain domain(argc, argv);
+	Domain *domain  = new Domain(argc, argv);
 
-	if (domain.isStopped()) {
+	if (domain->isStopped()) {
 #ifdef MPI_ON
 #pragma message "MPI is activated"
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Finalize();
 		cout << "Hydroc: computation already finished" << endl;
-		exit(0);
+		exit(1);
 #endif
 	}
-	domain.compute();
+	domain->compute();
 #ifdef MPI_ON
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
 //	if (domain.getMype() == 0) {
 //		system("top -b -n1 -u coling");
 //	}
+
+	delete domain;
 #ifdef MPI_ON
 	MPI_Finalize();
 #endif
