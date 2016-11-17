@@ -187,9 +187,10 @@ Domain::~Domain()
 	delete[]m_buffers;
 	delete[]m_mortonIdx;
 	delete m_morton;
+	delete m_timerLoops;
 	if (m_inputFile)
 		free(m_inputFile);
-	cerr << "End ~Domain " << getMype() << endl;
+	// cerr << "End ~Domain " << getMype() << endl;
 }
 
 void
