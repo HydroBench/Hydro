@@ -396,38 +396,33 @@ void Domain::compute()
 	if (m_myPe == 0) {
 		char timeHuman[256];
 		long maxMemUsed = getMemUsed();
-		cout << "End of computations in " << setiosflags(ios::fixed) << setprecision(3) << (end - start);
-		cout << " s ";
-		cout << " (";
+	    double elaps = (end - start);
+		printf("End of computations in %.3lf s (", elaps);
 		convertToHuman(timeHuman, (end - start));
-		cout << timeHuman;
-		cout << ")";
-		cout << " with " << m_nbtiles << " tiles";
+		printf("%s) with %d tiles", timeHuman, m_nbtiles);
 #ifdef _OPENMP
-		cout << " using " << m_numThreads << " threads";
+		printf(" using %d threads", m_numThreads);
 #endif
 #ifdef MPI_ON
-		cout << " and " << m_nProc << " MPI tasks";
+		printf(" and %d MPI tasks", m_nProc);
 #endif
-		// cout << " maxRSS " << m_maxrss;
-		cout << std::resetiosflags(std::ios::showbase) << setprecision(3) << setiosflags(ios::fixed);
-		cout << " maxMEMproc " << float (maxMemUsed / giga) << "GB";
+		printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
 		if (getNbpe() > 1) {
-			cout << " maxMEMtot " << float (maxMemUsed * getNbpe() / giga) << "GB";
+			printf(" maxMEMtot %.3fGB", float (maxMemUsed * getNbpe() / giga));
 		}
-		cout << endl;
+		printf("\n");
 		convertToHuman(timeHuman, m_elapsTotal);
-		cout << "Total simulation time: " << timeHuman << " in " << m_nbRun << " runs" << endl;
-		cout << "Average MC/s: " << totalCellPerSec / nbTotCelSec << endl;
+		printf("Total simulation time: %s in %d runs\n", timeHuman, m_nbRun);
+		printf("Average MC/s: %.3lf\n", (double) (totalCellPerSec / nbTotCelSec));
 
 #if WITH_TIMERS == 1
-		cout.precision(4);
+		// cout.precision(4);
 		for (int32_t i = 0; i < m_numThreads; i++) {
-			cout << "THread " << i << " ";
+			printf("Thread %4d: ", i);
 			for (int32_t j = 0; j < LOOP_END; j++) {
-				cout << (m_timerLoops[i])[j] << " ";
+				printf("%lf ", (m_timerLoops[i])[j]);
 			}
-			cout << endl;
+			printf("\n");
 		}
 #endif
 
