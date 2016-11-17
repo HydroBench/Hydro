@@ -379,13 +379,6 @@ void Tile::compflxOnRow(int32_t xmin,
 			int32_t xmax,
 			real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS)
 {
-#if USEINTRINSICS == 0
-#if ALIGNED > 0
-#pragma vector aligned
-#if TILEUSER == 0
-#pragma loop_count min=TILEMIN, avg=TILEAVG
-#endif
-#endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		// Mass density
 		real_t massDensity = qgdnvIDS[i] * qgdnvIUS[i];
@@ -399,66 +392,6 @@ void Tile::compflxOnRow(int32_t xmin,
 		real_t etot = qgdnvIPS[i] * entho + ekin;
 		fluxIPS[i] = qgdnvIUS[i] * (etot + qgdnvIPS[i]);
 	}
-#else
-#pragma message "compflxOnRow uses intrinsics"
-	int32_t step = SIMD_WIDTH;
-	int32_t veccnt = (xmax - xmin) / step;
-	int32_t remain = (xmax - xmin) - veccnt * step;
-	Preal_t qgdnvIDS_ = &qgdnvIDS[xmin];
-	Preal_t qgdnvIUS_ = &qgdnvIUS[xmin];
-	Preal_t qgdnvIPS_ = &qgdnvIPS[xmin];
-	Preal_t qgdnvIVS_ = &qgdnvIVS[xmin];
-	Preal_t fluxIPS_ = &fluxIPS[xmin];
-	Preal_t fluxIUS_ = &fluxIUS[xmin];
-	Preal_t fluxIVS_ = &fluxIVS[xmin];
-	Preal_t fluxIDS_ = &fluxIDS[xmin];
-
-	for (int32_t i = xmin; i < xmax; i += step) {
-		register VREAL_T _qgdnvIDS = load(qgdnvIDS_);
-		register VREAL_T _qgdnvIUS = load(qgdnvIUS_);
-		register VREAL_T _qgdnvIPS = load(qgdnvIPS_);
-		register VREAL_T _qgdnvIVS = load(qgdnvIVS_);
-
-		register VREAL_T _fluxIDS = _qgdnvIDS * _qgdnvIUS;
-
-		store(fluxIUS_, _fluxIDS * _qgdnvIUS + _qgdnvIPS);
-		store(fluxIVS_, _fluxIDS * _qgdnvIVS);
-		store(fluxIDS_, _fluxIDS);
-
-		register VREAL_T _ekin(half);
-		_ekin = _ekin * _qgdnvIDS * (_qgdnvIUS * _qgdnvIUS + _qgdnvIVS * _qgdnvIVS);
-		register VREAL_T _etot(entho);
-		_etot = _etot * _qgdnvIPS + _ekin;
-
-		store(fluxIPS_, _qgdnvIUS * (_etot + _qgdnvIPS));
-
-		qgdnvIDS_ += step;
-		qgdnvIUS_ += step;
-		qgdnvIPS_ += step;
-		qgdnvIVS_ += step;
-		fluxIPS_ += step;
-		fluxIUS_ += step;
-		fluxIVS_ += step;
-		fluxIDS_ += step;
-	}
-
-	if (remain) {
-#pragma novector
-		for (int32_t i = xmin + veccnt * step; i < xmax; i++) {
-			// Mass density
-			real_t massDensity = qgdnvIDS[i] * qgdnvIUS[i];
-			fluxIDS[i] = massDensity;
-			// Normal momentum
-			fluxIUS[i] = massDensity * qgdnvIUS[i] + qgdnvIPS[i];
-			// Transverse momentum 1
-			fluxIVS[i] = massDensity * qgdnvIVS[i];
-			// Total energy
-			real_t ekin = half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) + Square(qgdnvIVS[i]));
-			real_t etot = qgdnvIPS[i] * entho + ekin;
-			fluxIPS[i] = qgdnvIUS[i] * (etot + qgdnvIPS[i]);
-		}
-	}
-#endif
 }
 
 void Tile::compflx()
@@ -1165,11 +1098,11 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 #endif
 
 #if OMPOVERLOAD == 1
-#pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm) schedule(static, 8)
+#pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm)
 #endif
 #pragma omp simd
 	for (int32_t i = xmin; i < xmax; i++) {
-		long goonI;
+		int goonI = 0;
 		real_t pstarI;
 		real_t rlI;
 		real_t ulI;
@@ -1199,7 +1132,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 		wl_i = sqrt(clI);
 		wr_i = sqrt(crI);
 		pstarI = Max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), 0.0);
-#pragma ivdep
+//  #pragma ivdep
 		for (int32_t iter = 0; iter < 10; iter++) {
 			if (goonI > 0) {
 				real_t pst = pstarI;
@@ -1319,7 +1252,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 		// } else {
 		//   qgdnvIVS[i] = qrightIVS[i];
 		// }
-		qgdnvIVS[i] = left * qleftIVS[i] + (1.0L - left) * qrightIVS[i];
+		qgdnvIVS[i] = left * qleftIVS[i] + (1.0 - left) * qrightIVS[i];
 	}
 }
 
