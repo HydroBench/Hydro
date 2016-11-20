@@ -57,5 +57,16 @@ knowledge of the CeCILL license and that you accept its terms.
 #define IHVWS_(i,j,v,Hnxyt,Hnxystep) ( (i) + (Hnxyt) * (j) + (Hnxyt) * (Hnxystep) * (v) )
 #endif
 
-// typedef float real_t;
+// Warning the typedef AND the define must be active to allow for
+// checks in the hydro_hernels.cl file
+
+#define SELECT_DOUBLE 0   // 0 = SP, 1 = DP
+#if SELECT_DOUBLE == 0
+typedef float real_t;
+#define SIMPLE_PRECISION_VERSION 1
+#else
 typedef double real_t;
+#define DOUBLE_PRECISION_VERSION 1
+#endif
+#undef SELECT_DOUBLE
+// end of warning

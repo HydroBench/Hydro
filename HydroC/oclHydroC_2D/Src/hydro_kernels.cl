@@ -41,15 +41,21 @@
 #pragma OPENCL EXTENSION cl_amd_fp64 : enable
 #endif
 
-#define USE_MIC_PREFETCHES
+#include "oclparam.h"
 
+#if !defined(cl_khr_fp64)
+#if defined(DOUBLE_PRECISION_VERSION)
+// sanity check : the C code is for DP yet the OpenCL doesn't support it
+#error "HydroC: Double precision not supported, modif oclparam.h accordingly"
+#endif
+#endif
+
+// #define USE_MIC_PREFETCHES
 #ifdef USE_MIC_PREFETCHES
 #define PREFETCH(a, b) prefetch(a, b)
 #else
 #define PREFETCH(a, b)
 #endif
-
-#include "oclparam.h"
 
 #define ID     (0)
 #define IU     (1)
@@ -1222,7 +1228,11 @@ reduceMaxReal(__global real_t *buffer,
   int global_index = get_global_id(0);
   int local_index  = get_local_id(0);
   // Our initial value is the minimum possible for a given precision
-  real_t accumulator = -1 * ((sizeof(real_t) == sizeof(double)) ? DBL_MAX: FLT_MAX);
+#if defined(DOUBLE_PRECISION_VERSION)
+  real_t accumulator = -1 * DBL_MAX;
+#else
+  real_t accumulator = -1 * FLT_MAX;
+#endif
   // Pass 1
   // Loop sequentially over chunks of input vector
 
