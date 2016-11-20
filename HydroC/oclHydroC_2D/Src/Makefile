@@ -56,11 +56,12 @@ include alldeps.d
 # takes some time so I have not left it active. It is really useful
 # only if you have added new files (either .c .cu or .h)
 
-#alldeps.d: $(SRC)
-#	env CFLAGS='$(CFLAGS)' NVCFLAGS='$(NVCFLAGS)' makedeps > alldeps.d
+alldeps.d: $(SRC)
+	env CFLAGS='$(CFLAGS)' NVCFLAGS='$(NVCFLAGS)' makedeps > alldeps.d
 
 burn: hydro
-	ccc_mprun -E-JoclBurnK40 -p hybridk40 -n3 -N3 -T36000 ./hydro -i inputMEDIUM.nml -u g
+	rm -rf ~/.nv	# to empty the stupid cache of compiled OpenCL...
+	ccc_mprun -E-JoclBurnK40 -p k40 -n2 -N1 -T36000 ./hydro -i inputMEDIUM.nml -u g
 burnh: hydro
 	ccc_mprun -E-JoclBurnHSW -p haswellb16 -A rdintel -n35 -N35 -T36000 ./hydro -i inputMEDIUM.nml -u c
 
