@@ -4,9 +4,19 @@ This is the OpenCL version of the Hydro benchmark.
 Guillaume Colin de Verdiere
 July 5th, 2012
 updated, April 8th, 2015
+updated, November, 21st, 2016
 
+Precision selection:
+--------------------
 
-Compilation
+The code is able to run either in Single Precision or Double
+Precision. The choice is made in file oclparam.h. The kernel file
+(hydro_kernels.h) is now trying to verify that the selected precision
+can be indeed used on the system at runtime (in fact during the
+compilation phase). If the proper conditions are not met, the OpenCl
+compilation aborts with a message.
+
+Compilation 
 -----------
 
 1) adapt the ../../../Arch/make.inc file to your local system
@@ -56,6 +66,22 @@ Adapt one of the run*.sh files to your need.
 Please pay attention that the produced output can be rather
 bulky. Your probably want to make sure that RUNDIR points to a file
 system with enough space.
+
+Warning
+-------
+
+The NVIDIA OpenCL tries to maintain a cache of the compiled OpenCL
+kernels. If you ever decide to modify oclparam.h and change the
+selected precision of the computations, you can endup having and error
+message such as:
+
+Error -51 <CL_INVALID_ARG_SIZE> (clSetKernelArg [oclHydroGodunov.c, l=110] arg=1) [f=ocltools.c l=836]
+
+The best thing to do is to systematically remove ~/.nv with "rm -rf
+~/.nv" before any run. Thus you'll have reproducable running
+conditions.
+
+For other systems, just verify that such an "optimization" is not present :-)
 
 
 Miscellaneous
