@@ -57,13 +57,19 @@ knowledge of the CeCILL license and that you accept its terms.
 #define IHVWS_(i,j,v,Hnxyt,Hnxystep) ( (i) + (Hnxyt) * (j) + (Hnxyt) * (Hnxystep) * (v) )
 #endif
 
+// The selection of the precision is done here in the source code
+// and not from the Makefile to allow C and OpenCL to share the 
+// same definition of precision. The OpenCL will check the validity 
+// of the choice at runtime.
+// HydroC has been intented to be in double precision so we make
+// it the default here. 
+#define SELECT_DOUBLE 1   // 0 = SP, 1 = DP
+
 // Warning the typedef AND the define must be active to allow for
 // checks in the hydro_hernels.cl file
-
-#define SELECT_DOUBLE 0   // 0 = SP, 1 = DP
-#if SELECT_DOUBLE == 1
+#if SELECT_DOUBLE == 0
 typedef float real_t;
-#define SIMPLE_PRECISION_VERSION 1
+#define SINGLE_PRECISION_VERSION 1
 #else
 typedef double real_t;
 #define DOUBLE_PRECISION_VERSION 1
