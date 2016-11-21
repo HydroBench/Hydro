@@ -61,7 +61,7 @@ knowledge of the CeCILL license and that you accept its terms.
 // checks in the hydro_hernels.cl file
 
 #define SELECT_DOUBLE 0   // 0 = SP, 1 = DP
-#if SELECT_DOUBLE == 0
+#if SELECT_DOUBLE == 1
 typedef float real_t;
 #define SIMPLE_PRECISION_VERSION 1
 #else
