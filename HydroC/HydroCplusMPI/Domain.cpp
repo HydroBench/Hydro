@@ -52,6 +52,7 @@ Domain::Domain(int argc, char **argv)
 	m_iter = 0;
 	m_checkPoint = 0;
 	m_forceStop = 0;
+	m_forceSync = 0;        // leave the OS alone for I/O management
 	m_withPng = 0;
 	m_npng = 0;
 	m_shrink = 1;
@@ -97,7 +98,6 @@ Domain::Domain(int argc, char **argv)
 	m_sendbufru = 0;	// send right or up
 	m_sendbufld = 0;	// send left or down
 	m_numThreads = 1;	// runs serially by default
-
 #ifdef MPI_ON
 	MPI_Init(&argc, &argv);
 #endif
@@ -288,6 +288,7 @@ void Domain::printSummary()
 		printf("|    dtimage=    %lf\n", m_dtImage);
 		printf("|    nimage=     %d\n", m_nImage);
 		printf("|    forcestop=  %d\n", m_forceStop);
+		printf("|    forcesync=  %d\n", m_forceSync);
 		printf("|+=+=+=+=+=+=+=\n\n");
 	}
 }
@@ -437,6 +438,10 @@ void Domain::readInput()
 		}
 		if (strcmp(pkey, "nimage") == 0) {
 			sscanf(pval, "%d", &m_nImage);
+			continue;
+		}
+		if (strcmp(pkey, "forcesync") == 0) {
+			sscanf(pval, "%d", &m_forceSync);
 			continue;
 		}
 		if (strcmp(pkey, "forcestop") == 0) {

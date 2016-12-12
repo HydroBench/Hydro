@@ -103,7 +103,7 @@ class Domain {
 	int32_t m_shrinkSize;
 	double m_timeGuard;
 	int32_t m_numa;		// try to cope with numa effects
-
+	int32_t m_forceSync;
 	// timing of functions
 	double **m_timerLoops;
 

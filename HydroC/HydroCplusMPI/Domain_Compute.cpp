@@ -211,7 +211,11 @@ void Domain::compute()
 	struct rusage myusage;
 	double giga = 1024 * 1024 * 1024;
 	double totalCellPerSec = 0.0;
+	double minCellPerSec = FLT_MAX;
+	double maxCellPerSec = 0;
+	double ecartCellPerSec = 0;
 	long nbTotCelSec = 0;
+
 	memset(vtkprt, 0, 64);
 
 #ifdef _OPENMP
@@ -257,6 +261,7 @@ void Domain::compute()
 	dt = m_dt;
 
 	while (m_tcur < m_tend) {
+		int needSync = 0;
 		vtkprt[0] = '\0';
 		if ((m_iter % 2) == 0) {
 			m_dt = dt;	// either the initial one or the one computed by the time step
@@ -292,6 +297,7 @@ void Domain::compute()
 			vtkOutput(m_nvtk);
 			sprintf(vtkprt, "[%05d]", m_nvtk);
 			m_nvtk++;
+			needSync++;
 		}
 
 		int outputImage = 0;
@@ -324,15 +330,28 @@ void Domain::compute()
 		if (m_myPe == 0) {
 			int64_t totCell = int64_t(m_globNx) * int64_t(m_globNy);
 			double cellPerSec = totCell / elpasstep / 1000000;
+			char ftxt[32];
+			ftxt[0] = '\0';
 			if (n > 4) {
 				// skip the 4 first iterations to let the system stabilize
 				totalCellPerSec += cellPerSec;
 				nbTotCelSec++;
+				if (cellPerSec > maxCellPerSec) maxCellPerSec = cellPerSec;
+				if (cellPerSec < minCellPerSec) minCellPerSec = cellPerSec;
+				ecartCellPerSec += (cellPerSec * cellPerSec);
 			}
-			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g (%f %f Mc/s %f GB) %lf %s \n",
-				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), resteAll, vtkprt);
+			if (m_forceSync && needSync) {
+				double startflush = dcclock();
+				sync();sync();sync();
+				double endflush = dcclock();
+				double elapsflush = endflush - startflush;
+				sprintf(ftxt, "{f:%.4lf}", elapsflush);				
+			}
+			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB) %lf %s %s\n",
+				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), resteAll, vtkprt, ftxt);
 			fflush(stdout);
 		}
+
 		{
 			int needToStopGlob = false;
 			if (m_myPe == 0) {
@@ -413,8 +432,10 @@ void Domain::compute()
 		printf("\n");
 		convertToHuman(timeHuman, m_elapsTotal);
 		printf("Total simulation time: %s in %d runs\n", timeHuman, m_nbRun);
-		printf("Average MC/s: %.3lf\n", (double) (totalCellPerSec / nbTotCelSec));
-
+		double avgCellPerSec = totalCellPerSec / nbTotCelSec;
+		printf("Average MC/s: %.3lf", avgCellPerSec);
+		ecartCellPerSec = sqrt((ecartCellPerSec / nbTotCelSec) - (avgCellPerSec * avgCellPerSec));
+		printf(" min %.3lf, max %.3lf, sig %.3lf\n", minCellPerSec, maxCellPerSec, ecartCellPerSec);
 #if WITH_TIMERS == 1
 		// cout.precision(4);
 		for (int32_t i = 0; i < m_numThreads; i++) {
