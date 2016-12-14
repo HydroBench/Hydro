@@ -270,7 +270,7 @@ void Tile::traceonRow(int32_t xmin,
 		      Preal_t dqIPS, Preal_t pqxpIDS, Preal_t pqxpIUS, Preal_t pqxpIVS, Preal_t pqxpIPS, Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS)
 {
 #if ALIGNED > 0
-#pragma vector aligned
+//#pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -702,7 +702,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 		}
 	} else {
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -839,7 +839,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 
 #if ALIGNED > 0
 #pragma message "constprimOnRow aligned"
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -914,7 +914,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 {
 #pragma message "riemannOnRow actif"
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -926,7 +926,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 	// Precompute values for this slice
 	// #pragma ivdep
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -956,7 +956,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 // #pragma unroll(5)
 	for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -986,7 +986,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 		}
 	}			// iter_riemann
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
@@ -1091,7 +1091,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 {
 #pragma message "riemannOnRowInRegs actif"
 #if ALIGNED > 0
-#pragma vector aligned
+// #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif

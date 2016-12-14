@@ -33,79 +33,44 @@ using namespace std;
 #include "Utilities.hpp"
 #include "Matrix.hpp"
 
-template < typename T > int32_t Matrix2 < T >::cmpPad(int32_t x)
-{
-	int32_t pad;
-	size_t lgrow = 0;
-	lgrow = x * sizeof(T);
-	lgrow += (_align_value - lgrow % _align_value) % _align_value;
-	pad = lgrow / sizeof(T);
-	return pad;
-}
-
-static const int nbloc = 1024;
-static const int nshift = 10;
-static const int ninc = 128;
-
 template < typename T > void Matrix2 < T >::allocate(void)
 {
 	int32_t lgrow = 0;
 	int32_t maxPad = 0, padh = 0;
 	static int decal = 0;
 
-	// make sure that rows are aligned thru padding 
-	_padw = cmpPad(_w);
-	padh = cmpPad(_h);
-
-	if ((_padw * padh) == 0) {
-		cerr << _w << endl;
-		cerr << _h << endl;
-		cerr << _padw << endl;
-		cerr << padh << endl;
-#ifdef MPI_ON
-		MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-		abort();
-#endif
-	}
 
 #if WITHHBW==0 && WITHPOSIX == 0 && WITHNEW == 0
 #define WITHPOSIX 1
 #endif
-	size_t lgrTab = (_padw * padh + _align_value) * sizeof(T);
+	size_t lgrTab = (_w * _h) * sizeof(T);
 #ifdef WITHNEW
-	_arr_alloc = new T[_padw * padh + _align_value];
+	_arr = new T[_w * _h];
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
-	int rc = hbw_posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
+	int rc = hbw_posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
-	// _arr_alloc = (T *) malloc(lgrTab);
 #pragma message "posix_memalign activated"
-	int rc = posix_memalign((void **) &_arr_alloc, nbloc, lgrTab + nbloc);
+	int rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
 #endif
 #if defined(WITHPOSIX) || defined(WITHHBW)
-	char *tmp = (char *) _arr_alloc;
+	char *tmp = (char *) _arr;
 	tmp += decal;
-	decal += ninc;
-	if (decal >= nbloc) decal = 0;
-	_arr_alloc = (T*) tmp;
+	decal += _ninc;
+	if (decal >= _nbloc) decal = 0;
+	_arr = (T*) tmp;
 #endif
-	memset(_arr_alloc, 0, lgrTab);
-	assert(_arr_alloc != 0);
-	_arr = _arr_alloc;
-
-	// make sure that the working array is properly aligned
-	size_t offset = (_align_value - ((size_t) (_arr_alloc)) % _align_value) % _align_value;
-	_arr = reinterpret_cast < T * >(static_cast < char *>(static_cast < void *>(_arr_alloc))+offset * _align_flag);
+	memset(_arr, 0, lgrTab);
+	assert(_arr != 0);
+	_arr = _arr;
 }
 
 template < typename T > void Matrix2 < T >::swapDimOnly()
 {
 	Swap(_w, _h);
-	_padw = cmpPad(_w);
 }
 
 template < typename T > void Matrix2 < T >::swapDimAndValues()
@@ -113,7 +78,6 @@ template < typename T > void Matrix2 < T >::swapDimAndValues()
 	int32_t t = _w;
 	_w = _h;
 	_h = _w;
-	_padw = cmpPad(_w);
 	abort();		// not yet implemented
 }
 
@@ -150,23 +114,23 @@ template < typename T > void Matrix2 < T >::fill(T v)
 template < typename T > Matrix2 < T >::~Matrix2()
 {
 	// std::cerr << "Destruction object " << this << std::endl;
-	assert(_arr_alloc != 0);
+	assert(_arr != 0);
 
 #if defined(WITHPOSIX) || defined(WITHHBW)
-	size_t tmp = (size_t) _arr_alloc;
-	tmp = tmp >> nshift;
-	tmp = tmp << nshift;
-	_arr_alloc = (T*) tmp;
+	size_t tmp = (size_t) _arr;
+	tmp = tmp >> _nshift;
+	tmp = tmp << _nshift;
+	_arr = (T*) tmp;
 #endif
 #ifdef WITHNEW
-	delete[]_arr_alloc;
+	delete[]_arr;
 #endif
 #ifdef WITHHBW
-	hbw_free(_arr_alloc);
-#else
-	free(_arr_alloc);
+	hbw_free(_arr);
 #endif
-	_arr_alloc = 0;
+#if defined(WITHPOSIX)
+	free(_arr);
+#endif
 	_arr = NULL;
 }
 
@@ -177,7 +141,7 @@ template < typename T > Matrix2 < T >::Matrix2(const Matrix2 < T > &m)
 	_h = (m._h);
 	allocate();
 	assert(_arr != 0);
-	memcpy(_arr, m._arr, _padw * _h * sizeof(T));
+	memcpy(_arr, m._arr, _w * _h * sizeof(T));
 }
 
 template < typename T > Matrix2 < T > &Matrix2 < T >::operator=(const Matrix2 < T > &rhs)
@@ -187,7 +151,7 @@ template < typename T > Matrix2 < T > &Matrix2 < T >::operator=(const Matrix2 < 
 	_h = (rhs._h);
 	allocate();
 	assert(_arr != 0);
-	memcpy(_arr, rhs._arr, _padw * _h * sizeof(T));
+	memcpy(_arr, rhs._arr, _w * _h * sizeof(T));
 	return *this;
 }
 
@@ -306,91 +270,6 @@ template < typename T > void Matrix2 < T >::write(const int f)
 	}
 }
 
-// =================================================================
-
- template < typename T > Matrix3 < T >::Matrix3(int32_t w, int32_t h, int32_t d):
-_w(w), _h(h), _d(d)
-{
-	allocate();
-	// std::cerr << "create " << this << std::endl;
-}
-
-template < typename T > void Matrix3 < T >::fill(T v)
-{
-	int32_t i, j, k;
-#ifdef _OPENMP
-	int embedded = 0;	// to make it openmp proof 
-#endif
-
-#ifdef _OPENMP
-	embedded = omp_in_parallel();
-#endif
-	T *tmp = _arr;
-#ifdef _OPENMP
-#pragma omp parallel for shared(tmp) private(i,j,k) collapse(2) if (!embedded) SCHEDULE
-#endif
-	for (k = 0; k < _d; k++) {
-		for (j = 0; j < _h; j++) {
-// #pragma simd
-			for (i = 0; i < _w; i++) {
-				tmp[index(i, j, k)] = v;
-			}
-		}
-	}
-}
-
-template < typename T > void Matrix3 < T >::allocate(void)
-{
-	int32_t lgrow;
-
-	// make sure that rows are aligned thru padding 
-	lgrow = _w * sizeof(T);
-	lgrow += (_align_value - lgrow % _align_value) % _align_value;
-	_padw = lgrow / sizeof(T);
-
-	assert((_padw * _h * _d) != 0);
-
-	_arr_alloc = new T[_padw * _h * _d + _align_value];
-	assert(_arr_alloc != 0);
-	_arr = _arr_alloc;
-
-	// make sure that the working array is properly aligned
-	size_t offset = (_align_value - ((size_t) (_arr_alloc)) % _align_value) % _align_value;
-	_arr = reinterpret_cast < T * >(static_cast < char *>(static_cast < void *>(_arr_alloc))+offset * _align_flag);
-}
-
-template < typename T > Matrix3 < T >::~Matrix3()
-{
-	// std::cerr << "Destruction object " << this << std::endl;
-	assert(_arr_alloc != 0);
-	delete[]_arr_alloc;
-	_arr_alloc = 0;
-	_arr = NULL;
-}
-
-template < typename T > Matrix3 < T >::Matrix3(const Matrix3 < T > &m)
-{
-	// std::cerr << "copy op " << this << std::endl;
-	_w = (m._w);
-	_h = (m._h);
-	_d = (m._d);
-	allocate();
-	assert(_arr != 0);
-	memcpy(_arr, m._arr, _padw * _h * _d * sizeof(T));
-}
-
-template < typename T > Matrix3 < T > &Matrix3 < T >::operator=(const Matrix3 < T > &rhs)
-{
-	// std::cerr << "= op " << this << std::endl;
-	_w = (rhs._w);
-	_h = (rhs._h);
-	_d = (rhs._d);
-	allocate();
-	assert(_arr != 0);
-	memcpy(_arr, rhs._arr, _padw * _h * _d * sizeof(T));
-	return *this;
-}
-
 //
 // Class instanciation: we force the compiler to generate the proper externals.
 //
@@ -399,9 +278,5 @@ template class Matrix2 < double >;
 template class Matrix2 < float >;
 // template class Matrix2 < int >;
 template class Matrix2 < int32_t >;
-
-template class Matrix3 < int >;
-template class Matrix3 < double >;
-template class Matrix3 < float >;
 
 //EOF
