@@ -87,6 +87,8 @@ class Domain {
 
 	// misc.
 	char *m_inputFile;
+	int32_t m_fakeRead;
+	int64_t m_fakeReadSize;
 
 	// PNG output
 	int32_t m_withPng;

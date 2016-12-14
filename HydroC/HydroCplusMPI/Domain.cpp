@@ -98,6 +98,8 @@ Domain::Domain(int argc, char **argv)
 	m_sendbufru = 0;	// send right or up
 	m_sendbufld = 0;	// send left or down
 	m_numThreads = 1;	// runs serially by default
+	m_fakeRead = 0;
+	m_fakeReadSize = 3000000;
 #ifdef MPI_ON
 	MPI_Init(&argc, &argv);
 #endif
@@ -289,6 +291,8 @@ void Domain::printSummary()
 		printf("|    nimage=     %d\n", m_nImage);
 		printf("|    forcestop=  %d\n", m_forceStop);
 		printf("|    forcesync=  %d\n", m_forceSync);
+		printf("|    fakeread=   %d\n", m_fakeRead);
+		printf("|fakereadsize=   %ld\n", m_fakeReadSize);
 		printf("|+=+=+=+=+=+=+=\n\n");
 	}
 }
@@ -450,6 +454,15 @@ void Domain::readInput()
 		}
 		if (strcmp(pkey, "testcase") == 0) {
 			sscanf(pval, "%d", &m_testcase);
+			continue;
+		}
+		if (strcmp(pkey, "fakeread") == 0) {
+			sscanf(pval, "%d", &m_fakeRead);
+			continue;
+		}
+		if (strcmp(pkey, "fakereadsize") == 0) {
+			sscanf(pval, "%ld", &m_fakeReadSize);
+			// cerr << m_fakeReadSize << endl;
 			continue;
 		}
 		// string parameter

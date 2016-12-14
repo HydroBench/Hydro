@@ -37,6 +37,7 @@ using namespace std;
 #include "EnumDefs.hpp"
 #include "Domain.hpp"
 #include "Soa.hpp"
+#include "FakeRead.hpp"
 #include "cclock.h"
 
 void Domain::changeDirection()
@@ -215,6 +216,26 @@ void Domain::compute()
 	double maxCellPerSec = 0;
 	double ecartCellPerSec = 0;
 	long nbTotCelSec = 0;
+	FakeRead *reader = 0;
+
+	if (m_myPe == 0 && m_fakeRead) {
+		fprintf(stderr, "HydroC: Creating fake paging file(s) ...\n");
+	}
+	start = dcclock();
+	if (m_fakeRead)
+		reader = new FakeRead(m_fakeReadSize, m_myPe);
+#ifdef MPI_ON
+	if (m_nProc > 1)
+		MPI_Barrier(MPI_COMM_WORLD);
+#endif
+	end = dcclock();
+
+	if (m_myPe == 0 && m_fakeRead) {
+		char txt[64];
+		double elaps = end - start;
+		convertToHuman(txt, elaps);
+		fprintf(stderr, "HydroC: Creating fake paging file(s) done in %s.\n", txt);
+	}
 
 	memset(vtkprt, 0, 64);
 
@@ -266,11 +287,21 @@ void Domain::compute()
 		if ((m_iter % 2) == 0) {
 			m_dt = dt;	// either the initial one or the one computed by the time step
 		}
+		if (reader)
+			reader->Read(m_fakeRead);
 
-		startstep = dcclock();
-		dt = computeTimeStep();
-		endstep = dcclock();
-		elpasstep = endstep - startstep;
+		//
+		// - - - - - - - - - - - - - - - - - - -
+		//
+		{
+			startstep = dcclock();
+			dt = computeTimeStep();
+			endstep = dcclock();
+			elpasstep = endstep - startstep;
+		}
+		//
+		// - - - - - - - - - - - - - - - - - - -
+		//
 		// m_dt = 1.e-3;
 		m_tcur += m_dt;
 		n++;		// iteration of this run
@@ -336,16 +367,20 @@ void Domain::compute()
 				// skip the 4 first iterations to let the system stabilize
 				totalCellPerSec += cellPerSec;
 				nbTotCelSec++;
-				if (cellPerSec > maxCellPerSec) maxCellPerSec = cellPerSec;
-				if (cellPerSec < minCellPerSec) minCellPerSec = cellPerSec;
+				if (cellPerSec > maxCellPerSec)
+					maxCellPerSec = cellPerSec;
+				if (cellPerSec < minCellPerSec)
+					minCellPerSec = cellPerSec;
 				ecartCellPerSec += (cellPerSec * cellPerSec);
 			}
 			if (m_forceSync && needSync) {
 				double startflush = dcclock();
-				sync();sync();sync();
+				sync();
+				sync();
+				sync();
 				double endflush = dcclock();
 				double elapsflush = endflush - startflush;
-				sprintf(ftxt, "{f:%.4lf}", elapsflush);				
+				sprintf(ftxt, "{f:%.4lf}", elapsflush);
 			}
 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB) %lf %s %s\n",
 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), resteAll, vtkprt, ftxt);
@@ -394,8 +429,8 @@ void Domain::compute()
 		}
 	}
 
-	if (m_nStepMax > 0) { 
-		if (m_iter > m_nStepMax) { 
+	if (m_nStepMax > 0) {
+		if (m_iter > m_nStepMax) {
 			if (m_forceStop) {
 				StopComputation();
 			}
@@ -415,7 +450,7 @@ void Domain::compute()
 	if (m_myPe == 0) {
 		char timeHuman[256];
 		long maxMemUsed = getMemUsed();
-	    double elaps = (end - start);
+		double elaps = (end - start);
 		printf("End of computations in %.3lf s (", elaps);
 		convertToHuman(timeHuman, (end - start));
 		printf("%s) with %d tiles", timeHuman, m_nbtiles);
@@ -448,6 +483,8 @@ void Domain::compute()
 #endif
 
 	}
+	if (reader)
+		delete reader;
 	// cerr << "End compute " << m_myPe << endl;
 }
 
