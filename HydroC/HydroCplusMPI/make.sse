@@ -1,15 +1,22 @@
-OPTIM+=-msse4 -DSSE -O3
+CFLAGS+=-std=c++11 -g
+OPTIM+=-msse4 -DSSE
 
 ARCHEXT=std
+   
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g
 
 ifeq ($(MPI),O)
-ifneq ($(OPENMPI_ROOT),)
-INCS+=-I$(OPENMPI_ROOT)/include
-LIBS+=-L$(OPENMPI_ROOT)/lib -lmpi
-DEFS+=-DMPI_ON $(INCS)
-else
-INCS+=-I$(I_MPI_ROOT)/mic/include
-LIBS+=-L$(I_MPI_ROOT)/mic/lib -lmpi
-DEFS+=-DMPI_ON $(INCS)
-endif
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include64
+      MPI_LIB=-L$(I_MPI_ROOT)/lib64
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   else
+      INCS+=-I$(MPI_ROOT)/include
+      LIBS+=-L$(MPI_ROOT)/lib -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   endif
 endif

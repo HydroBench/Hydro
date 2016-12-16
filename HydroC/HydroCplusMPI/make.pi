@@ -1,10 +1,12 @@
-CXX=g++ -O3
+CXX=g++
 # -mtune=xgene1
 ARCHEXT=armv7
+CFLAGS=-std=c++11
 
-ifeq ($(OPENMP),O)
-   OPTIM+=-fopenmp
+ifneq ($(DBG),O)
+   OPTIM+=-O3
 endif
+OPTIM+=-g
 
 ifeq ($(MPI),O)
      MPI_INCLUDE=/usr/include/openmpi

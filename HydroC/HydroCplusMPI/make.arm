@@ -1,11 +1,15 @@
 CXX=g++ -march=armv8-a+crc
-CXX=g++ -march=armv8-a -O3
-# -mtune=xgene1
-ARCHEXT=armv8
+CXX=g++ -march=armv8-a+simd+fp
+CFLAGS=-std=c++11
 
-ifeq ($(OPENMP),O)
-   OPTIM+=-fopenmp
+# -mtune=xgene1
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
 endif
+OPTIM+=-g
+
+ARCHEXT=armv8
 
 ifeq ($(MPI),O)
      MPI_INCLUDE=/usr/include/openmpi-aarch64
@@ -13,6 +17,7 @@ ifeq ($(MPI),O)
      INCS+=-I$(MPI_INCLUDE) -DMPI_ON
      LIBS+=-L$(MPI_LIB) -lmpi_cxx -lmpi  -Wl,-rpath,$(MPI_LIB) 
 endif
+
 ifeq ($(NOVEC),O)
    OPTIM+=-fno-tree-vectorize
 else

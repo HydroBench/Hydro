@@ -59,23 +59,24 @@ runhpctk:
 runk40: 
 	if [ -f .wasmic ] ; then make clean ; fi
 	if [ -f .waspg ] ; then make clean ; fi
-	make  clean AVX=O hydroc
+	make  clean
+	make  AVX=O hydroc
 	rm -rf Dep/* Image.png
 	env OMP_NUM_THREADS=24 time ccc_mprun -p hybridk40 -T 6400 -n1 -N1 -x -c24 ./hydroc -i input.nml
 
 runatom: 
-	if [ -f .wasmic ] ; then make clean ; fi
-	if [ -f .waspg ] ; then make clean ; fi
-	make clean ATOM=O hydroc
+	make clean
+	make -j 8 ATOM=O hydroc
 	rm -rf Dep/*
-	env OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp time ccc_mprun -p atom -A rdhp -n4 -N4 -x -c8 -T 6400 ./hydroc -i input.nml
+	env OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp time ccc_mprun -p atom -n4 -N4 -x -c8 -T 6400 ./hydroc -i Inputs/input.nml
 
 runarm: 
 	if [ -f .wasmic ] ; then make clean ; fi
 	if [ -f .waspg ] ; then make clean ; fi
 	rm -rf Dep/* STOP
-	env OMP_NUM_THREADS=8 time ccc_mprun -p arm -A rdhp -n2 -N2 -x -c8 -T 6400 ./hydroc -i input.nml
+	env OMP_NUM_THREADS=1 time ccc_mprun -p arm -n1 -x -c1 -T 6400 ./hydroc.armv8 -i inputExanode.nml
 # export OMP_NUM_THREADS=8 I_MPI_FABRICS_LIST=tcp SLURM_DISTRIBUTION=block SLURM_CPU_BIND=none ; 
+
 runmic: 
 	if [ -f .wasmic ] ; then make clean ; fi
 	if [ -f .waspg ] ; then make clean ; fi
@@ -163,7 +164,7 @@ pgrun:
 
 vrun: hydroc
 	rm -rf Dep/*
-	env OMP_NUM_THREADS=8 time ccc_mprun -p hybridk40 -T 6400 valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=no --gen-suppressions=no --suppressions=./valgrind.supp ./hydroc -i input.nml
+	env OMP_NUM_THREADS=8 time ccc_mprun -p nehalem -T 6400 valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=no --gen-suppressions=no --suppressions=./valgrind.supp ./hydroc -i input.nml
 
 prun: hydroc
 	rm -rf Dep/*

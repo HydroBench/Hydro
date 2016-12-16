@@ -1,17 +1,38 @@
-PNG=O
-MPI=O
+CFLAGS+=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g
 
 ifeq ($(MPI),O)
-ifneq ($(OPENMPI_ROOT),)
-INCS+=-I$(OPENMPI_ROOT)/include
-LIBS+=-L$(OPENMPI_ROOT)/lib -lmpi
-DEFS+=-DMPI_ON $(INCS)
-else
-INCS+=-I$(I_MPI_ROOT)/mic/include
-LIBS+=-L$(I_MPI_ROOT)/mic/lib -lmpi
-DEFS+=-DMPI_ON $(INCS)
+   ifneq ($(WI4MPI_ROOT),)
+      INCS+=-I$(WI4MPI_INCDIR) $(WI4MPI_COMPILE_OPT)
+      MPI_LIB=-L$(WI4MPI_LIBDIR)
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(WI4MPI_LIBDIR)
+      DEFS+=-DMPI_ON $(INCS)
+   else
+	ifneq ($(I_MPI_ROOT),)
+      	      INCS+=-I$(I_MPI_INCDIR)
+	      MPI_LIB=-L$(I_MPI_LIBDIR)
+	      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      	      DEFS+=-DMPI_ON $(INCS)
+   	else
+      	      INCS+=-I$(MPI_ROOT)/include
+      	      MPI_LIB=-L$(MPI_ROOT)/lib
+      	      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      	      DEFS+=-DMPI_ON $(INCS)
+   	      endif
+   endif
 endif
-endif
-OPTIM+=-xMIC-AVX512 -O3
+
+OPTIM+=-xMIC-AVX512
 ARCHEXT=knl
+
+ifeq ($(HBM),O)
+   #OPTIM+=-DMEMKIND -DWITHHBW -I${MEMKINDDEV_INCDIR}
+   #LIBS+=-L${MEMKINDDEV_LIBDIR} -lmemkind
+   OPTIM+=-DMEMKIND -DWITHHBW 
+   LIBS+=-lmemkind
+endif
 

@@ -1,4 +1,4 @@
-SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp main.cpp 
+SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp 
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
 OBJS=$(patsubst %.cpp,%.o,$(SRCS)) cclock.o
 OPENMP=O
@@ -10,11 +10,10 @@ ARCHEXT=std
 # INCS+=-I$(HOME)/vecadv/advisor_xe/include
 
 CXX=icpc
-DEFS=-std=c++11
 DEFS+=$(DEFSEXT)
 
 ifeq ($(PI),O)
-	include make.pi
+include make.pi
 endif
 
 ifeq ($(ARM),O)
@@ -45,83 +44,40 @@ ifeq ($(AVX),O)
 include make.avx
 endif
 
-CFLAGS=$(DEFS)
-CFLAGS+=-g
+ifeq ($(CRAY),O)
+include make.cray
+endif
+
+CFLAGS+=$(DEFS)
 
 include make.opts
-
-ifeq ($(CXX),icpc)
-# OPTIM+=-mkl
-  ifeq ($(OPENMP),O)
-     OPTIM+=-qopenmp
-  endif
-  OPTIM+=-ansi-alias 
-  ifeq ($(PG),O)
-     OPTIM+=-pg
-  endif
-  ifeq ($(XHOST),O)
-     OPTIM+=-xHost 
-  endif
-endif
-ifeq ($(VERB),O)
-# OPTIM+=-vec-report6
-# for compiler >= 15
-OPTIM+=-qopt-report=5
-endif
-
-# OPTIM+=-openmp-report1 
-ifeq ($(NOVEC),O)
-OPTIM+=-no-vec
-endif
-
-ifeq ($(CXX),g++)
- ifeq ($(AVX),O)
-  ARCHEXT=avx
-  OPTIM+=-mavx -DAVX
- endif
- ifeq ($(OPENMP),O)
-  OPTIM+=-fopenmp
- endif
- ifeq ($(NOVEC),O)
-  OPTIM+=-fno-tree-vectorize
- else
-   OPTIM+=-ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -ftree-vectorize -ftree-vect-loop-version -ftracer -freciprocal-math -mrecip -funroll-loops --param max-cse-path-length=100 --param max-cse-path-length=10000 --param loop-invariant-max-bbs-in-loop=100000
- endif
- ifeq ($(VERB),O)
-  OPTIM+=-ftree-vectorizer-verbose=1 -Wall
- endif
-endif
 
 ifeq ($(PNG),O)
 LIBS+=-lpng 
 endif
 
-ifeq ($(HBM),O)
-#OPTIM+=-DMEMKIND -DWITHHBW -I${MEMKINDDEV_INCDIR}
-#LIBS+=-L${MEMKINDDEV_LIBDIR} -lmemkind
-OPTIM+=-DMEMKIND -DWITHHBW 
-LIBS+=-lmemkind
-endif
-
 CFLAGS+=$(INCS)
 
 hydroc: $(OBJS)
-	-$(CXX) --version
-	$(CXX) -o hydroc $(CFLAGS) $(OPTIM) $(OBJS) $(LIBS) -lm -lrt -lpthread
+	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(LIBS) -lm -lrt -lpthread -o hydroc 
 # -lrt -ldl
 	cp hydroc hydroc.$(ARCHEXT)
 
 include $(DEPS)
 
 %.o: %.cpp
-	$(CXX) -o $@ -c $(CFLAGS) $(OPTIM) $< 
+	$(CXX) -c $(CFLAGS) $(OPTIM) $< -o $@ 
 
 %.o: %.c
-	$(CXX) -o $@ -c $(CFLAGS) $(OPTIM) $< 
+	$(CXX) -c $(CFLAGS) $(OPTIM) $< -o $@ 
 
+ifeq ($(CRAY),O)
 %.d: %.cpp
-	@$(CXX) -M $< $(DEFS) $(CFLAGS) | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
-
+	touch $@
+else
+%.d: %.cpp
+	$(CXX) -M $< $(DEFS) $(CFLAGS) | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
+endif
 clean:
 	rm -rf *.o hydroc *~ toto *.optrpt
 

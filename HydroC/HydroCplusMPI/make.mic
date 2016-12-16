@@ -1,9 +1,16 @@
+CFLAGS+=-std=c++11
 PNG=N
 
-ifeq ($(MPI),O)
-INCS+=-I$(I_MPI_ROOT)/mic/include
-LIBS+=-L$(I_MPI_ROOT)/mic/lib -lmpi
-DEFS+=-DMPI_ON $(INCS)
+ifneq ($(DBG),O)
+   OPTIM+=-O3
 endif
-OPTIM+=-mmic -opt-prefetch=2 -O3
+OPTIM+=-g
+
+ifeq ($(MPI),O)
+   INCS+=-I$(I_MPI_ROOT)/mic/include
+   LIBS+=-L$(I_MPI_ROOT)/mic/lib -lmpi
+   DEFS+=-DMPI_ON $(INCS)
+endif
+
+OPTIM+=-mmic -qopt-prefetch=2
 ARCHEXT=mic
