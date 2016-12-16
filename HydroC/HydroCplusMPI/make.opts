@@ -33,7 +33,7 @@ ifeq ($(CXX),g++)
  ifeq ($(NOVEC),O)
   OPTIM+=-fno-tree-vectorize
  else
-   OPTIM+=-ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -ftree-vectorize -ftree-vect-loop-version -ftracer -freciprocal-math -mrecip -funroll-loops --param max-cse-path-length=100 --param max-cse-path-length=10000 --param loop-invariant-max-bbs-in-loop=100000
+   OPTIM+=-ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -ftree-vectorize -ftree-vect-loop-version -ftracer -freciprocal-math -funroll-loops --param max-cse-path-length=100 --param max-cse-path-length=10000 --param loop-invariant-max-bbs-in-loop=100000
  endif
  ifeq ($(VERB),O)
   OPTIM+=-ftree-vectorizer-verbose=1 -Wall
