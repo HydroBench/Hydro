@@ -382,6 +382,9 @@ void Domain::compute()
 				double elapsflush = endflush - startflush;
 				sprintf(ftxt, "{f:%.4lf}", elapsflush);
 			}
+			if (reader)
+				sprintf(ftxt, "%s r", ftxt);
+
 			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB) %lf %s %s\n",
 				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), resteAll, vtkprt, ftxt);
 			fflush(stdout);
