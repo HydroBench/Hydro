@@ -77,13 +77,18 @@ template < typename T > void Matrix2 < T >::swapDimAndValues()
 {
 	int32_t t = _w;
 	_w = _h;
-	_h = _w;
+	_h = t;
 	abort();		// not yet implemented
 }
 
  template < typename T > Matrix2 < T >::Matrix2(int32_t w, int32_t h):
 _w(w), _h(h)
 {
+	// padd the array to make the next row aligned too.
+	_w += (((_w * sizeof(T)) % _ninc) / sizeof(T));
+	_h += (((_h * sizeof(T)) % _ninc) / sizeof(T));
+	_w += (_w % 2);
+	_h += (_h % 2);
 	allocate();
 	// std::cerr << "create " << this << std::endl;
 }
