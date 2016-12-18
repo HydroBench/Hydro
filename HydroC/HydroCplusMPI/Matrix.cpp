@@ -81,12 +81,13 @@ template < typename T > void Matrix2 < T >::swapDimAndValues()
 	abort();		// not yet implemented
 }
 
+#define ALIGNEXT 128
  template < typename T > Matrix2 < T >::Matrix2(int32_t w, int32_t h):
 _w(w), _h(h)
 {
 	// padd the array to make the next row aligned too.
-	_w += (((_w * sizeof(T)) % _ninc) / sizeof(T));
-	_h += (((_h * sizeof(T)) % _ninc) / sizeof(T));
+	_w += (((_w * sizeof(T)) % ALIGNEXT) / sizeof(T));
+	_h += (((_h * sizeof(T)) % ALIGNEXT) / sizeof(T));
 	_w += (_w % 2);
 	_h += (_h % 2);
 	allocate();
