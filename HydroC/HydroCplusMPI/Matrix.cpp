@@ -80,8 +80,10 @@ template < typename T > void Matrix2 < T >::swapDimAndValues()
 	_h = t;
 	abort();		// not yet implemented
 }
-
+#ifndef ALIGNEXT
 #define ALIGNEXT 128
+#endif
+
  template < typename T > Matrix2 < T >::Matrix2(int32_t w, int32_t h):
 _w(w), _h(h)
 {
