@@ -52,7 +52,7 @@ Domain::Domain(int argc, char **argv)
 	m_iter = 0;
 	m_checkPoint = 0;
 	m_forceStop = 0;
-	m_forceSync = 0;        // leave the OS alone for I/O management
+	m_forceSync = 0;	// leave the OS alone for I/O management
 	m_withPng = 0;
 	m_npng = 0;
 	m_shrink = 1;
@@ -331,6 +331,14 @@ void Domain::readInput()
 	char buffer[1024];
 	char *pval, *pkey;
 	char *realFmt;
+	int nbvalint = 0;
+	int nbvallng = 0;
+	int nbvalflt = 0;
+	int nbvaldbl = 0;
+	int tabint[100];
+	long tablng[100];
+	float tabflt[100];
+	double tabdbl[100];
 
 	if (sizeof(real_t) == sizeof(double)) {
 		realFmt = (char *)("%lf");
@@ -338,148 +346,252 @@ void Domain::readInput()
 		realFmt = (char *)("%f");
 	}
 
-	fd = fopen(m_inputFile, "r");
-	if (fd == NULL) {
-		cerr << "can't read input file\n" << endl;
-		abort();
-	}
-	while (fgets(buffer, 1024, fd) == buffer) {
-		keyval(buffer, &pkey, &pval);
+	if (m_myPe == 0) {
+		fd = fopen(m_inputFile, "r");
+		if (fd == NULL) {
+			cerr << "can't read input file\n" << endl;
+			abort();
+		}
+		while (fgets(buffer, 1024, fd) == buffer) {
+			keyval(buffer, &pkey, &pval);
 
-		// int parameters
-		if (strcmp(pkey, "nstepmax") == 0) {
-			sscanf(pval, "%d", &m_nStepMax);
-			continue;
-		}
-		if (strcmp(pkey, "chkpt") == 0) {
-			sscanf(pval, "%d", &m_checkPoint);
-			continue;
-		}
-		if (strcmp(pkey, "prt") == 0) {
-			sscanf(pval, "%d", &m_prt);
-			continue;
-		}
-		if (strcmp(pkey, "nx") == 0) {
-			sscanf(pval, "%d", &m_globNx);
-			continue;
-		}
-		if (strcmp(pkey, "ny") == 0) {
-			sscanf(pval, "%d", &m_globNy);
-			continue;
-		}
-		if (strcmp(pkey, "tilesize") == 0) {
-			sscanf(pval, "%d", &m_tileSize);
-			continue;
-		}
-		if (strcmp(pkey, "boundary_left") == 0) {
-			sscanf(pval, "%d", &m_boundary_left);
-			continue;
-		}
-		if (strcmp(pkey, "boundary_right") == 0) {
-			sscanf(pval, "%d", &m_boundary_right);
-			continue;
-		}
-		if (strcmp(pkey, "boundary_up") == 0) {
-			sscanf(pval, "%d", &m_boundary_up);
-			continue;
-		}
-		if (strcmp(pkey, "boundary_down") == 0) {
-			sscanf(pval, "%d", &m_boundary_down);
-			continue;
-		}
-		if (strcmp(pkey, "niter_riemann") == 0) {
-			sscanf(pval, "%d", &m_nIterRiemann);
-			continue;
-		}
-		if (strcmp(pkey, "noutput") == 0) {
-			sscanf(pval, "%d", &m_nOutput);
-			continue;
-		}
-		if (strcmp(pkey, "numa") == 0) {
-			sscanf(pval, "%d", &m_numa);
-			continue;
-		}
-		if (strcmp(pkey, "iorder") == 0) {
-			sscanf(pval, "%d", &m_iorder);
-			continue;
-		}
-		if (strcmp(pkey, "morton") == 0) {
-			sscanf(pval, "%d", &m_withMorton);
-			continue;
-		}
-		// float parameters
-		if (strcmp(pkey, "slope_type") == 0) {
-			// sscanf(pval, realFmt, &H->slope_type);
-			continue;
-		}
-		if (strcmp(pkey, "tend") == 0) {
-			sscanf(pval, realFmt, &m_tend);
-			continue;
-		}
-		if (strcmp(pkey, "dx") == 0) {
-			sscanf(pval, realFmt, &m_dx);
-			continue;
-		}
-		if (strcmp(pkey, "courant_factor") == 0) {
-			sscanf(pval, realFmt, &m_cfl);
-			continue;
-		}
-		if (strcmp(pkey, "smallr") == 0) {
-			// sscanf(pval, realFmt, &H->smallr);
-			continue;
-		}
-		if (strcmp(pkey, "smallc") == 0) {
-			// sscanf(pval, realFmt, &H->smallc);
-			continue;
-		}
-		if (strcmp(pkey, "dtoutput") == 0) {
-			sscanf(pval, realFmt, &m_dtOutput);
-			continue;
-		}
-		if (strcmp(pkey, "dtimage") == 0) {
-			sscanf(pval, realFmt, &m_dtImage);
-			continue;
-		}
-		if (strcmp(pkey, "nimage") == 0) {
-			sscanf(pval, "%d", &m_nImage);
-			continue;
-		}
-		if (strcmp(pkey, "forcesync") == 0) {
-			sscanf(pval, "%d", &m_forceSync);
-			continue;
-		}
-		if (strcmp(pkey, "forcestop") == 0) {
-			sscanf(pval, "%d", &m_forceStop);
-			continue;
-		}
-		if (strcmp(pkey, "testcase") == 0) {
-			sscanf(pval, "%d", &m_testcase);
-			continue;
-		}
-		if (strcmp(pkey, "fakeread") == 0) {
-			sscanf(pval, "%d", &m_fakeRead);
-			continue;
-		}
-		if (strcmp(pkey, "fakereadsize") == 0) {
-			sscanf(pval, "%ld", &m_fakeReadSize);
-			// cerr << m_fakeReadSize << endl;
-			continue;
-		}
-		// string parameter
-		if (strcmp(pkey, "scheme") == 0) {
-			if (strcmp(pval, "muscl") == 0) {
-				m_scheme = SCHEME_MUSCL;
-			} else if (strcmp(pval, "plmde") == 0) {
-				m_scheme = SCHEME_PLMDE;
-			} else if (strcmp(pval, "collela") == 0) {
-				m_scheme = SCHEME_COLLELA;
-			} else {
-				cerr << "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n" << pval << endl;
-				abort();
+			// int parameters
+			if (strcmp(pkey, "nstepmax") == 0) {
+				sscanf(pval, "%d", &m_nStepMax);
+				continue;
 			}
-			continue;
+			if (strcmp(pkey, "chkpt") == 0) {
+				sscanf(pval, "%d", &m_checkPoint);
+				continue;
+			}
+			if (strcmp(pkey, "prt") == 0) {
+				sscanf(pval, "%d", &m_prt);
+				continue;
+			}
+			if (strcmp(pkey, "nx") == 0) {
+				sscanf(pval, "%d", &m_globNx);
+				continue;
+			}
+			if (strcmp(pkey, "ny") == 0) {
+				sscanf(pval, "%d", &m_globNy);
+				continue;
+			}
+			if (strcmp(pkey, "tilesize") == 0) {
+				sscanf(pval, "%d", &m_tileSize);
+				continue;
+			}
+			if (strcmp(pkey, "boundary_left") == 0) {
+				sscanf(pval, "%d", &m_boundary_left);
+				continue;
+			}
+			if (strcmp(pkey, "boundary_right") == 0) {
+				sscanf(pval, "%d", &m_boundary_right);
+				continue;
+			}
+			if (strcmp(pkey, "boundary_up") == 0) {
+				sscanf(pval, "%d", &m_boundary_up);
+				continue;
+			}
+			if (strcmp(pkey, "boundary_down") == 0) {
+				sscanf(pval, "%d", &m_boundary_down);
+				continue;
+			}
+			if (strcmp(pkey, "niter_riemann") == 0) {
+				sscanf(pval, "%d", &m_nIterRiemann);
+				continue;
+			}
+			if (strcmp(pkey, "noutput") == 0) {
+				sscanf(pval, "%d", &m_nOutput);
+				continue;
+			}
+			if (strcmp(pkey, "numa") == 0) {
+				sscanf(pval, "%d", &m_numa);
+				continue;
+			}
+			if (strcmp(pkey, "iorder") == 0) {
+				sscanf(pval, "%d", &m_iorder);
+				continue;
+			}
+			if (strcmp(pkey, "morton") == 0) {
+				sscanf(pval, "%d", &m_withMorton);
+				continue;
+			}
+			// float parameters
+			if (strcmp(pkey, "slope_type") == 0) {
+				// sscanf(pval, realFmt, &H->slope_type);
+				continue;
+			}
+			if (strcmp(pkey, "tend") == 0) {
+				sscanf(pval, realFmt, &m_tend);
+				continue;
+			}
+			if (strcmp(pkey, "dx") == 0) {
+				sscanf(pval, realFmt, &m_dx);
+				continue;
+			}
+			if (strcmp(pkey, "courant_factor") == 0) {
+				sscanf(pval, realFmt, &m_cfl);
+				continue;
+			}
+			if (strcmp(pkey, "smallr") == 0) {
+				// sscanf(pval, realFmt, &H->smallr);
+				continue;
+			}
+			if (strcmp(pkey, "smallc") == 0) {
+				// sscanf(pval, realFmt, &H->smallc);
+				continue;
+			}
+			if (strcmp(pkey, "dtoutput") == 0) {
+				sscanf(pval, realFmt, &m_dtOutput);
+				continue;
+			}
+			if (strcmp(pkey, "dtimage") == 0) {
+				sscanf(pval, realFmt, &m_dtImage);
+				continue;
+			}
+			if (strcmp(pkey, "nimage") == 0) {
+				sscanf(pval, "%d", &m_nImage);
+				continue;
+			}
+			if (strcmp(pkey, "forcesync") == 0) {
+				sscanf(pval, "%d", &m_forceSync);
+				continue;
+			}
+			if (strcmp(pkey, "forcestop") == 0) {
+				sscanf(pval, "%d", &m_forceStop);
+				continue;
+			}
+			if (strcmp(pkey, "testcase") == 0) {
+				sscanf(pval, "%d", &m_testcase);
+				continue;
+			}
+			if (strcmp(pkey, "fakeread") == 0) {
+				sscanf(pval, "%d", &m_fakeRead);
+				continue;
+			}
+			if (strcmp(pkey, "fakereadsize") == 0) {
+				sscanf(pval, "%ld", &m_fakeReadSize);
+				// cerr << m_fakeReadSize << endl;
+				continue;
+			}
+			// string parameter
+			if (strcmp(pkey, "scheme") == 0) {
+				if (strcmp(pval, "muscl") == 0) {
+					m_scheme = SCHEME_MUSCL;
+				} else if (strcmp(pval, "plmde") == 0) {
+					m_scheme = SCHEME_PLMDE;
+				} else if (strcmp(pval, "collela") == 0) {
+					m_scheme = SCHEME_COLLELA;
+				} else {
+					cerr << "Scheme name <%s> is unknown, should be one of [muscl,plmde,collela]\n" << pval << endl;
+					abort();
+				}
+				continue;
+			}
 		}
 	}
+#ifdef MPI_ON
+	nbvalint = 0;
+	tabint[nbvalint++] = m_nStepMax;
+	tabint[nbvalint++] = m_checkPoint;
+	tabint[nbvalint++] = m_prt;
+	tabint[nbvalint++] = m_globNx;
+	tabint[nbvalint++] = m_globNy;
+	tabint[nbvalint++] = m_tileSize;
+	tabint[nbvalint++] = m_boundary_left;
+	tabint[nbvalint++] = m_boundary_right;
+	tabint[nbvalint++] = m_boundary_up;
+	tabint[nbvalint++] = m_boundary_down;
+	tabint[nbvalint++] = m_nIterRiemann;
+	tabint[nbvalint++] = m_nOutput;
+	tabint[nbvalint++] = m_numa;
+	tabint[nbvalint++] = m_iorder;
+	tabint[nbvalint++] = m_withMorton;
+	tabint[nbvalint++] = m_nImage;
+	tabint[nbvalint++] = m_forceSync;
+	tabint[nbvalint++] = m_forceStop;
+	tabint[nbvalint++] = m_testcase;
+	tabint[nbvalint++] = m_fakeRead;
+	tabint[nbvalint++] = m_scheme;
+	MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
+	if (m_myPe > 0) {
+		nbvalint = 0;
+		m_nStepMax = tabint[nbvalint++];
+		m_checkPoint = tabint[nbvalint++];
+		m_prt = tabint[nbvalint++];
+		m_globNx = tabint[nbvalint++];
+		m_globNy = tabint[nbvalint++];
+		m_tileSize = tabint[nbvalint++];
+		m_boundary_left = tabint[nbvalint++];
+		m_boundary_right = tabint[nbvalint++];
+		m_boundary_up = tabint[nbvalint++];
+		m_boundary_down = tabint[nbvalint++];
+		m_nIterRiemann = tabint[nbvalint++];
+		m_nOutput = tabint[nbvalint++];
+		m_numa = tabint[nbvalint++];
+		m_iorder = tabint[nbvalint++];
+		m_withMorton = tabint[nbvalint++];
+		m_nImage = tabint[nbvalint++];
+		m_forceSync = tabint[nbvalint++];
+		m_forceStop = tabint[nbvalint++];
+		m_testcase = tabint[nbvalint++];
+		m_fakeRead = tabint[nbvalint++];
+		m_scheme = (godunovScheme_t) tabint[nbvalint++];
+	}
+
+	nbvallng = 0;
+	tablng[nbvallng++] = m_fakeReadSize;
+	MPI_Bcast(tablng, nbvallng, MPI_INT, 0, MPI_COMM_WORLD);
+	if (m_myPe > 0) {
+		nbvallng = 0;
+		m_fakeReadSize = tablng[nbvallng++];
+	}
+	if (sizeof(real_t) == sizeof(double)) {
+		nbvaldbl = 0;
+		// tabdbl[nbvaldbl++] = H->slope_type;
+		tabdbl[nbvaldbl++] = m_tend;
+		tabdbl[nbvaldbl++] = m_dx;
+		tabdbl[nbvaldbl++] = m_cfl;
+		tabdbl[nbvaldbl++] = m_smallr;
+		tabdbl[nbvaldbl++] = m_smallc;
+		tabdbl[nbvaldbl++] = m_dtOutput;
+		tabdbl[nbvaldbl++] = m_dtImage;
+		MPI_Bcast(tabdbl, nbvaldbl, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		if (m_myPe > 0) {
+			nbvaldbl = 0;
+			// H->slope_type =tabdbl[nbvaldbl++];
+			m_tend =tabdbl[nbvaldbl++];
+			m_dx =tabdbl[nbvaldbl++];
+			m_cfl =tabdbl[nbvaldbl++];
+			m_smallr =tabdbl[nbvaldbl++];
+			m_smallc =tabdbl[nbvaldbl++];
+			m_dtOutput =tabdbl[nbvaldbl++];
+			m_dtImage =tabdbl[nbvaldbl++];
+		}
+	} else {
+		nbvalflt = 0;
+		// tabflt[nbvalflt++] = H->slope_type;
+		tabflt[nbvalflt++] = m_tend;
+		tabflt[nbvalflt++] = m_dx;
+		tabflt[nbvalflt++] = m_cfl;
+		tabflt[nbvalflt++] = m_smallr;
+		tabflt[nbvalflt++] = m_smallc;
+		tabflt[nbvalflt++] = m_dtOutput;
+		tabflt[nbvalflt++] = m_dtImage;
+		MPI_Bcast(tabflt, nbvalflt, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		if (m_myPe > 0) {
+			nbvalflt = 0;
+			// tabflt[nbvalflt++] = H->slope_type;
+			tabflt[nbvalflt++] = m_tend;
+			tabflt[nbvalflt++] = m_dx;
+			tabflt[nbvalflt++] = m_cfl;
+			tabflt[nbvalflt++] = m_smallr;
+			tabflt[nbvalflt++] = m_smallc;
+			tabflt[nbvalflt++] = m_dtOutput;
+			tabflt[nbvalflt++] = m_dtImage;
+		}
+	}
+#endif
 }
 
 void Domain::parseParams(int argc, char **argv)
