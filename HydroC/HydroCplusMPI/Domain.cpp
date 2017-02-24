@@ -196,7 +196,7 @@ Domain::~Domain()
 }
 
 void
- Domain::domainDecompose()
+Domain::domainDecompose()
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t lgx, lgy, lgmax;
@@ -346,7 +346,10 @@ void Domain::readInput()
 		realFmt = (char *)("%f");
 	}
 
-	if (m_myPe == 0) {
+#ifdef WITHBCAST
+	if (m_myPe == 0) 
+#endif
+	{
 		fd = fopen(m_inputFile, "r");
 		if (fd == NULL) {
 			cerr << "can't read input file\n" << endl;
@@ -491,95 +494,86 @@ void Domain::readInput()
 		}
 	}
 #ifdef MPI_ON
-	nbvalint = 0;
-	tabint[nbvalint++] = m_nStepMax;
-	tabint[nbvalint++] = m_checkPoint;
-	tabint[nbvalint++] = m_prt;
-	tabint[nbvalint++] = m_globNx;
-	tabint[nbvalint++] = m_globNy;
-	tabint[nbvalint++] = m_tileSize;
-	tabint[nbvalint++] = m_boundary_left;
-	tabint[nbvalint++] = m_boundary_right;
-	tabint[nbvalint++] = m_boundary_up;
-	tabint[nbvalint++] = m_boundary_down;
-	tabint[nbvalint++] = m_nIterRiemann;
-	tabint[nbvalint++] = m_nOutput;
-	tabint[nbvalint++] = m_numa;
-	tabint[nbvalint++] = m_iorder;
-	tabint[nbvalint++] = m_withMorton;
-	tabint[nbvalint++] = m_nImage;
-	tabint[nbvalint++] = m_forceSync;
-	tabint[nbvalint++] = m_forceStop;
-	tabint[nbvalint++] = m_testcase;
-	tabint[nbvalint++] = m_fakeRead;
-	tabint[nbvalint++] = m_scheme;
-	MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
-	if (m_myPe > 0) {
+#ifdef WITHBCAST
+	{
 		nbvalint = 0;
-		m_nStepMax = tabint[nbvalint++];
-		m_checkPoint = tabint[nbvalint++];
-		m_prt = tabint[nbvalint++];
-		m_globNx = tabint[nbvalint++];
-		m_globNy = tabint[nbvalint++];
-		m_tileSize = tabint[nbvalint++];
-		m_boundary_left = tabint[nbvalint++];
-		m_boundary_right = tabint[nbvalint++];
-		m_boundary_up = tabint[nbvalint++];
-		m_boundary_down = tabint[nbvalint++];
-		m_nIterRiemann = tabint[nbvalint++];
-		m_nOutput = tabint[nbvalint++];
-		m_numa = tabint[nbvalint++];
-		m_iorder = tabint[nbvalint++];
-		m_withMorton = tabint[nbvalint++];
-		m_nImage = tabint[nbvalint++];
-		m_forceSync = tabint[nbvalint++];
-		m_forceStop = tabint[nbvalint++];
-		m_testcase = tabint[nbvalint++];
-		m_fakeRead = tabint[nbvalint++];
-		m_scheme = (godunovScheme_t) tabint[nbvalint++];
-	}
-
-	nbvallng = 0;
-	tablng[nbvallng++] = m_fakeReadSize;
-	MPI_Bcast(tablng, nbvallng, MPI_INT, 0, MPI_COMM_WORLD);
-	if (m_myPe > 0) {
-		nbvallng = 0;
-		m_fakeReadSize = tablng[nbvallng++];
-	}
-	if (sizeof(real_t) == sizeof(double)) {
-		nbvaldbl = 0;
-		// tabdbl[nbvaldbl++] = H->slope_type;
-		tabdbl[nbvaldbl++] = m_tend;
-		tabdbl[nbvaldbl++] = m_dx;
-		tabdbl[nbvaldbl++] = m_cfl;
-		tabdbl[nbvaldbl++] = m_smallr;
-		tabdbl[nbvaldbl++] = m_smallc;
-		tabdbl[nbvaldbl++] = m_dtOutput;
-		tabdbl[nbvaldbl++] = m_dtImage;
-		MPI_Bcast(tabdbl, nbvaldbl, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		tabint[nbvalint++] = m_nStepMax;
+		tabint[nbvalint++] = m_checkPoint;
+		tabint[nbvalint++] = m_prt;
+		tabint[nbvalint++] = m_globNx;
+		tabint[nbvalint++] = m_globNy;
+		tabint[nbvalint++] = m_tileSize;
+		tabint[nbvalint++] = m_boundary_left;
+		tabint[nbvalint++] = m_boundary_right;
+		tabint[nbvalint++] = m_boundary_up;
+		tabint[nbvalint++] = m_boundary_down;
+		tabint[nbvalint++] = m_nIterRiemann;
+		tabint[nbvalint++] = m_nOutput;
+		tabint[nbvalint++] = m_numa;
+		tabint[nbvalint++] = m_iorder;
+		tabint[nbvalint++] = m_withMorton;
+		tabint[nbvalint++] = m_nImage;
+		tabint[nbvalint++] = m_forceSync;
+		tabint[nbvalint++] = m_forceStop;
+		tabint[nbvalint++] = m_testcase;
+		tabint[nbvalint++] = m_fakeRead;
+		tabint[nbvalint++] = m_scheme;
+		MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
 		if (m_myPe > 0) {
-			nbvaldbl = 0;
-			// H->slope_type =tabdbl[nbvaldbl++];
-			m_tend =tabdbl[nbvaldbl++];
-			m_dx =tabdbl[nbvaldbl++];
-			m_cfl =tabdbl[nbvaldbl++];
-			m_smallr =tabdbl[nbvaldbl++];
-			m_smallc =tabdbl[nbvaldbl++];
-			m_dtOutput =tabdbl[nbvaldbl++];
-			m_dtImage =tabdbl[nbvaldbl++];
+			nbvalint = 0;
+			m_nStepMax = tabint[nbvalint++];
+			m_checkPoint = tabint[nbvalint++];
+			m_prt = tabint[nbvalint++];
+			m_globNx = tabint[nbvalint++];
+			m_globNy = tabint[nbvalint++];
+			m_tileSize = tabint[nbvalint++];
+			m_boundary_left = tabint[nbvalint++];
+			m_boundary_right = tabint[nbvalint++];
+			m_boundary_up = tabint[nbvalint++];
+			m_boundary_down = tabint[nbvalint++];
+			m_nIterRiemann = tabint[nbvalint++];
+			m_nOutput = tabint[nbvalint++];
+			m_numa = tabint[nbvalint++];
+			m_iorder = tabint[nbvalint++];
+			m_withMorton = tabint[nbvalint++];
+			m_nImage = tabint[nbvalint++];
+			m_forceSync = tabint[nbvalint++];
+			m_forceStop = tabint[nbvalint++];
+			m_testcase = tabint[nbvalint++];
+			m_fakeRead = tabint[nbvalint++];
+			m_scheme = (godunovScheme_t) tabint[nbvalint++];
 		}
-	} else {
-		nbvalflt = 0;
-		// tabflt[nbvalflt++] = H->slope_type;
-		tabflt[nbvalflt++] = m_tend;
-		tabflt[nbvalflt++] = m_dx;
-		tabflt[nbvalflt++] = m_cfl;
-		tabflt[nbvalflt++] = m_smallr;
-		tabflt[nbvalflt++] = m_smallc;
-		tabflt[nbvalflt++] = m_dtOutput;
-		tabflt[nbvalflt++] = m_dtImage;
-		MPI_Bcast(tabflt, nbvalflt, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+		nbvallng = 0;
+		tablng[nbvallng++] = m_fakeReadSize;
+		MPI_Bcast(tablng, nbvallng, MPI_INT, 0, MPI_COMM_WORLD);
 		if (m_myPe > 0) {
+			nbvallng = 0;
+			m_fakeReadSize = tablng[nbvallng++];
+		}
+		if (sizeof(real_t) == sizeof(double)) {
+			nbvaldbl = 0;
+			// tabdbl[nbvaldbl++] = H->slope_type;
+			tabdbl[nbvaldbl++] = m_tend;
+			tabdbl[nbvaldbl++] = m_dx;
+			tabdbl[nbvaldbl++] = m_cfl;
+			tabdbl[nbvaldbl++] = m_smallr;
+			tabdbl[nbvaldbl++] = m_smallc;
+			tabdbl[nbvaldbl++] = m_dtOutput;
+			tabdbl[nbvaldbl++] = m_dtImage;
+			MPI_Bcast(tabdbl, nbvaldbl, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+			if (m_myPe > 0) {
+				nbvaldbl = 0;
+				// H->slope_type =tabdbl[nbvaldbl++];
+				m_tend =tabdbl[nbvaldbl++];
+				m_dx =tabdbl[nbvaldbl++];
+				m_cfl =tabdbl[nbvaldbl++];
+				m_smallr =tabdbl[nbvaldbl++];
+				m_smallc =tabdbl[nbvaldbl++];
+				m_dtOutput =tabdbl[nbvaldbl++];
+				m_dtImage =tabdbl[nbvaldbl++];
+			}
+		} else {
 			nbvalflt = 0;
 			// tabflt[nbvalflt++] = H->slope_type;
 			tabflt[nbvalflt++] = m_tend;
@@ -589,8 +583,21 @@ void Domain::readInput()
 			tabflt[nbvalflt++] = m_smallc;
 			tabflt[nbvalflt++] = m_dtOutput;
 			tabflt[nbvalflt++] = m_dtImage;
+			MPI_Bcast(tabflt, nbvalflt, MPI_FLOAT, 0, MPI_COMM_WORLD);
+			if (m_myPe > 0) {
+				nbvalflt = 0;
+				// tabflt[nbvalflt++] = H->slope_type;
+				tabflt[nbvalflt++] = m_tend;
+				tabflt[nbvalflt++] = m_dx;
+				tabflt[nbvalflt++] = m_cfl;
+				tabflt[nbvalflt++] = m_smallr;
+				tabflt[nbvalflt++] = m_smallc;
+				tabflt[nbvalflt++] = m_dtOutput;
+				tabflt[nbvalflt++] = m_dtImage;
+			}
 		}
 	}
+#endif
 #endif
 }
 

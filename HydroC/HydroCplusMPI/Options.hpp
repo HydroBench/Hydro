@@ -12,6 +12,8 @@
 
 #define TILEUSER 1
 
+#define WITHBCAST 1 // read the input file once and broadcast the values
+
 #ifdef __MIC__
 // #undef TILEUSER
 // #define TILEUSER 0
