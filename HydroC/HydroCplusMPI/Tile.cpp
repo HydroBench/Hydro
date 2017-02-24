@@ -1155,49 +1155,21 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 				// FLOPS(29, 10, 2, 0);
 				pstarI = pst;
 			}
-			// // Optimization MIC 
-			// // Delete the if condition to optimize the vectorisation
-			// //if (goonI > 0) {
-			// real_t pst = pstarI;
-			// // Newton-Raphson iterations to find pstar at the required accuracy
-			// real_t wwl = sqrt(clI * (one + gamma6 * (pst - plI) / plI));
-			// real_t wwr = sqrt(crI * (one + gamma6 * (pst - prI) / prI));
-			// real_t swwl = Square(wwl);
-			// real_t ql = two * wwl * swwl / (swwl + clI);
-			// real_t qr = two * wwr * Square(wwr) / (Square(wwr) + crI);
-			// real_t usl = ulI - (pst - plI) / wwl;
-			// real_t usr = urI + (pst - prI) / wwr;
-			// real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
-			// real_t delp_i = Max(tmp, (-pst));
-			// // pstarI = pstarI + delp_i;
-			// pst += delp_i;
-			// // Convergence indicator
-			// real_t tmp2 = delp_i / (pst + smallpp);
-			// real_t uo_i = Fabs(tmp2);
-			// // Optimization MIC 
-			// // We calculate the goonI and the pstarI with the goonI variable condition
-			// //goonI = uo_i > PRECISION;
-			// real_t rgoonI = (real_t) goonI;
-			// pstarI = (pst * rgoonI) + (pstarI * (1.0L - rgoonI));
-			// goonI = (uo_i > PRECISION) * goonI;
-			// // FLOPS(29, 10, 2, 0);
-			// //pstarI = pst;
-			// //}
 		}
 		wr_i = sqrt(crI * (one + gamma6 * (pstarI - prI) / prI));
 		wl_i = sqrt(clI * (one + gamma6 * (pstarI - plI) / plI));
 
 		real_t ustar_i = half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
-		int left = ustar_i > 0;
+		double left = (double) (ustar_i > 0);
 
 		real_t ro_i, uo_i, po_i, wo_i;
 
-		sgnm[i] = 1 * left + (-1 + left);
-		ro_i = left * rlI + (1 - left) * rrI;
-		uo_i = left * ulI + (1 - left) * urI;
-		po_i = left * plI + (1 - left) * prI;
-		wo_i = left * wl_i + (1 - left) * wr_i;
+		sgnm[i] = 1.0 * left + (-1.0 + left);
+		ro_i = left * rlI + (1.0 - left) * rrI;
+		uo_i = left * ulI + (1.0 - left) * urI;
+		po_i = left * plI + (1.0 - left) * prI;
+		wo_i = left * wl_i + (1.0 - left) * wr_i;
 
 		real_t co_i = sqrt(Fabs(m_gamma * po_i / ro_i));
 		co_i = Max(m_smallc, co_i);
