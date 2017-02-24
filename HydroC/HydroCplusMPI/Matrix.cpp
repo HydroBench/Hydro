@@ -27,11 +27,13 @@
 #endif
 
 using namespace std;
-
 //
 #include "Options.hpp"
 #include "Utilities.hpp"
 #include "Matrix.hpp"
+
+long Volume::_volume = 0;
+long Volume::_volumeMax = 0;
 
 template < typename T > void Matrix2 < T >::allocate(void)
 {
@@ -56,6 +58,9 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #pragma message "posix_memalign activated"
 	int rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
 #endif
+	_volume += lgrTab;
+	_volumeMax = max(_volume, _volumeMax);
+
 #if defined(WITHPOSIX) || defined(WITHHBW)
 	char *tmp = (char *) _arr;
 	tmp += decal;
@@ -123,6 +128,8 @@ template < typename T > Matrix2 < T >::~Matrix2()
 {
 	// std::cerr << "Destruction object " << this << std::endl;
 	assert(_arr != 0);
+	size_t lgrTab = (_w * _h) * sizeof(T);
+	_volume -= lgrTab;
 
 #if defined(WITHPOSIX) || defined(WITHHBW)
 	size_t tmp = (size_t) _arr;
