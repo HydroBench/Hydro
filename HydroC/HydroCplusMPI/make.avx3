@@ -19,17 +19,24 @@ ifeq ($(MPI),O)
    endif
 endif
 
-ifeq ($(CXX),icpc)
-   OPTIM+=-march=core-avx2 -fma
-   # -DAVX -D__vectorize_avx
+ifeq ($(DIVOPTS),)
+   OPTIM+=-xCORE-AVX512
    OPTIM+=-mCG_use_zeroupper=0
    OPTIM+=-mP1OPT_max_rec_copy_size=128
-   OPTIM+=-qopt-report -qopt-report-phase=vec
+   OPTIM+=-fma
+endif
+
+ifeq ($(CXX),icpc)
+   OPTIM+=$(DIVOPTS)
+   # 0 - 3
+   # OPTIM+=-qopt-streaming-cache-evict=1
+   # auto always never   (always for mem bound codes)
+   # OPTIM+=-qopt-streaming-stores=always
 endif
 
 ifeq ($(CXX),g++)
-   OPTIM+=-mavx2
+   OPTIM+=-mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma
 endif
 
-ARCHEXT=avx2
+ARCHEXT=avx3
 #EOF
