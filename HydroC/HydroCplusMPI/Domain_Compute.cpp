@@ -107,12 +107,23 @@ real_t Domain::reduceMaxAndBcast(real_t dt)
 
 int32_t Domain::tileFromMorton(int32_t t)
 {
-	int32_t i = t;
+	int32_t it = t;
 	int32_t m = m_mortonIdx[t];
 	int32_t x, y;
-	(*m_morton).idxFromMorton(x, y, m);
-	i = (*m_morton) (x, y);
-	return i;
+	// int rc = (*m_morton).idxFromMorton(x, y, m);
+	// assert(rc == true);
+	// i = (*m_morton) (x, y);
+	int32_t mortonH = (m_ny + m_tileSize - 1) / m_tileSize;
+	int32_t mortonW = (m_nx + m_tileSize - 1) / m_tileSize;
+	it = 0;
+	for (int32_t j = 0; j < mortonH; j++) {
+		for (int32_t i = 0; i < mortonW; i++) {
+			if (m == morton2(i, j)) return it;
+			it++;
+		}
+	}
+	
+	return it;
 }
 
 real_t Domain::computeTimeStep()
@@ -129,6 +140,7 @@ real_t Domain::computeTimeStep()
 		boundary_process();
 
 		real_t *pm_localDt = m_localDt;
+
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
 			// int lockStep = 0;
@@ -141,7 +153,9 @@ real_t Domain::computeTimeStep()
 #endif
 #endif
 			if (m_withMorton) {
-				i = tileFromMorton(t);
+				i = m_mortonIdx[t];
+				assert(i>=0);
+				assert(i<m_nbtiles);
 			}
 			m_tiles[i]->setBuffers(m_buffers[myThread()]);
 			m_tiles[i]->setTcur(m_tcur);
@@ -170,7 +184,9 @@ real_t Domain::computeTimeStep()
 #endif
 #endif
 			if (m_withMorton) {
-				i = tileFromMorton(t);
+				i = m_mortonIdx[t];
+				assert(i>=0);
+				assert(i<m_nbtiles);
 			}
 			m_tiles[i]->setBuffers(m_buffers[myThread()]);
 			m_tiles[i]->updateconserv();	// input u, flux       output uold

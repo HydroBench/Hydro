@@ -712,9 +712,28 @@ void Domain::setTiles()
 	m_nbtiles = 0;
 	for (j = 0; j < mortonH; j++) {
 		for (i = 0; i < mortonW; i++) {
-			(*m_morton) (i, j) = m_nbtiles++;
+			m_mortonIdx[m_nbtiles] = morton2(i, j);
+			(*m_morton) (i, j) = m_nbtiles;
+			m_nbtiles++;
 		}
 	}
+
+	if (m_withMorton) {
+		int32_t maxim = (*m_morton).maxMorton();
+		int32_t *temp = new int32_t [maxim];
+		for (int32_t i = 0; i < maxim; i++) temp[i] = -1;
+		for (int32_t i = 0, tt = 0; i < m_nbtiles; i++) {
+			temp[m_mortonIdx[i]] = tt++;
+		}
+		// compacter le tableau
+		int32_t *temp2 = new int32_t [maxim];
+		for (int32_t i = 0, t = 0; i < maxim; i++) {
+			if (temp[i] != -1) m_mortonIdx[t++] = temp[i];
+		}
+		// for (int32_t ir = 0; ir < m_nbtiles; ir++) cerr << temp[ir] << " "; cerr << endl;
+		delete [] temp;
+	}
+	
 	//
 	m_nbtiles = 0;
 	offy = 0;
@@ -779,7 +798,7 @@ void Domain::setTiles()
 #else
 	m_numThreads = 1;
 #endif
-	m_timerLoops = new double *[m_numThreads];
+	m_timerLoops = new double *[m_numThreads + 1];
 	for (int32_t i = 0; i < m_numThreads; i++) {
 		m_timerLoops[i] = new double[LOOP_END];
 		assert(m_timerLoops[i] != 0);
