@@ -23,7 +23,7 @@
 // FakeRead::FakeRead(void) { }
 
 // template <typename T> 
-FakeRead::FakeRead(long fSize = 2000000000, int rank = 0)
+FakeRead::FakeRead(long fSize, int rank)
 {
 	size_t n = 0;
 	char fName[356];

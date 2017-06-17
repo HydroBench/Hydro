@@ -845,7 +845,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 #endif
 #endif
 	for (int32_t i = xmin; i < xmax; i++) {
-		register real_t eken, qid, qiu, qiv, qip;
+		real_t eken, qid, qiu, qiv, qip;
 		qid = uIDS[i];
 		qid = Max(qid, m_smallr);
 		// if (qid < m_smallr) qid = m_smallr;
