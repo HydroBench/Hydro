@@ -480,7 +480,7 @@ void Domain::compute()
 		for (int32_t i = 0; i < m_numThreads; i++) {
 			printf("Thread %4d: ", i);
 			for (int32_t j = 0; j < LOOP_END; j++) {
-				printf("%lf ", (m_timerLoops[i])[j]);
+			  printf("loop %d: %lfs ", j, (m_timerLoops[i])[j]);
 			}
 			printf("\n");
 		}
