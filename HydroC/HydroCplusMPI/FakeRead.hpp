@@ -23,7 +23,7 @@ class FakeRead {
  public:
 	// basic constructor
 	// FakeRead(void); // default constructor. make it private if needed.
-	 FakeRead(long fSize, int rank);
+	 FakeRead(long fSize = 2000000000, int rank = 0);
 	// destructor
 	~FakeRead();
 	int Read(int64_t lg);

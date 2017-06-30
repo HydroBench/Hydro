@@ -96,10 +96,10 @@ real_t Domain::reduceMaxAndBcast(real_t dt)
 #ifdef MPI_ON
 	if (sizeof(real_t) == sizeof(double)) {
 		MPI_Allreduce(&dt, &dtmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		MPI_Bcast(&dtmax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		// MPI_Bcast(&dtmax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	} else {
 		MPI_Allreduce(&dt, &dtmax, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-		MPI_Bcast(&dtmax, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		// MPI_Bcast(&dtmax, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	}
 #endif
 	return dtmax;
@@ -496,7 +496,7 @@ void Domain::compute()
 		for (int32_t i = 0; i < m_numThreads; i++) {
 			printf("Thread %4d: ", i);
 			for (int32_t j = 0; j < LOOP_END; j++) {
-				printf("%lf ", (m_timerLoops[i])[j]);
+			  printf("loop %d: %lfs ", j, (m_timerLoops[i])[j]);
 			}
 			printf("\n");
 		}
