@@ -131,7 +131,7 @@ void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t o
 // Compute part
 void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS)
 {
-
+	double ov_slope_type = 1.0 / m_slope_type;
 	// #pragma vector aligned  // impossible !
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
@@ -142,7 +142,7 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS)
 		real_t t1;
 		dlft = m_slope_type * (qS[i] - qS[i - 1]);
 		drgt = m_slope_type * (qS[i + 1] - qS[i]);
-		dcen = half * (dlft + drgt) / m_slope_type;
+		dcen = half * (dlft + drgt) * ov_slope_type;
 		dsgn = (dcen > 0) ? one : -one;	// sign(one, dcen);
 #ifndef NOTDEF
 		llftrgt = ((dlft * drgt) <= zero);
