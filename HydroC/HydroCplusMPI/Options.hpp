@@ -84,6 +84,7 @@ static const char *Schedule = "schedule(runtime)";
 #endif
 
 #define WITH_TIMERS 1
+#define WITH_THREAD_TIMERS 0
 
 #define TILE_PER_THREAD 4
 
