@@ -196,7 +196,7 @@ Domain::~Domain()
 }
 
 void
-Domain::domainDecompose()
+ Domain::domainDecompose()
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t lgx, lgy, lgmax;
@@ -289,6 +289,7 @@ void Domain::printSummary()
 		printf("|    dtoutput=   %lf\n", m_dtOutput);
 		printf("|    dtimage=    %lf\n", m_dtImage);
 		printf("|    nimage=     %d\n", m_nImage);
+		printf("|    chkpt=      %d\n", m_checkPoint);
 		printf("|    forcestop=  %d\n", m_forceStop);
 		printf("|    forcesync=  %d\n", m_forceSync);
 		printf("|    fakeread=   %d\n", m_fakeRead);
@@ -347,7 +348,7 @@ void Domain::readInput()
 	}
 
 #ifdef WITHBCAST
-	if (m_myPe == 0) 
+	if (m_myPe == 0)
 #endif
 	{
 		fd = fopen(m_inputFile, "r");
@@ -565,13 +566,13 @@ void Domain::readInput()
 			if (m_myPe > 0) {
 				nbvaldbl = 0;
 				// H->slope_type =tabdbl[nbvaldbl++];
-				m_tend =tabdbl[nbvaldbl++];
-				m_dx =tabdbl[nbvaldbl++];
-				m_cfl =tabdbl[nbvaldbl++];
-				m_smallr =tabdbl[nbvaldbl++];
-				m_smallc =tabdbl[nbvaldbl++];
-				m_dtOutput =tabdbl[nbvaldbl++];
-				m_dtImage =tabdbl[nbvaldbl++];
+				m_tend = tabdbl[nbvaldbl++];
+				m_dx = tabdbl[nbvaldbl++];
+				m_cfl = tabdbl[nbvaldbl++];
+				m_smallr = tabdbl[nbvaldbl++];
+				m_smallc = tabdbl[nbvaldbl++];
+				m_dtOutput = tabdbl[nbvaldbl++];
+				m_dtImage = tabdbl[nbvaldbl++];
 			}
 		} else {
 			nbvalflt = 0;
@@ -698,11 +699,7 @@ void Domain::setTiles()
 	mortonW = (m_nx + tileSize - 1) / tileSize;
 
 	m_localDt = AlignedAllocReal(m_nbtiles);
-	m_tiles = new Tile *[m_nbtiles];
-#pragma omp parallel for private(i) if (m_numa) SCHEDULE
-	for (int32_t i = 0; i < m_nbtiles; i++) {
-		m_tiles[i] = new Tile;
-	}
+
 	// Create the Morton holder to wander around the tiles
 	m_morton = new Matrix2 < int32_t > (mortonW, mortonH);
 	// cerr << mortonW << " " << mortonH << endl;
@@ -720,21 +717,32 @@ void Domain::setTiles()
 
 	if (m_withMorton) {
 		int32_t maxim = (*m_morton).maxMorton();
-		int32_t *temp = new int32_t [maxim];
-		for (int32_t i = 0; i < maxim; i++) temp[i] = -1;
+		int32_t *temp = new int32_t[maxim];
+		for (int32_t i = 0; i < maxim; i++)
+			temp[i] = -1;
 		for (int32_t i = 0, tt = 0; i < m_nbtiles; i++) {
 			temp[m_mortonIdx[i]] = tt++;
 		}
 		// compacter le tableau
-		int32_t *temp2 = new int32_t [maxim];
+		int32_t *temp2 = new int32_t[maxim];
 		for (int32_t i = 0, t = 0; i < maxim; i++) {
-			if (temp[i] != -1) m_mortonIdx[t++] = temp[i];
+			if (temp[i] != -1)
+				m_mortonIdx[t++] = temp[i];
 		}
 		// for (int32_t ir = 0; ir < m_nbtiles; ir++) cerr << temp[ir] << " "; cerr << endl;
-		delete [] temp;
+		delete[]temp;
 	}
-	
 	//
+
+	m_tiles = new Tile *[m_nbtiles];
+#pragma omp parallel for private(i) if (m_numa) SCHEDULE
+	for (int32_t t = 0; t < m_nbtiles; t++) {
+		i = t;
+		if (m_withMorton)
+			i = m_mortonIdx[t];
+		m_tiles[i] = new Tile;
+	}
+
 	m_nbtiles = 0;
 	offy = 0;
 	for (j = 0; j < m_ny; j += tileSize) {
@@ -799,6 +807,9 @@ void Domain::setTiles()
 	m_numThreads = 1;
 #endif
 	m_timerLoops = new double *[m_numThreads + 1];
+#ifdef _OPENMP
+#pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
+#endif
 	for (int32_t i = 0; i < m_numThreads; i++) {
 		m_timerLoops[i] = new double[LOOP_END];
 		assert(m_timerLoops[i] != 0);
@@ -809,12 +820,25 @@ void Domain::setTiles()
 	m_buffers = new ThreadBuffers *[m_numThreads];
 	assert(m_buffers != 0);
 
+#ifdef _OPENMP
+#pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
+#endif
 	for (int32_t i = 0; i < m_numThreads; i++) {
+		// #pragma omp critical
+		// {
+		//    cerr << i << " attendu " << myThread() << endl << flush;
+		// }
 		m_buffers[i] = new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
-		assert(m_buffers[i] != 0);
+		assert(m_buffers[myThread()] != 0);
 	}
-
-	for (int32_t i = 0; i < m_nbtiles; i++) {
+	// cerr << "Buffer cree" << endl;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) if (m_numa) SCHEDULE
+#endif
+	for (int32_t t = 0; t < m_nbtiles; t++) {
+		i = t;
+		if (m_withMorton)
+			i = m_mortonIdx[t];
 		m_tiles[i]->initTile(m_uold);
 		m_tiles[i]->setMpi(m_nProc, m_myPe);
 		m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann, m_iorder, m_scheme);

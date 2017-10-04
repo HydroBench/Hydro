@@ -148,9 +148,7 @@ real_t Domain::computeTimeStep()
 			int32_t thN = 0;
 #if WITH_TIMERS == 1
 			double startT = dcclock(), endT;
-#ifdef _OPENMP
-			thN = omp_get_thread_num();
-#endif
+			thN = myThread();
 #endif
 			if (m_withMorton) {
 				i = m_mortonIdx[t];
@@ -179,9 +177,7 @@ real_t Domain::computeTimeStep()
 #if WITH_TIMERS == 1
 			int32_t thN = 0;
 			double startT = dcclock(), endT;
-#ifdef _OPENMP
-			thN = omp_get_thread_num();
-#endif
+			thN = myThread();
 #endif
 			if (m_withMorton) {
 				i = m_mortonIdx[t];
@@ -491,7 +487,7 @@ void Domain::compute()
 		printf("Average MC/s: %.3lf", avgCellPerSec);
 		ecartCellPerSec = sqrt((ecartCellPerSec / nbTotCelSec) - (avgCellPerSec * avgCellPerSec));
 		printf(" min %.3lf, max %.3lf, sig %.3lf\n", minCellPerSec, maxCellPerSec, ecartCellPerSec);
-#if WITH_TIMERS == 1
+#if WITH_THREAD_TIMERS == 1
 		// cout.precision(4);
 		for (int32_t i = 0; i < m_numThreads; i++) {
 			printf("Thread %4d: ", i);

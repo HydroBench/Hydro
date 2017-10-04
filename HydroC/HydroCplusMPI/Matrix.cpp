@@ -51,7 +51,19 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
-	int rc = hbw_posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
+#ifdef _OPENMP
+// #pragma omp critical
+#endif
+	{
+	   _arr = 0;
+	   int rc = hbw_posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
+	   if (_arr == 0) {
+	      // fallback to DDR 
+	      cerr << __FILE__<< " Falling back to DDR4" << endl;
+	      rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
+	      assert(rc == 0);
+	   }
+	}
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
