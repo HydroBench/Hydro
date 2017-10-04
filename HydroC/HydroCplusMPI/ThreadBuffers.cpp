@@ -20,6 +20,17 @@
 
 using namespace std;
 
+inline void *memsetth(void *s, int c, size_t n)
+{
+	char * ptr = (char *) s;
+	char cval = c;
+#pragma omp simd
+	for (int32_t i = 0; i < n; i++) {
+		ptr[i] = cval;
+	}
+	return s;
+}
+
 ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
 {
 	int32_t lgx, lgy, lgmax;
@@ -55,18 +66,18 @@ ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t y
 	m_sgnm = AlignedAllocReal(lgmax);
 
 	// remplit la mémoire pour forcer l'allocation
-	memset(m_sgnm, 0, lgmax * sizeof(real_t));
-	memset(m_pl, 0, lgmax * sizeof(real_t));
+	memsetth(m_sgnm, 0, lgmax * sizeof(real_t));
+	memsetth(m_pl, 0, lgmax * sizeof(real_t));
 #if RIEMANNINREGS == 0
-	memset(m_pstar, 0, lgmax * sizeof(real_t));
-	memset(m_rl, 0, lgmax * sizeof(real_t));
-	memset(m_ul, 0, lgmax * sizeof(real_t));
-	memset(m_ur, 0, lgmax * sizeof(real_t));
-	memset(m_pr, 0, lgmax * sizeof(real_t));
-	memset(m_cl, 0, lgmax * sizeof(real_t));
-	memset(m_cr, 0, lgmax * sizeof(real_t));
-	memset(m_rr, 0, lgmax * sizeof(real_t));
-	memset(m_goon, 0, lgmax * sizeof(long));
+	memsetth(m_pstar, 0, lgmax * sizeof(real_t));
+	memsetth(m_rl, 0, lgmax * sizeof(real_t));
+	memsetth(m_ul, 0, lgmax * sizeof(real_t));
+	memsetth(m_ur, 0, lgmax * sizeof(real_t));
+	memsetth(m_pr, 0, lgmax * sizeof(real_t));
+	memsetth(m_cl, 0, lgmax * sizeof(real_t));
+	memsetth(m_cr, 0, lgmax * sizeof(real_t));
+	memsetth(m_rr, 0, lgmax * sizeof(real_t));
+	memsetth(m_goon, 0, lgmax * sizeof(long));
 #endif
 }
 

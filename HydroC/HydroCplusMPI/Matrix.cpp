@@ -70,7 +70,6 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #endif
 	memset(_arr, 0, lgrTab);
 	assert(_arr != 0);
-	_arr = _arr;
 }
 
 template < typename T > void Matrix2 < T >::swapDimOnly()

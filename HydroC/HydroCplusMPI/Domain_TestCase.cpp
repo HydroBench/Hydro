@@ -43,7 +43,10 @@ void Domain::createTestCase()
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-	m_uold = new Soa(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1));
+#pragma omp single
+	{
+	   m_uold = new Soa(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1));
+	}
 
 	Matrix2 < real_t > &uoldIP = *(*m_uold) (IP_VAR);
 	Matrix2 < real_t > &uoldID = *(*m_uold) (ID_VAR);
