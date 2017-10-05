@@ -182,6 +182,7 @@ class Domain {
 
 	bool hasProtection();
 
+   void saveProtection();
 	void writeProtection();
 	void readProtection();
 

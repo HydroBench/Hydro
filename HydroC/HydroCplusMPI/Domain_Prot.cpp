@@ -42,6 +42,9 @@ typedef struct _textMarker {
 	char t[64];
 } TextMarker_t;
 
+static char *ProtName = "Continue.dump";
+static char *ProtNameOld = "Continue.dump.prev";
+
 template < typename T > inline void lgrdstScal(const int f, const protectionMode_t mode, long &l, T * x)
 {
 	int byt = 0;
@@ -267,25 +270,37 @@ void Domain::writeProtectionHeader(const int f)
 	free(lgrs);
 }
 
+void Domain::saveProtection() 
+{
+	struct stat buf;
+	// first delete the old backup if it exists
+	if (stat(ProtNameOld, &buf) == 0) {
+	   unlink(ProtNameOld);
+	}
+	// rename the current checkpoint as a backup
+	if (hasProtection()) {
+	   cerr << " Creating a backup of the checkpoint file " << endl;
+	   rename(ProtName, ProtNameOld);
+	}
+}
+
 void Domain::writeProtection()
 {
 	int needToStopGlob = true;
 	int f = -1;
-	char protName[256];
 	errno = 0;
 
-	sprintf(protName, "%s", "Continue.dump");
-
 	if (m_myPe == 0) {
-		cerr << " Opening " << protName << " for writing " << endl;
-		f = open(protName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
+	   saveProtection();
+		cerr << " Opening " << ProtName << " for writing " << endl;
+		f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 	}
 #ifdef MPI_ON
 	MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
 	if (m_nProc > 1) {
 		if (m_myPe > 0) {
-			f = open(protName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
+			f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 		}
 	}
 	if (f == -1) {
@@ -398,26 +413,23 @@ bool Domain::StopComputation()
 bool Domain::hasProtection()
 {
 	struct stat buf;
-	return (stat("Continue.dump", &buf) == 0);
+	return (stat(ProtName, &buf) == 0);
 }
 
 void Domain::readProtection()
 {
 	int f = -1;
-	char protName[256];
 	errno = 0;
 
-	sprintf(protName, "%s", "Continue.dump");
-
 	if (m_myPe == 0) {
-		f = open(protName, O_LARGEFILE | O_RDONLY, S_IRWXU);
+		f = open(ProtName, O_LARGEFILE | O_RDONLY, S_IRWXU);
 	}
 	if (m_nProc > 1) {
 #ifdef MPI_ON
 		MPI_Barrier(MPI_COMM_WORLD);
 #endif
 		if (m_myPe > 0) {
-			f = open(protName, O_LARGEFILE | O_RDWR);
+			f = open(ProtName, O_LARGEFILE | O_RDWR);
 		}
 	}
 	if (f == -1) {
