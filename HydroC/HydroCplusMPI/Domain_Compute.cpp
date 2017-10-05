@@ -483,6 +483,10 @@ void Domain::compute()
 		printf("\n");
 		convertToHuman(timeHuman, m_elapsTotal);
 		printf("Total simulation time: %s in %d runs\n", timeHuman, m_nbRun);
+		if (nbTotCelSec == 0) { 
+		   nbTotCelSec = 1; // avoid divide by 0
+		   minCellPerSec = 0; // so that everything is 0
+		}
 		double avgCellPerSec = totalCellPerSec / nbTotCelSec;
 		printf("Average MC/s: %.3lf", avgCellPerSec);
 		ecartCellPerSec = sqrt((ecartCellPerSec / nbTotCelSec) - (avgCellPerSec * avgCellPerSec));
