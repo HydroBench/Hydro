@@ -48,6 +48,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	size_t lgrTab = (_w * _h) * sizeof(T);
 #ifdef WITHNEW
 	_arr = new T[_w * _h];
+	_org = _arr;
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
@@ -64,17 +65,20 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	      assert(rc == 0);
 	   }
 	}
+	_org = _arr;
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
 #pragma message "posix_memalign activated"
 	int rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
+	_org = _arr;
 #endif
 	_volume += lgrTab;
 	_volumeMax = max(_volume, _volumeMax);
 
 #if defined(WITHPOSIX) || defined(WITHHBW)
 	char *tmp = (char *) _arr;
+	// FIXME
 	tmp += decal;
 	decal += _ninc;
 	if (decal >= _nbloc) decal = 0;
@@ -142,20 +146,14 @@ template < typename T > Matrix2 < T >::~Matrix2()
 	size_t lgrTab = (_w * _h) * sizeof(T);
 	_volume -= lgrTab;
 
-#if defined(WITHPOSIX) || defined(WITHHBW)
-	size_t tmp = (size_t) _arr;
-	tmp = tmp >> _nshift;
-	tmp = tmp << _nshift;
-	_arr = (T*) tmp;
-#endif
 #ifdef WITHNEW
-	delete[]_arr;
+	delete[]_org;
 #endif
 #ifdef WITHHBW
-	hbw_free(_arr);
+	hbw_free(_org);
 #endif
 #if defined(WITHPOSIX)
-	free(_arr);
+	free(_org);
 #endif
 	_arr = NULL;
 }

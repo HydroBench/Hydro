@@ -29,7 +29,8 @@ private:
 	const int _nshift = 10;
 	const int _ninc = 128;
 	int32_t _w, _h;
-	T *_arr;		
+   T *_arr; // working address
+   T *_org; // allocated address
 
 	void allocate(void);
 
