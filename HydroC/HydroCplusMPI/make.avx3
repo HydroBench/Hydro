@@ -21,6 +21,7 @@ endif
 
 ifeq ($(DIVOPTS),)
    OPTIM+=-xCORE-AVX512
+   OPTIM+=-qopt-zmm-usage=high
    OPTIM+=-mCG_use_zeroupper=0
    OPTIM+=-mP1OPT_max_rec_copy_size=128
    OPTIM+=-fma

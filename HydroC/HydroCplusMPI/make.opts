@@ -22,7 +22,7 @@ ifeq ($(CXX),icpc)
 
   # OPTIM+=-openmp-report1 
   ifeq ($(NOVEC),O)
-     OPTIM+=-no-vec
+     OPTIM+=-no-vec -no-simd -qno-openmp-simd
    endif
 endif
 

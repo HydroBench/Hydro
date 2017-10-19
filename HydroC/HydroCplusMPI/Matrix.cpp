@@ -156,6 +156,7 @@ template < typename T > Matrix2 < T >::~Matrix2()
 	free(_org);
 #endif
 	_arr = NULL;
+	_org = NULL;
 }
 
 template < typename T > Matrix2 < T >::Matrix2(const Matrix2 < T > &m)

@@ -1,8 +1,12 @@
 run: hydroc
 	@rm -rf Dep/* STOP
-	env OMP_NUM_THREADS=64 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jvectst ./hydroc.avx2 -i Inputs/input.nml
+	env OMP_NUM_THREADS=32 ccc_mprun -p haswell -T 6400 -c16 -x -n4 -N4 -E-Jvectst -E '--want_autonuma=0' -E '--want_thp=0' ./hydroc.avx2 -i input.nml
 
-runnosoc: hydroc
+runskl: hydroc
+	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=32 ccc_mprun -p skl -T 6400 -c16 -x -n1 -N1 -E-Jvectst -E '--want_autonuma=0' -E '--want_thp=0' ./hydroc.avx3 -i Inputs/input.nml
+
+rrunnosoc: hydroc
 	@rm -rf Dep/* STOP
 	env OMP_NUM_THREADS=16 KMP_AFFINITY=verbose,granularity=fine,compact,1 ccc_mprun -p haswell -T 6400 -c32 -x -n1 -N1 -E-Jnosoc ./hydroc -i Inputs/input.nml
 
@@ -208,31 +212,12 @@ prof: hydroc
 	gprof hydroc gmon.out | head -20
 
 maq: hydroc
-	if [ -f .wasmic ] ; then make clean ; make hydroc ; fi
 	rm -rf toto/*
-	env OMP_NUM_THREADS=1 ccc_mprun -p hybrid maqao perf -t=SX -xp=toto -g=small -uarch=SANDY_BRIDGE -- hydroc -i input.nml | tee maqao_run.lst	
-	rm -rf loops.csv maqao_loopslist.lst maqao_loopsdetail.lst maqao_loopsdetailLVL1.lst
-	maqao --version
-	#maqao perf -d=SX  -uarch=SANDY_BRIDGE -xp=toto -oformat=html -- hydroc
-	maqao perf -d=SFX -uarch=SANDY_BRIDGE -xp=toto -- hydroc
-	maqao perf -d=SLX -uarch=SANDY_BRIDGE -xp=toto -- hydroc > maqao_loopslist.lst
-	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; maqao cqa -uarch=SANDY_BRIDGE -loop=$$i  -- hydroc >> maqao_loopsdetail.lst; done
-	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; maqao cqa -uarch=SANDY_BRIDGE -loop=$$i  -lvl=1 -- hydroc >> maqao_loopsdetailLVL1.lst; done
-
-maqmicrep:
-	maqaoi64phi --version
-	ccc_mprun -p knc -n1 maqaophi perf -d=SX -uarch=KNC -xp=toto -oformat=html --system-map=/lib/firmware/mic/System.map -- hydroc
-	maqaoi64phi perf -d=SFX -bin='hydroc' -uarch=KNC -xp=toto | tee maqao_funcs.lst		
-	maqaoi64phi perf -d=SLX -bin='hydroc' -uarch=KNC -xp=toto | tee maqao_loopslist.lst	
-	for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do maqaoi64phi cqa -uarch=KNC -loop=$$i  -- hydroc >> maqao_loopsdetail.lst; done
-	# for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do maqaoi64phi cqa -uarch=KNC -loop=$$i -lvl=1 -- hydroc >> maqao_loopsdetail.lst; done
-
-maqmic: 
-	if [ ! -f .wasmic ] ; then make clean ; fi
-	make MIC=O hydroc
-	rm -rf toto/* maqao_funcs.lst maqao_loopslist.lst maqao_loopsdetail.lst
-	env OMP_NUM_THREADS=240 KMP_AFFINITY=balanced OMP_WAIT_POLICY=passive ccc_mprun -p knc -n1 maqaophi perf -mIOMP -t=SX -xp=toto -g=small -uarch=KNC -- hydroc -i input.nml | tee maqao_run.lst
-	# make maqmicrep
+	ccc_mprun -p haswell $(MAQAO_EXEDIR)/../maqao.intel64-xeonphi --version
+	ccc_mprun -p haswell -E'--enable_perf' $(MAQAO_EXEDIR)/../maqao.intel64-xeonphi lprof -xp=$$PWD/toto -- hydroc -i input.nml
+	# ccc_mprun -p haswell $(MAQAO_EXEDIR)/../maqao.intel64-xeonphi lprof -d=SLX -uarch=SANDY_BRIDGE xp=toto -- hydroc > maqao_loopslist.lst
+	# for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; $(MAQAO_EXEDIR)/../maqao.intel64-xeonphi cqa -uarch=SANDY_BRIDGE -loop=$$i  -- hydroc >> maqao_loopsdetail.lst; done
+	# for i in `deploop.pl < maqao_loopslist.lst | sort -n | uniq ` ; do echo $$i ; $(MAQAO_EXEDIR)/../maqao.intel64-xeonphi cqa -uarch=SANDY_BRIDGE -loop=$$i  -lvl=1 -- hydroc >> maqao_loopsdetailLVL1.lst; done
 
 ref4_128:
 	env OMP_NUM_THREADS=8 ccc_mprun -p standard -n64 -N64 -x -c8 ./hydroc -i inputBIG.nml
@@ -246,6 +231,13 @@ refM:
 
 mpcrun:
 	mpcrun --opt=" -p haswell @haswell" -l=salloc_hydra -n=56 -p=2 -N=2 -c=28 ./hydroc -i input.nml
+
+
+knlsmall:
+	make clean hydroc KNL=O MPI=O PNG=O 1>compile.log 2>&1
+	grep main.o compile.log
+	env | egrep 'MCA|OFA|FABRICS'
+	env OMP_NUM_THREADS=8 ccc_mprun -p knl-quad-f -n 64 -c8 ./hydroc.knl -i Inputs/input.nml | grep Average
 #
 # - - - end of runs section - - -
 #
