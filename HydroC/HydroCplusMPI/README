@@ -16,6 +16,8 @@ AVX=O	    to force AVX usage
 AVX2=O	    to force AVX2 usage (Haswell)
 ATOM=O	    to force SSE4 for the atom
 SSE=O	    to force SSE usage (Nehalem)
+KNL=O	    to force MIC-AVX512 usage for the KNL
+AVX3=O 	    to force Skylake code generation.
 
 PNG=O to produce PNG images (PPM otherwise). Images are forced to be
 less than 2000 pixels wide so the program will shrink then if needed
