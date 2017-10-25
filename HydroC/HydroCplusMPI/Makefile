@@ -6,6 +6,7 @@ PNG=O
 MPI=O
 HOST=$(shell uname -n | sed 's/[0-9]//g')
 ARCHEXT=std
+NODEFAULT=no
 
 # INCS+=-I$(HOME)/vecadv/advisor_xe/include
 
@@ -14,39 +15,69 @@ DEFS+=$(DEFSEXT)
 
 ifeq ($(PI),O)
 include make.pi
+NODEFAULT=yes
 endif
 
 ifeq ($(ARM),O)
 include make.arm
+NODEFAULT=yes
 endif
 
 ifeq ($(ATOM),O)
 include make.atom
+NODEFAULT=yes
 endif
 
 ifeq ($(MIC),O)
 include make.mic
+NODEFAULT=yes
 endif
 
 ifeq ($(SSE),O)
 include make.sse
+NODEFAULT=yes
 endif
 
 ifeq ($(KNL),O)
+# Knights Landing using AVX512 with specificities of KNL
 include make.knl
+NODEFAULT=yes
+endif
+
+ifeq ($(AVX3),O)
+# Skylake Xeon and beyond
+include make.avx3
+NODEFAULT=yes
+endif
+
+ifeq ($(AVX512),O)
+# Skylake Xeon and beyond
+include make.avx3
+NODEFAULT=yes
 endif
 
 ifeq ($(AVX2),O)
 include make.avx2
+NODEFAULT=yes
 endif
 
 ifeq ($(AVX),O)
 include make.avx
+NODEFAULT=yes
 endif
 
 ifeq ($(CRAY),O)
 include make.cray
+NODEFAULT=yes
 endif
+
+ifeq ($(NODEFAULT),no)
+# capture the default case where no arch indication has been given to make
+MPI=O
+PNG=O
+include make.avx2
+endif
+
 
 CFLAGS+=$(DEFS)
 
@@ -83,7 +114,8 @@ clean:
 
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
-	tar czvf Archiv_$(DATEHOUR).tgz Makefile *.hpp *.cpp *.h *.c input.nml
+	rm -f *~
+	tar czvf Archiv_$(DATEHOUR).tgz README Makefile make.* *.hpp *.cpp *.h *.c input.nml
 
 indent:
 	indent *.cpp *.hpp *.c *.h
