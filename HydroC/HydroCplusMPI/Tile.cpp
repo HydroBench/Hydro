@@ -67,19 +67,18 @@ void
 void Tile::initTile(Soa * uold)
 {
 	int32_t xmin, xmax, ymin, ymax;
-	int32_t lgx, lgy, lgmax;
+	int32_t lgx, lgy;
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	lgx = (xmax - xmin);
 	lgy = (ymax - ymin);
-	lgmax = lgx;
-	if (lgmax < lgy)
-		lgmax = lgy;
-
 	//
 	m_uold = uold;
 	//
+	// cerr << lgx << " " << lgy << " " << xmin << " " << xmax << " " << ymin << " " << ymax << endl;
+	assert (lgx > 0);
+	assert (lgy > 0);
 	m_u = new Soa(NB_VAR, lgx, lgy);
 	m_flux = new Soa(NB_VAR, lgx, lgy);
 

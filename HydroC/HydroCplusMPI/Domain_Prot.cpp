@@ -42,8 +42,8 @@ typedef struct _textMarker {
 	char t[64];
 } TextMarker_t;
 
-static char *ProtName = "Continue.dump";
-static char *ProtNameOld = "Continue.dump.prev";
+static char const *ProtName = "Continue.dump";
+static char const *ProtNameOld = "Continue.dump.prev";
 
 template < typename T > inline void lgrdstScal(const int f, const protectionMode_t mode, long &l, T * x)
 {

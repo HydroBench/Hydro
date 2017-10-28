@@ -41,6 +41,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 	int32_t maxPad = 0, padh = 0;
 	static int decal = 0;
 
+	assert((_w * _h) > 0);
 
 #if WITHHBW==0 && WITHPOSIX == 0 && WITHNEW == 0
 #define WITHPOSIX 1
