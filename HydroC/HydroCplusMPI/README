@@ -1,23 +1,34 @@
 Small manual for HydroC
 -----------------------
 
+HydroC is an hybrid implementation (MPI + OpenMP).
 
 To compile hydroc, adapt the Makefile to your local
 installation. Normally, the different variables should be explicit
 enough.
 
-The current Makefile has the possibility to build hydroc with various options:
+The current Makefile has the possibility to build hydroc with various
+options (O is a shortcut for ON). Each architecture as its own
+makefile (e.g. make.epyc) that is included by the master Makefile.
+
+PG=O	    to use gprof profiling tool
 
 MPI=O	    to create a MPI version (default node only version)
-MIC=O	    to produce a native version for the MIC
-PG=O	    to use gprof profiling tool
-XHOST=O	    to build a tightly coupled binary to your local CPU, will get an invalid instruction on a not compatible hardware.
+
+
+XHOST=O to build a tightly coupled binary to your local CPU, will get
+an invalid instruction on a not compatible hardware.
+
+MIC=O	    to produce a native version for the MIC (KNC)
 AVX=O	    to force AVX usage
 AVX2=O	    to force AVX2 usage (Haswell)
 ATOM=O	    to force SSE4 for the atom
 SSE=O	    to force SSE usage (Nehalem)
 KNL=O	    to force MIC-AVX512 usage for the KNL
 AVX3=O 	    to force Skylake code generation.
+EPYC=O	    to compile for the Zen platform
+
+default value is to build for AVX2. 
 
 PNG=O to produce PNG images (PPM otherwise). Images are forced to be
 less than 2000 pixels wide so the program will shrink then if needed
@@ -28,18 +39,18 @@ VERB=O	    for a verbose output of the vectorization
 NOVEC=O to inhibit vectorization (for vectorization speedup
 measurement)
 
-
-
-so 
-
-make MPI=O PNG=O AVX=O clean hydroc
+so, 
+    make MPI=O PNG=O AVX=O clean hydroc
 
 will clean everything then build hydroc with MPI capability and AVX
 optimization plus produce PNG images rather than PPM.
 
-make MPI=O PNG=O AVX=O run
 
-will recompile hydroc if necessary and start hydroc 
+The make.runs file is there for convenience. The idea is to centralize
+different run situations to make them easily accessible while
+rebuilding the program. Thus: make MPI=O PNG=O AVX=O run will
+recompile hydroc if necessary and start hydroc on a standard test
+case.
 
 The input file looks like this:
 
@@ -59,7 +70,6 @@ nstepmax=20
 &MESH
 nx=6000
 ny=6000
-nxystep=480
 tilesize=60
 morton=1
 prt=0
@@ -102,9 +112,9 @@ chkpt = if not 0, produce a checkpoint file at the end of the run.
 nx, ny = total size of the domain. An MPI run will divide those values
 according to the number of tasks.
 
-nxystep = unused in this version
-
-tilesize = the size of the side of a tile (excluding the ghost cells)
+tilesize = the size of the side of a square] tile (excluding the ghost
+cells). Typical values are 28 or 60. The value really depends on the
+underlying architecture.
 
 morton = if 1, the OpenMP threads will pick tiles according to a
 morton curve
@@ -159,3 +169,5 @@ Enjoy.
 Guillaume Colin de Verdiere
 
 28/03/2014
+updated 30/10/2017
+
