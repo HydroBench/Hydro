@@ -71,6 +71,11 @@ include make.cray
 NODEFAULT=yes
 endif
 
+ifeq ($(EPYC),O)
+include make.epyc
+NODEFAULT=yes
+endif
+
 ifeq ($(NODEFAULT),no)
 # capture the default case where no arch indication has been given to make
 MPI=O
