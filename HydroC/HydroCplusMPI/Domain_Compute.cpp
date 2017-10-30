@@ -223,6 +223,7 @@ void Domain::compute()
 	double startstep, endstep, elpasstep;
 	struct rusage myusage;
 	double giga = 1024 * 1024 * 1024;
+	double mega = 1024 * 1024;
 	double totalCellPerSec = 0.0;
 	double minCellPerSec = FLT_MAX;
 	double maxCellPerSec = 0;
@@ -476,7 +477,7 @@ void Domain::compute()
 		printf(" and %d MPI tasks", m_nProc);
 #endif
 		printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
-		printf(" maxMatrix %.3fGB", float (Matrix2<double>::getMax() / giga));
+		printf(" maxMatrix %.3f MB", float (Matrix2<double>::getMax() / mega));
 		if (getNbpe() > 1) {
 			printf(" maxMEMtot %.3fGB", float (maxMemUsed * getNbpe() / giga));
 		}
