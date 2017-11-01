@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ "$1" = "" ]; then exit 1; fi
+
+grep -a 'Average' $1 | perl -n -e '{ @a=split(" "); $l++; print $a[2] . "\n"; }'
+
+
+#EOF
