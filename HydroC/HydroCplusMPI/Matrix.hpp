@@ -16,33 +16,32 @@
 
 // #define Mat2Index(i,j) ((i) + (j) * _w)
 class Volume {
-protected:
+ protected:
 	static long _volume;
 	static long _volumeMax;
-	Volume() {};
-public:
+	 Volume() {
+	};
+ public:
 };
 
-template < typename T > class Matrix2 : private Volume {
-private:
+ template < typename T > class Matrix2:private Volume {
+ private:
 	const int _nbloc = 1024;
-	const int _nshift = 10;
-	const int _ninc = 128;
 	int32_t _w, _h;
-   T *_arr; // working address
-   T *_org; // allocated address
+	T *_arr;		// working address
+	T *_org;		// allocated address
 
 	void allocate(void);
 
 	// // index in the array
 	size_t Mat2Index(int32_t x, int32_t y) const {
 		size_t r = x + y * _w;
-		return r;
+		 return r;
 	};
 	void aux_getFullCol(int32_t x, int32_t h, T * __restrict__ theCol, T * __restrict__ theArr);
 	void aux_putFullCol(int32_t x, int32_t h, int32_t offY, T * __restrict__ theCol, T * __restrict__ theArr);
 
-public:
+ public:
 	// basic constructor
 	Matrix2(void) {
 		_w = _h = 0;
@@ -109,7 +108,9 @@ public:
 	long getLengthByte();
 	void read(const int f);
 	void write(const int f);
-	static long getMax() {return _volumeMax;};
+	static long getMax() {
+		return _volumeMax;
+	};
 };
 
 #endif

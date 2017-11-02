@@ -53,38 +53,25 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
-#ifdef _OPENMP
-// #pragma omp critical
-#endif
-	{
-	   _arr = 0;
-	   int rc = hbw_posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
-	   if (_arr == 0) {
-	      // fallback to DDR 
-	      cerr << __FILE__<< " Falling back to DDR4" << endl;
-	      rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
-	      assert(rc == 0);
-	   }
+	_arr = 0;
+	int rc = hbw_posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
+	if (_arr == 0) {
+		// fallback to DDR 
+		cerr << __FILE__ << " Falling back to DDR4" << endl;
+		rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
+		assert(rc == 0);
 	}
 	_org = _arr;
 #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
 #pragma message "posix_memalign activated"
-	int rc = posix_memalign((void **) &_arr, _nbloc, lgrTab + _nbloc);
+	int rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
 	_org = _arr;
 #endif
 	_volume += lgrTab;
 	_volumeMax = max(_volume, _volumeMax);
 
-#if defined(WITHPOSIX) || defined(WITHHBW)
-	char *tmp = (char *) _arr;
-	// FIXME
-	tmp += decal;
-	decal += _ninc;
-	if (decal >= _nbloc) decal = 0;
-	_arr = (T*) tmp;
-#endif
 	memset(_arr, 0, lgrTab);
 	assert(_arr != 0);
 }
@@ -101,6 +88,7 @@ template < typename T > void Matrix2 < T >::swapDimAndValues()
 	_h = t;
 	abort();		// not yet implemented
 }
+
 #ifndef ALIGNEXT
 #define ALIGNEXT 128
 #endif
