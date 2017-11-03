@@ -42,7 +42,7 @@ using namespace std;
 Domain::Domain(int argc, char** argv)
 {
     // default values
-    m_numa = 0;
+    m_numa = 1;
     m_nextOutput = 0;
     m_nextImage = 0;
     m_nImage = 0;
