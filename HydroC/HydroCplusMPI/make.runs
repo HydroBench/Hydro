@@ -1,5 +1,9 @@
 run: hydroc
 	@rm -rf Dep/* STOP
+	env OMP_NUM_THREADS=3 ccc_mprun -p haswell -T 6400 -c16 -x -n1 -E-Jvectst -E '--want_autonuma=0' -E '--want_thp=0' ./hydroc.avx2 -i input.nml
+
+run4: hydroc
+	@rm -rf Dep/* STOP
 	env OMP_NUM_THREADS=32 ccc_mprun -p haswell -T 6400 -c16 -x -n4 -N4 -E-Jvectst -E '--want_autonuma=0' -E '--want_thp=0' ./hydroc.avx2 -i input.nml
 
 runskl: hydroc

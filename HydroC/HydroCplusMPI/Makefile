@@ -1,4 +1,4 @@
-SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp 
+SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
 OBJS=$(patsubst %.cpp,%.o,$(SRCS)) cclock.o
 OPENMP=O

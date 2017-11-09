@@ -19,6 +19,7 @@
 #include "EnumDefs.hpp"
 #include "Utilities.hpp"
 #include "ThreadBuffers.hpp"
+#include "Timers.hpp"
 
 // template <typename T>
 class Tile {
@@ -30,6 +31,7 @@ class Tile {
 #endif
 
 	ThreadBuffers *m_myBuffers;	// the link to our ThreadBuffers
+   Timers *m_threadTimers; // one Timers per thread
 	int m_prt;
 
 	// dimensions
@@ -202,6 +204,7 @@ class Tile {
 	void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy, real_t dx);
 	void setVoisins(Tile * left, Tile * right, Tile * up, Tile * down);
 	void setBuffers(ThreadBuffers * buf);
+   void setTimers(Timers * tm) { assert(tm != 0); m_threadTimers = tm; };
 	void notProcessed() {
 		m_hasBeenProcessed = 0;
 	};
@@ -212,6 +215,13 @@ class Tile {
 		return m_hasBeenProcessed == step;
 	};
 	void waitVoisin(Tile * voisin, int step);
+	int32_t myThread() {
+		int32_t r = 0;
+#ifdef _OPENMP
+		r = omp_get_thread_num();
+#endif
+		return r;
+	}
 };
 #endif
 //EOF

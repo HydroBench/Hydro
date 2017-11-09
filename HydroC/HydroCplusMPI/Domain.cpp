@@ -188,6 +188,7 @@ Domain::~Domain()
         delete m_buffers[i];
     }
     delete[] m_buffers;
+    delete [] m_threadTimers;
     delete[] m_mortonIdx;
     if (m_morton)
         delete m_morton;
@@ -837,6 +838,9 @@ void Domain::setTiles()
     m_buffers = new ThreadBuffers*[m_numThreads];
     assert(m_buffers != 0);
 
+    m_threadTimers = new Timers [m_numThreads];
+    assert(m_threadTimers != 0);
+
 #ifdef _OPENMP
 #pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
 #endif
@@ -856,6 +860,7 @@ void Domain::setTiles()
         i = t;
         if (m_withMorton)
             i = m_mortonIdx[t];
+	m_tiles[i]->setTimers(m_threadTimers);
         m_tiles[i]->initTile(m_uold);
         m_tiles[i]->setMpi(m_nProc, m_myPe);
         m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type,

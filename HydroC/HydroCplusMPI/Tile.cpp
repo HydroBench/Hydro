@@ -30,6 +30,8 @@ using namespace std;
 #include "arch.hpp"
 #endif
 #include "Tile.hpp"
+#include "cclock.h"
+#include "Timers.hpp"
 
 // template <typename T> 
 // Tile::Tile(void) { }
@@ -46,6 +48,7 @@ Tile::Tile()
 #ifdef _OPENMP
 	omp_init_lock(&m_lock);
 #endif
+	
 }
 
 // template <typename T> 
@@ -77,8 +80,8 @@ void Tile::initTile(Soa * uold)
 	m_uold = uold;
 	//
 	// cerr << lgx << " " << lgy << " " << xmin << " " << xmax << " " << ymin << " " << ymax << endl;
-	assert (lgx > 0);
-	assert (lgy > 0);
+	assert(lgx > 0);
+	assert(lgy > 0);
 	m_u = new Soa(NB_VAR, lgx, lgy);
 	m_flux = new Soa(NB_VAR, lgx, lgy);
 
@@ -351,6 +354,9 @@ void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqri
 void Tile::qleftr()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
+
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 	for (int32_t v = 0; v < NB_VAR; v++) {
@@ -372,6 +378,9 @@ void Tile::qleftr()
 	Matrix2 < real_t > &pqright = *(*m_qright) (IP_VAR);
 	if (m_prt)
 		pqright.printFormatted("Tile qright qleftr");
+
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(QLEFTR, elaps);
 }
 
 void Tile::compflxOnRow(int32_t xmin,
@@ -455,9 +464,7 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 	       int im = i + m_offx, i2 = i - 2, i1 = i - 1;
 	       uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
 	       uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
-	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; 
-	       uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
-		}
+	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;}
 	);
 #endif
 }
@@ -1160,7 +1167,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 
 		real_t ustar_i = half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
-		double left = (double) (ustar_i > 0);
+		double left = (double)(ustar_i > 0);
 
 		real_t ro_i, uo_i, po_i, wo_i;
 

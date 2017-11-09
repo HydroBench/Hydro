@@ -34,7 +34,7 @@ endif
 ifeq ($(CXX),g++)
    # OPTIM+=-mavx2
    OPTIM+=-march=znver1
-    LIBS+=-static 
+   # LIBS+=-static 
 endif
 
 ifeq ($(CXX),clang++)

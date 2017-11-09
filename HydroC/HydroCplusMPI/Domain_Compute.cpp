@@ -502,8 +502,25 @@ void Domain::compute()
 			printf("\n");
 		}
 #endif
-
 	}
+	Timers mainTimer;
+	{
+	   for (int32_t i = 0; i < m_numThreads; i++) {
+// TODO print pour voir
+	      // m_threadTimers[i].print();
+	      mainTimer += m_threadTimers[i];
+	   }
+	   mainTimer.getStats(); // all processes involved
+	   // cout << endl;
+	   if (m_myPe == 0) {
+#ifdef MPI_ON
+	      mainTimer.printStats();
+#else
+	      mainTimer.print();
+#endif
+	   }
+	}
+	
 	if (reader)
 		delete reader;
 	// cerr << "End compute " << m_myPe << endl;

@@ -44,8 +44,9 @@ ifeq ($(CXX),g++)
 endif
 
 ifeq ($(CXX),clang++)
-     # -fopenmp 
-    # OPTIM+=-mavx2 -fsanitize=address -fno-omit-frame-pointer
+     # 
+    OPTIM+=-mavx2 -fsanitize=address -fno-omit-frame-pointer 
+    # -fopenmp 
     LIBS+=
 endif
 

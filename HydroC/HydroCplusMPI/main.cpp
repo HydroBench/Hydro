@@ -55,10 +55,10 @@ int main(int argc, char **argv)
 //		system("top -b -n1 -u coling");
 //	}
 
-	delete domain;
 #ifdef MPI_ON
 	MPI_Finalize();
 #endif
-	// cerr << "End main " << domain.getMype() << endl;
+	if (domain->getMype() == 0) cout << "Hydro: done." << endl;
+	delete domain;
 	exit(0);
 }

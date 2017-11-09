@@ -36,6 +36,8 @@ using namespace std;
 void Domain::boundary_init()
 {
 	int32_t size, ivar, i, j, i0, j0;
+	double start, end;
+	start = dcclock();
 	int sign;
 #ifdef MPI_ON
 	MPI_Request requests[4];
@@ -106,13 +108,17 @@ void Domain::boundary_init()
 		assert(err == MPI_SUCCESS);
 	}			// Y_SCAN
 #endif
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(BOUNDINIT, elaps);
+} // boundary_init
 
 void Domain::boundary_process()
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t size, ivar, i, j, i0, j0;
 	int sign;
+	double start, end;
+	start = dcclock();
 #ifdef MPI_ON
 	MPI_Request requests[4];
 	MPI_Status status[4];
@@ -245,7 +251,9 @@ void Domain::boundary_process()
 	Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
 	if (m_prt)
 		uold.printFormatted("uold boundary_process");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(BOUNDEXEC, elaps);
+} // boundary_process
 
 int32_t Domain::pack_arrayv(int32_t xoffset, real_t * buffer)
 {

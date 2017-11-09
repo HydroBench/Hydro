@@ -108,9 +108,9 @@ class Domain {
 	int32_t m_forceSync;
 	// timing of functions
 	double **m_timerLoops;
+   Timers *m_threadTimers; // one Timers per thread
 
 	// member functions
-
 	void vtkfile(int step);
 	void vtkOutput(int step);
 	void parseParams(int argc, char **argv);
