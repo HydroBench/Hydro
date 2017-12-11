@@ -36,6 +36,7 @@ class Domain {
 	int32_t m_iter;		// current iteration
 	int32_t m_nbRun;
 	double m_elapsTotal;
+	Timers m_mainTimer;
 
 	// those variables are not protected to allow for modifications
 	TimeLimit m_tr;

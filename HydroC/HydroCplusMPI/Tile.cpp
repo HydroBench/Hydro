@@ -164,6 +164,8 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS)
 void Tile::slope()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 
 	for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
 		Matrix2 < real_t > &q = *(*m_q) (nbv);
@@ -183,11 +185,15 @@ void Tile::slope()
 	Matrix2 < real_t > &dq = *(*m_dq) (IP_VAR);
 	if (m_prt)
 		dq.printFormatted("Tile dq slope");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(SLOPE, elaps);
+} // slope
 
 void Tile::trace()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIV = *(*m_q) (IV_VAR);
 	Matrix2 < real_t > &qIU = *(*m_q) (IU_VAR);
@@ -253,7 +259,9 @@ void Tile::trace()
 		pqxmIP.printFormatted("Tile pqxmIP trace");
 	if (m_prt)
 		pqxpIP.printFormatted("Tile pqxpIP trace");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(TRACE, elaps);
+} // trace
 
 void Tile::traceonRow(int32_t xmin,
 		      int32_t xmax,
@@ -340,7 +348,6 @@ void Tile::traceonRow(int32_t xmin,
 
 void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS, Preal_t pqxpS)
 {
-
 	// #pragma vector aligned // impossible !
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
@@ -405,6 +412,8 @@ void Tile::compflxOnRow(int32_t xmin,
 void Tile::compflx()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	Matrix2 < real_t > &qgdnvID = *(*m_qgdnv) (ID_VAR);
 	Matrix2 < real_t > &qgdnvIU = *(*m_qgdnv) (IU_VAR);
 	Matrix2 < real_t > &qgdnvIP = *(*m_qgdnv) (IP_VAR);
@@ -432,7 +441,9 @@ void Tile::compflx()
 	}
 	if (m_prt)
 		fluxIP.printFormatted("Tile fluxIP compflx");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(COMPFLX, elaps);
+} // compflx
 
 template < typename LOOP_BODY > void forall(int begin, int end, LOOP_BODY body)
 {
@@ -516,6 +527,8 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
 
 void Tile::updateconserv()
 {
+	double start, end;
+	start = dcclock();
 	int32_t xmin, xmax, ymin, ymax;
 	Matrix2 < real_t > &uoldID = *(*m_uold) (ID_VAR);
 	Matrix2 < real_t > &uoldIP = *(*m_uold) (IP_VAR);
@@ -601,7 +614,9 @@ void Tile::updateconserv()
 		uoldIV.printFormatted("Tile uoldIV updateconserv");
 	if (m_prt)
 		uoldIP.printFormatted("Tile uoldIP updateconserv");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(UPDCVAR, elaps);
+} // updateconserv
 
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax,
 			      Preal_t uIDS, Preal_t uIUS, Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS)
@@ -637,6 +652,8 @@ void Tile::gatherconservYscan()
 void Tile::gatherconserv()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	Matrix2 < real_t > &uID = *(*m_u) (ID_VAR);
 	Matrix2 < real_t > &uIP = *(*m_u) (IP_VAR);
 	Matrix2 < real_t > &uIV = *(*m_u) (IV_VAR);
@@ -692,7 +709,9 @@ void Tile::gatherconserv()
 		uIV.printFormatted("Tile uIV gatherconserv");
 	if (m_prt)
 		uIP.printFormatted("Tile uIP gatherconserv");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(GATHCVAR, elaps);
+} // gatherconserv
 
 void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS)
 {
@@ -728,6 +747,8 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 void Tile::eos(tileSpan_t span)
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIP = *(*m_q) (IP_VAR);
@@ -747,7 +768,9 @@ void Tile::eos(tileSpan_t span)
 		qIP.printFormatted("Tile qIP eos");
 	if (m_prt)
 		m_c->printFormatted("Tile c eos");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(EOS, elaps);
+} // eos
 
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
 				 Preal_t qIDS, Preal_t qIPS, Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS)
@@ -778,6 +801,8 @@ void Tile::compute_dt_loop2OnRow(real_t & tmp1, real_t & tmp2, int32_t xmin, int
 real_t Tile::compute_dt()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	real_t dt = 0, cournox, cournoy, tmp1 = 0, tmp2 = 0;
 	Matrix2 < real_t > &uoldID = *(*m_uold) (ID_VAR);
 	Matrix2 < real_t > &uoldIP = *(*m_uold) (IP_VAR);
@@ -837,8 +862,11 @@ real_t Tile::compute_dt()
 
 	if (m_prt)
 		cerr << "tile dt " << dt << endl;
+	
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(COMPDT, elaps);
 	return dt;
-}
+} // compute_dt
 
 void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS)
 {
@@ -872,6 +900,8 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 void Tile::constprim()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	Matrix2 < real_t > &qID = *(*m_q) (ID_VAR);
 	Matrix2 < real_t > &qIP = *(*m_q) (IP_VAR);
 	Matrix2 < real_t > &qIV = *(*m_q) (IV_VAR);
@@ -900,7 +930,10 @@ void Tile::constprim()
 		qIP.printFormatted("Tile qIP constprim");
 	if (m_prt)
 		(*m_e).printFormatted("Tile e constprim");
-}
+	
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(CONSTPRIM, elaps);
+} // constprim
 
 void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 			real_t gamma6, real_t smallpp,
@@ -1237,6 +1270,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 void Tile::riemann()
 {
 	int32_t xmin, xmax, ymin, ymax;
+	double start, end;
+	start = dcclock();
 	Matrix2 < real_t > &qgdnvID = *(*m_qgdnv) (ID_VAR);
 	Matrix2 < real_t > &qgdnvIU = *(*m_qgdnv) (IU_VAR);
 	Matrix2 < real_t > &qgdnvIP = *(*m_qgdnv) (IP_VAR);
@@ -1289,7 +1324,9 @@ void Tile::riemann()
 		qgdnvIV.printFormatted("tile qgdnvIV riemann");
 	if (m_prt)
 		qgdnvIP.printFormatted("tile qgdnvIP riemann");
-}
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(RIEMANN, elaps);
+} // riemann
 
 void Tile::boundary_init()
 {

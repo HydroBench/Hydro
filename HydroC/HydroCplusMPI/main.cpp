@@ -51,14 +51,12 @@ int main(int argc, char **argv)
 #ifdef MPI_ON
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
-//	if (domain.getMype() == 0) {
-//		system("top -b -n1 -u coling");
-//	}
+
+	if (domain->getMype() == 0) cout << "Hydro: done." << endl;
 
 #ifdef MPI_ON
 	MPI_Finalize();
 #endif
-	if (domain->getMype() == 0) cout << "Hydro: done." << endl;
 	delete domain;
 	exit(0);
 }

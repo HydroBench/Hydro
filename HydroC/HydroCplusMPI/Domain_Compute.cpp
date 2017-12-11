@@ -398,8 +398,8 @@ void Domain::compute()
 			if (reader)
 				sprintf(ftxt, "%s r", ftxt);
 
-			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB) %lf %s %s\n",
-				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (getMemUsed() / giga), resteAll, vtkprt, ftxt);
+			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB ) %lf %s %s\n",
+				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (Matrix2<double>::getMax() / giga), resteAll, vtkprt, ftxt);
 			fflush(stdout);
 		}
 
@@ -476,10 +476,10 @@ void Domain::compute()
 #ifdef MPI_ON
 		printf(" and %d MPI tasks", m_nProc);
 #endif
-		printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
+		// printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
 		printf(" maxMatrix %.3f MB", float (Matrix2<double>::getMax() / mega));
 		if (getNbpe() > 1) {
-			printf(" maxMEMtot %.3fGB", float (maxMemUsed * getNbpe() / giga));
+			printf(" maxMatrixTot %.3f GB", float (Matrix2<double>::getMax() * getNbpe() / giga));
 		}
 		printf("\n");
 		convertToHuman(timeHuman, m_elapsTotal);
@@ -503,21 +503,33 @@ void Domain::compute()
 		}
 #endif
 	}
-	Timers mainTimer;
 	{
+	  // get the threads timers values and add them to our timer
 	   for (int32_t i = 0; i < m_numThreads; i++) {
-// TODO print pour voir
+
 	      // m_threadTimers[i].print();
-	      mainTimer += m_threadTimers[i];
+	      m_mainTimer += m_threadTimers[i];
 	   }
-	   mainTimer.getStats(); // all processes involved
+	   m_mainTimer.getStats(); // all processes involved
 	   // cout << endl;
 	   if (m_myPe == 0) {
 #ifdef MPI_ON
-	      mainTimer.printStats();
+	     if (m_nProc > 1)
+	       m_mainTimer.printStats();
+	     else
+	       m_mainTimer.print();
 #else
-	      mainTimer.print();
+	      m_mainTimer.print();
 #endif
+	   }
+	   if (m_myPe == 0) {
+	      double elapsParallel = (end - start) * m_numThreads;
+	      double seenParallel = 0;
+	      for (int32_t i = 0; i < BANDWIDTH; ++i) {
+		 seenParallel += m_mainTimer.get(Fname_t(i));
+	      }
+	      double efficiency = 100.0 * seenParallel / elapsParallel;
+	      printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallel, seenParallel, efficiency);
 	   }
 	}
 	
