@@ -475,7 +475,9 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 	       int im = i + m_offx, i2 = i - 2, i1 = i - 1;
 	       uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
 	       uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
-	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;}
+	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; 
+	       uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
+	   }
 	);
 #endif
 }
@@ -841,9 +843,14 @@ real_t Tile::compute_dt()
 		real_t *eS = (*m_e).getRow(s);
 		compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS, uoldIDS, uoldIUS, uoldIVS, uoldIPS, eS);
 	}
+	// stop timer here to avoid counting EOS twice
+	double elaps = dcclock() - start;
+	m_threadTimers[myThread()].add(COMPDT, elaps);
 
 	eos(TILE_INTERIOR);	// needs    qID, e    returns    c, qIP
 
+	// resume timing 
+	start = dcclock();
 	for (int32_t s = ymin; s < ymax; s++) {
 		real_t *qIVS = qIV.getRow(s);
 		real_t *qIUS = qIU.getRow(s);
@@ -863,7 +870,7 @@ real_t Tile::compute_dt()
 	if (m_prt)
 		cerr << "tile dt " << dt << endl;
 	
-	double elaps = dcclock() - start;
+	elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(COMPDT, elaps);
 	return dt;
 } // compute_dt

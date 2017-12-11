@@ -63,11 +63,17 @@ void Domain::computeDt()
 	real_t dt;
 
 #pragma omp parallel for SCHEDULE
-	for (int32_t i = 0; i < m_nbtiles; i++) {
-		m_tiles[i]->setBuffers(m_buffers[myThread()]);
-		m_tiles[i]->setTcur(m_tcur);
-		m_tiles[i]->setDt(m_dt);
-		m_localDt[i] = m_tiles[i]->computeDt();
+	for (int32_t t = 0; t < m_nbtiles; t++) {
+	   int32_t i = t;
+	   if (m_withMorton) {
+	      i = m_mortonIdx[t];
+	      assert(i>=0);
+	      assert(i<m_nbtiles);
+	   }
+	   m_tiles[i]->setBuffers(m_buffers[myThread()]);
+	   m_tiles[i]->setTcur(m_tcur);
+	   m_tiles[i]->setDt(m_dt);
+	   m_localDt[i] = m_tiles[i]->computeDt();
 	}
 
 	dt = m_localDt[0];
@@ -81,11 +87,14 @@ real_t Domain::reduceMin(real_t dt)
 {
 	real_t dtmin = dt;
 #ifdef MPI_ON
+	double t1 = MPI_Wtime();
 	if (sizeof(real_t) == sizeof(double)) {
 		MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 	} else {
 		MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
 	}
+	double t2 = MPI_Wtime();
+	m_threadTimers[myThread()].add(REDUCEMIN, (t2 - t1));
 #endif
 	return dtmin;
 }
@@ -94,6 +103,7 @@ real_t Domain::reduceMaxAndBcast(real_t dt)
 {
 	real_t dtmax = dt;
 #ifdef MPI_ON
+	double t1 = MPI_Wtime();
 	if (sizeof(real_t) == sizeof(double)) {
 		MPI_Allreduce(&dt, &dtmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 		// MPI_Bcast(&dtmax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -101,6 +111,8 @@ real_t Domain::reduceMaxAndBcast(real_t dt)
 		MPI_Allreduce(&dt, &dtmax, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 		// MPI_Bcast(&dtmax, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	}
+	double t2 = MPI_Wtime();
+	m_threadTimers[myThread()].add(REDUCEMAX, (t2 - t1));
 #endif
 	return dtmax;
 }
@@ -140,7 +152,7 @@ real_t Domain::computeTimeStep()
 		boundary_process();
 
 		real_t *pm_localDt = m_localDt;
-
+		double start = dcclock();
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
 			// int lockStep = 0;
@@ -186,14 +198,16 @@ real_t Domain::computeTimeStep()
 			}
 			m_tiles[i]->setBuffers(m_buffers[myThread()]);
 			m_tiles[i]->updateconserv();	// input u, flux       output uold
-			if (pass == 1) {
-				m_localDt[i] = m_tiles[i]->computeDt();
-			}
+			// if (pass == 1) {
+			m_localDt[i] = m_tiles[i]->computeDt();
+			//}
 #if WITH_TIMERS == 1
 			endT = dcclock();
 			(m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
 		}
+		double end = dcclock();
+		m_mainTimer.add(ALLTILECMP, (end - start));
 // we have to wait here that uold has been fully updated by all tiles
 		if (m_prt) {
 			cout << "After pass " << pass << " direction [" << m_scan << "]" << endl;
@@ -220,7 +234,7 @@ void Domain::compute()
 	real_t dt = 0;
 	char vtkprt[64];
 	double start, end;
-	double startstep, endstep, elpasstep;
+	double startstep, endstep, elpasstep, elpasStepTot = 0.0;
 	struct rusage myusage;
 	double giga = 1024 * 1024 * 1024;
 	double mega = 1024 * 1024;
@@ -308,9 +322,18 @@ void Domain::compute()
 		//
 		{
 			startstep = dcclock();
+// #ifdef MPI_ON
+// 			double t1 =  MPI_Wtime();
+// #endif
+
 			dt = computeTimeStep();
 			endstep = dcclock();
 			elpasstep = endstep - startstep;
+// #ifdef MPI_ON
+// 			double t2 =  MPI_Wtime();
+// 			cerr << (t2 - t1) << " " << elpasstep << endl;
+// #endif
+			elpasStepTot += elpasstep;
 		}
 		//
 		// - - - - - - - - - - - - - - - - - - -
@@ -371,6 +394,9 @@ void Domain::compute()
 			sprintf(vtkprt, "%s (%05d)", vtkprt, m_npng);
 		}
 		double resteAll = m_tr.timeRemain() - m_timeGuard;
+		// TODO
+#pragma message "Bandwidth monitoring to do properly"
+		m_mainTimer.set(BOUNDINITBW, 0);
 		if (m_myPe == 0) {
 			int64_t totCell = int64_t(m_globNx) * int64_t(m_globNy);
 			double cellPerSec = totCell / elpasstep / 1000000;
@@ -398,8 +424,13 @@ void Domain::compute()
 			if (reader)
 				sprintf(ftxt, "%s r", ftxt);
 
-			fprintf(stdout, "Iter %6d Time %-13.6g Dt %-13.6g ( %7.3f s %7.3f Mc/s %7.3f GB ) %lf %s %s\n",
-				m_iter, m_tcur, m_dt, elpasstep, cellPerSec, float (Matrix2<double>::getMax() / giga), resteAll, vtkprt, ftxt);
+			fprintf(stdout, "Iter %6d Time %-13.6lf Dt %-13.6g", m_iter, m_tcur, m_dt);
+			fprintf(stdout, "(%.3lfs %.3lfMc/s %.3lfGB)", elpasstep, cellPerSec, float (Matrix2<double>::getMax() / giga));
+			fprintf(stdout, " %.1lf %s %s", resteAll, vtkprt, ftxt);
+#ifdef MPI_ON
+			// fprintf(stdout, "%.3lf MB/s", m_mainTimer.get(BOUNDINITBW));
+#endif
+			fprintf(stdout, "\n");
 			fflush(stdout);
 		}
 
@@ -510,26 +541,36 @@ void Domain::compute()
 	      // m_threadTimers[i].print();
 	      m_mainTimer += m_threadTimers[i];
 	   }
+		// TODO
+#pragma message "Bandwidth monitoring to do properly"
+	   m_mainTimer.set(BOUNDINITBW, 0);
 	   m_mainTimer.getStats(); // all processes involved
 	   // cout << endl;
 	   if (m_myPe == 0) {
 #ifdef MPI_ON
-	     if (m_nProc > 1)
-	       m_mainTimer.printStats();
-	     else
-	       m_mainTimer.print();
+	      m_mainTimer.printStats();
 #else
 	      m_mainTimer.print();
 #endif
 	   }
 	   if (m_myPe == 0) {
-	      double elapsParallel = (end - start) * m_numThreads;
+	      double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
 	      double seenParallel = 0;
-	      for (int32_t i = 0; i < BANDWIDTH; ++i) {
+	      for (int32_t i = 0; i < TILEOMP; ++i) {
+		 m_mainTimer.div(Fname_t(i), m_numThreads);
 		 seenParallel += m_mainTimer.get(Fname_t(i));
 	      }
-	      double efficiency = 100.0 * seenParallel / elapsParallel;
-	      printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallel, seenParallel, efficiency);
+	      double efficiency = 100.0 * seenParallel / elapsParallelOMP;
+	      printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallelOMP, seenParallel, efficiency);
+#ifdef MPI_ON
+	      double seenMPI = 0.0;
+	      for (int32_t i = TILEOMP + 1; i < BANDWIDTH; ++i) {
+		 seenMPI += m_mainTimer.get(Fname_t(i));
+	      }
+	      efficiency = 100.0 * seenMPI / (end - start);
+	      printf("TotalMPI//: %lf, SeenMPI//: %lf effMPI%%=%.2lf\n", (end - start), seenMPI, efficiency);
+#endif
+
 	   }
 	}
 	
