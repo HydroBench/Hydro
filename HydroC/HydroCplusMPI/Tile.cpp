@@ -346,7 +346,7 @@ void Tile::traceonRow(int32_t xmin,
 	}
 }
 
-void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS, Preal_t pqxpS)
+void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t  pqleftS, Preal_t  pqrightS, Preal_t  pqxmS, Preal_t  pqxpS)
 {
 	// #pragma vector aligned // impossible !
 #if TILEUSER == 0
@@ -392,7 +392,8 @@ void Tile::qleftr()
 
 void Tile::compflxOnRow(int32_t xmin,
 			int32_t xmax,
-			real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS)
+			real_t entho, Preal_t  qgdnvIDS, Preal_t  qgdnvIUS, Preal_t  qgdnvIVS, 
+			Preal_t  qgdnvIPS, Preal_t  fluxIVS, Preal_t fluxIUS, Preal_t  fluxIPS, Preal_t  fluxIDS)
 {
 	for (int32_t i = xmin; i < xmax; i++) {
 		// Mass density
@@ -715,7 +716,7 @@ void Tile::gatherconserv()
 	m_threadTimers[myThread()].add(GATHCVAR, elaps);
 } // gatherconserv
 
-void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS)
+void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Preal_t  const eS, Preal_t  qIPS, Preal_t  cS)
 {
 	if (xmin > 0) {
 #pragma omp simd
@@ -875,7 +876,7 @@ real_t Tile::compute_dt()
 	return dt;
 } // compute_dt
 
-void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t eS)
+void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, const Preal_t uIDS, const Preal_t uIPS, const Preal_t uIVS, const Preal_t uIUS, Preal_t eS)
 {
 
 #if ALIGNED > 0
