@@ -285,7 +285,7 @@ void Domain::boundary_process()
     m_mainTimer.add(BOUNDEXEC, elaps);
 }				// boundary_process
 
-int32_t Domain::pack_arrayv(int32_t xoffset, real_t * buffer)
+int32_t Domain::pack_arrayv(int32_t xoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
     int32_t ivar, i, j, p = 0;
@@ -304,7 +304,7 @@ int32_t Domain::pack_arrayv(int32_t xoffset, real_t * buffer)
     return p;
 }
 
-int32_t Domain::unpack_arrayv(int32_t xoffset, real_t * buffer)
+int32_t Domain::unpack_arrayv(int32_t xoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
     int32_t ivar, i, j, p = 0;
@@ -321,7 +321,7 @@ int32_t Domain::unpack_arrayv(int32_t xoffset, real_t * buffer)
     return p;
 }
 
-int32_t Domain::pack_arrayh(int32_t yoffset, real_t * buffer)
+int32_t Domain::pack_arrayh(int32_t yoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
     int32_t ivar, i, j, p = 0;
@@ -338,7 +338,7 @@ int32_t Domain::pack_arrayh(int32_t yoffset, real_t * buffer)
     return p;
 }
 
-int32_t Domain::unpack_arrayh(int32_t yoffset, real_t * buffer)
+int32_t Domain::unpack_arrayh(int32_t yoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
     int32_t ivar, i, j, p = 0;

@@ -716,7 +716,7 @@ void Tile::gatherconserv()
 	m_threadTimers[myThread()].add(GATHCVAR, elaps);
 } // gatherconserv
 
-void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Preal_t  const eS, Preal_t  qIPS, Preal_t  cS)
+void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Preal_t  eS, Preal_t  qIPS, Preal_t  cS)
 {
 	if (xmin > 0) {
 #pragma omp simd
@@ -1377,7 +1377,7 @@ void Tile::boundary_process()
 		uold.printFormatted("tile uold boundary_process");
 }
 
-int32_t Tile::pack_arrayv(int32_t xoffset, real_t * buffer)
+int32_t Tile::pack_arrayv(int32_t xoffset, Preal_t buffer)
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t ivar, i, j, p = 0;
@@ -1395,7 +1395,7 @@ int32_t Tile::pack_arrayv(int32_t xoffset, real_t * buffer)
 	return p;
 }
 
-int32_t Tile::unpack_arrayv(int32_t xoffset, real_t * buffer)
+int32_t Tile::unpack_arrayv(int32_t xoffset, Preal_t buffer)
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t ivar, i, j, p = 0;
@@ -1413,7 +1413,7 @@ int32_t Tile::unpack_arrayv(int32_t xoffset, real_t * buffer)
 	return p;
 }
 
-int32_t Tile::pack_arrayh(int32_t yoffset, real_t * buffer)
+int32_t Tile::pack_arrayh(int32_t yoffset, Preal_t buffer)
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t ivar, i, j, p = 0;
@@ -1431,7 +1431,7 @@ int32_t Tile::pack_arrayh(int32_t yoffset, real_t * buffer)
 	return p;
 }
 
-int32_t Tile::unpack_arrayh(int32_t yoffset, real_t * buffer)
+int32_t Tile::unpack_arrayh(int32_t yoffset, Preal_t buffer)
 {
 	int32_t xmin, xmax, ymin, ymax;
 	int32_t ivar, i, j, p = 0;
