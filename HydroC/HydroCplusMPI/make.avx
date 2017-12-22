@@ -26,4 +26,14 @@ ifeq ($(CXX),g++)
   OPTIM+=-mavx
 endif
 
+ifeq ($(CXX),clang++)
+     # 
+    OPTIM+=-mavx -fopenmp -Rpass-analysis=loop-vectorize -fsave-optimization-record -mllvm -force-vector-width=2 
+    # -fopenmp-simd
+ifeq ($(CHECK),O)
+       OPTIM+=-fsanitize=address -fno-omit-frame-pointer
+endif
+    LIBS+=
+endif
+
 ARCHEXT=avx

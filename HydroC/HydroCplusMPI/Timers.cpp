@@ -134,6 +134,9 @@ const char * Timers::name(Fname_t f) {
 		case BANDWIDTH:
 			lname = "-- bandwidth --";
 			break;
+		case TILEOMP:
+			lname = "-- tileomp --";
+			break;
 		case LASTENTRY:
 			lname = "LASTENTRY";
 			break;

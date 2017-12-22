@@ -171,7 +171,7 @@ template < typename T > Matrix2 < T > &Matrix2 < T >::operator=(const Matrix2 < 
 
 template < typename T > int32_t * Matrix2 < T >::listMortonIdx(void)
 {
-	int32_t x, y;
+  // int32_t x, y;
 	int32_t maxmorton = maxMorton();
 	int32_t seen = 0;
 	int32_t *list = new int32_t[nbElem()];

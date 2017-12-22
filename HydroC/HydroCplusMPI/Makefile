@@ -78,9 +78,8 @@ endif
 
 ifeq ($(NODEFAULT),no)
 # capture the default case where no arch indication has been given to make
-MPI=O
-PNG=O
-include make.avx2
+# note that make.local is not in the git system to avoid overidding it
+include make.local
 endif
 
 

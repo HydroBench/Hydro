@@ -29,7 +29,7 @@ using namespace std;
 TimeLimit::TimeLimit(void)
 {
 	char *p = NULL;
-	int ie = 0;
+	// int ie = 0;
 	if (p == NULL)
 		p = getenv("HYDROC_MAXTIME");
 	if (p == NULL)
@@ -81,7 +81,7 @@ double TimeLimit::timeRemain()
 
 double TimeLimit::timeRemainAll()
 {
-	double remain;
+	double remain = 0;
 #ifndef MPI_ON
 	return timeRemain();
 #else
