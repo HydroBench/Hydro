@@ -564,7 +564,7 @@ void Domain::compute()
 	      printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallelOMP, seenParallel, efficiency);
 #ifdef MPI_ON
 	      double seenMPI = 0.0;
-	      for (int32_t i = TILEOMP + 1; i < BANDWIDTH; ++i) {
+	      for (int32_t i = 0; i < BANDWIDTH; ++i) {
 		 seenMPI += m_mainTimer.get(Fname_t(i));
 	      }
 	      efficiency = 100.0 * seenMPI / (end - start);
