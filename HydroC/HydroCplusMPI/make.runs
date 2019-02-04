@@ -253,10 +253,21 @@ listing:
 
 kirill: 
 	rm -rf Kirill
-	mkdir Kirill
-	cp *.cpp *.hpp *.c *.h Makefile input.nml inputSmall.nml runme Kirill
+	mkdir Kirill/
+	rm -f *~ 
+	cp *.cpp *.hpp *.c *.h Makefile make.* input.nml inputSmall.nml runme Kirill
 	cp ~/bin/faitfilm Kirill
 	cp inputFull1k.nml Kirill
-	cp -r /cea/ghome/ocre/coling/intel/advixe/projects Kirill
+	-cp -r /cea/ghome/ocre/coling/intel/advixe/projects Kirill
 	tar czvf Kirill_$(DATEHOUR).tgz Kirill
 
+inti4200:
+	scp -rpq *.cpp *.hpp *.c *.h Makefile make.* input.nml ~/bin/hydroAverage inti4200:HydroCplusMPI
+
+rinti4200: inti4200
+	echo "224 threads au maximum sur la machine"
+	ssh inti4200 "cd HydroCplusMPI; make CRAY=O"
+	ssh inti4200 "cd HydroCplusMPI; mpirun -n 224 ./hydroc.cray -i input.nml"
+
+include make.scans
+#EOF

@@ -11,9 +11,10 @@ nstepmax=20
 /
 
 &MESH0
-nx=4500
-ny=4500
+nx=5500
+ny=5500
 nxystep=480
+tilesize=508
 tilesize=60
 morton=1
 prt=0

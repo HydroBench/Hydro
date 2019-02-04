@@ -26,7 +26,7 @@ class Volume {
 
  template < typename T > class Matrix2:private Volume {
  private:
-	const int _nbloc = 1024;
+	static const int _nbloc = 1024;
 	int32_t _w, _h;
 	T *_arr;		// working address
 	T *_org;		// allocated address

@@ -31,7 +31,7 @@ ifeq ($(MPI),O)
    ifneq ($(OMPI_CC),)
       INCS+=-I$(MPI_ROOT)/include -DOPENMPI
       MPI_LIB=-L$(MPI_ROOT)/lib
-      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      LIBS+=$(MPI_LIB) -lmpi_cxx -lmpi -Wl,-rpath,$(MPI_LIB)
       DEFS+=-DMPI_ON $(INCS)
    endif
 endif

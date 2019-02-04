@@ -23,6 +23,14 @@ ifeq ($(CXX),icpc)
   # OPTIM+=-openmp-report1 
   ifeq ($(NOVEC),O)
      OPTIM+=-no-vec -no-simd -qno-openmp-simd
+   else
+     OPTIM+=-simd -qopenmp-simd
+   endif
+   ifeq ($(DIVOPTS),)
+      # OPTIM+=-qopt-zmm-usage=high
+      # OPTIM+=-mCG_use_zeroupper=0
+      # OPTIM+=-mP1OPT_max_rec_copy_size=128
+      OPTIM+=-fma
    endif
 endif
 
@@ -34,9 +42,16 @@ ifeq ($(CXX),g++)
      OPTIM+=-fopenmp
   endif
   ifeq ($(NOVEC),O)
-     OPTIM+=-fno-tree-vectorize
+     OPTIM+=-fno-tree-vectorize -fno-openmp-simd
   else
-     OPTIM+=-ftree-vectorize
+     ifneq ($(DBG),O)
+        OPTIM+=-ftree-vectorize -fopenmp-simd
+     endif
+  endif	
+  ifeq ($(DBG),O)
+     OPTIM+=-g
+  else
+     OPTIM+=-O3
   endif
   ifeq ($(VERB),O)
      OPTIM+=-ftree-vectorizer-verbose=2 -fopt-info

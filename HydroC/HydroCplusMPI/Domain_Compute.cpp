@@ -425,7 +425,7 @@ void Domain::compute()
 				sprintf(ftxt, "%s r", ftxt);
 
 			fprintf(stdout, "Iter %6d Time %-13.6lf Dt %-13.6g", m_iter, m_tcur, m_dt);
-			fprintf(stdout, "(%.3lfs %.3lfMc/s %.3lfGB)", elpasstep, cellPerSec, float (Matrix2<double>::getMax() / giga));
+			fprintf(stdout, "(%.5lfs %.3lfMc/s %.3lfGB)", elpasstep, cellPerSec, float (Matrix2<double>::getMax() / giga));
 			fprintf(stdout, " %.1lf %s %s", resteAll, vtkprt, ftxt);
 #ifdef MPI_ON
 			// fprintf(stdout, "%.3lf MB/s", m_mainTimer.get(BOUNDINITBW));

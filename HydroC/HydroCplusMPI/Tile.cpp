@@ -21,9 +21,9 @@ using namespace std;
 //
 
 #include "Options.hpp"
-#define LAMBDAFUNC 1
+#define LAMBDAFUNC 0
 #if LAMBDAFUNC == 1
-#pragma message "Activation des lambdas function"
+#pragma message "Activation of lambdas function"
 #endif
 
 #if  USEINTRINSICS != 0
@@ -33,10 +33,6 @@ using namespace std;
 #include "cclock.h"
 #include "Timers.hpp"
 
-// template <typename T> 
-// Tile::Tile(void) { }
-
-// template <typename T> 
 Tile::Tile()
 {
 	for (int32_t i = 0; i < NEIGHBOUR_TILE; i++) {
@@ -133,14 +129,14 @@ void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t o
 // Compute part
 void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS)
 {
-	double ov_slope_type = 1.0 / m_slope_type;
+	double ov_slope_type = one / m_slope_type;
 	// #pragma vector aligned  // impossible !
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
 	for (int32_t i = xmin + 1; i < xmax - 1; i++) {
 		real_t dlft, drgt, dcen, dsgn, slop, dlim;
-		real_t llftrgt = 0;
+		real_t llftrgt = zero;
 		real_t t1;
 		dlft = m_slope_type * (qS[i] - qS[i - 1]);
 		drgt = m_slope_type * (qS[i + 1] - qS[i]);
@@ -211,7 +207,7 @@ void Tile::trace()
 	Matrix2 < real_t > &pqxpIV = *(*m_qxp) (IV_VAR);
 	Matrix2 < real_t > &pqxpIU = *(*m_qxp) (IU_VAR);
 
-	real_t zerol = 0.0, zeror = 0.0, project = 0.;
+	real_t zerol = zero, zeror = zero, project = zero;
 	real_t dtdx = m_dt / m_dx;
 
 	if (m_scheme == SCHEME_MUSCL) {	// MUSCL-Hancock method
@@ -424,7 +420,7 @@ void Tile::compflx()
 	Matrix2 < real_t > &fluxIP = *(*m_flux) (IP_VAR);
 	Matrix2 < real_t > &fluxID = *(*m_flux) (ID_VAR);
 
-	real_t entho = 1.0 / (m_gamma - 1.0);
+	real_t entho = 1.0 / (m_gamma - one);
 
 	getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -446,10 +442,10 @@ void Tile::compflx()
 	m_threadTimers[myThread()].add(COMPFLX, elaps);
 } // compflx
 
-template < typename LOOP_BODY > void forall(int begin, int end, LOOP_BODY body)
+template < typename LOOP_BODY > void forall(int32_t begin, int32_t end, LOOP_BODY body)
 {
 #pragma omp simd
-	for (int i = begin; i < end; ++i)
+	for (int32_t i = begin; i < end; ++i)
 		body(i);
 }
 
@@ -463,7 +459,7 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 #pragma loop_count min=TILEMIN, avg=TILESIZ
 #endif
 
-#ifndef LAMBDAFUNC
+#if LAMBDAFUNC == 0
 #pragma omp simd
 	for (int32_t i = xmin; i < xmax; i++) {
 		uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
@@ -722,7 +718,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Pr
 #pragma omp simd
 		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
-			real_t rrho = 1. / rho;
+			real_t rrho = one / rho;
 			real_t base = (m_gamma - one) * rho * eS[k];;
 			base = Max(base, (real_t) (rho * smallp));
 			qIPS[k] = base;
@@ -738,7 +734,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Pr
 #pragma omp simd
 		for (int32_t k = xmin; k < xmax; k++) {
 			real_t rho = qIDS[k];
-			real_t rrho = 1. / rho;
+			real_t rrho = one / rho;
 			real_t base = (m_gamma - one) * rho * eS[k];;
 			base = Max(base, (real_t) (rho * smallp));
 			qIPS[k] = base;
@@ -978,6 +974,11 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
+#if defined(jit1)
+// #pragma omp target map(to: xmin, xmax, zero, one, qleftIDS, qleftIPS, qrightIDS, qrightIUS, qrightIPS, m_smallr, smallp, m_gamma) map(from : rl,ul,pl,rr,ur,pr,cl,cr,pstar)
+// map(tofrom : ) pas utile ici!
+#pragma message "riemannOnRow actif sous CSA"
+#endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i, wr_i;
 		rl[i] = Max(qleftIDS[i], m_smallr);
@@ -994,13 +995,17 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 		// First guess
 		wl_i = sqrt(cl[i]);
 		wr_i = sqrt(cr[i]);
-		pstar[i] = Max(((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), 0.0);
+		pstar[i] = Max(((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), zero);
 	}
 
 	// solve the riemann problem on the interfaces of this slice
 	// for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #pragma loop_count min=1, max=20, avg=10
 // #pragma unroll(5)
+#if defined(jit1)
+// #pragma omp target map(to: xmin, xmax, zero, one, gamma6, cl, pl, pr, cr, m_niter_riemann) map(from : pstar) map(tofrom : goon)
+#pragma message "riemannOnRow actif sous CSA"
+#endif
 	for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
 // #pragma vector aligned
@@ -1038,6 +1043,11 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 #pragma loop_count min=TILEMIN, avg=TILEAVG
 #endif
 #endif
+#if defined(jit1)
+// #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp, m_gamma, gamma6, sgnm, rl,ul,pl,rr,ur,pr,cl,cr,pstar) map(from : qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
+// map(tofrom : ) pas utile ici!
+#pragma message "riemannOnRow actif sous CSA"
+#endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i = sqrt(cl[i]);
 		real_t wr_i = sqrt(cr[i]);
@@ -1051,19 +1061,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 
 		real_t ro_i, uo_i, po_i, wo_i;
 
-		// if (left) {
-		//   sgnm[i] = 1;
-		//   ro_i = rl[i];
-		//   uo_i = ul[i];
-		//   po_i = pl[i];
-		//   wo_i = wl_i;
-		// } else {
-		//   sgnm[i] = -1;
-		//   ro_i = rr[i];
-		//   uo_i = ur[i];
-		//   po_i = pr[i];
-		//   wo_i = wr_i;
-		// }
+		// if (left) {sgnm[i] = 1;ro_i = rl[i];uo_i = ul[i];po_i = pl[i];wo_i = wl_i;
+		// } else {sgnm[i] = -1;ro_i = rr[i];uo_i = ur[i];po_i = pr[i];wo_i = wr_i;}
 		sgnm[i] = 1 * left + (-1 + left);
 		ro_i = left * rl[i] + (1 - left) * rr[i];
 		uo_i = left * ul[i] + (1 - left) * ur[i];
@@ -1118,12 +1117,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 		qgdnvIPS[i] = qgdnv_IP;
 
 		// transverse velocity
-		// if (left) {
-		//   qgdnvIVS[i] = qleftIVS[i];
-		// } else {
-		//   qgdnvIVS[i] = qrightIVS[i];
-		// }
-		qgdnvIVS[i] = left * qleftIVS[i] + (1.0 - left) * qrightIVS[i];
+		// if (left) {qgdnvIVS[i] = qleftIVS[i];} else {qgdnvIVS[i] = qrightIVS[i];}
+		qgdnvIVS[i] = left * qleftIVS[i] + (one - left) * qrightIVS[i];
 	}
 }
 
@@ -1147,7 +1142,13 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 #if OMPOVERLOAD == 1
 #pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm)
 #endif
+#if defined(jit1)
+// #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp, smallpp, m_gamma, gamma6, qleftIDS, qleftIUS, qleftIPS, qrightIDS, qrightIUS, qrightIPS, half) map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
+#pragma omp target map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
+#pragma message "riemannOnRow actif sous CSA in regs"
+#else
 #pragma omp simd
+#endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		int goonI = 0;
 		real_t pstarI;
@@ -1178,7 +1179,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 		// First guess
 		wl_i = sqrt(clI);
 		wr_i = sqrt(crI);
-		pstarI = Max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), 0.0);
+		pstarI = Max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), zero);
 //  #pragma ivdep
 		for (int32_t iter = 0; iter < 10; iter++) {
 			if (goonI > 0) {
@@ -1212,11 +1213,11 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 
 		real_t ro_i, uo_i, po_i, wo_i;
 
-		sgnm[i] = 1.0 * left + (-1.0 + left);
-		ro_i = left * rlI + (1.0 - left) * rrI;
-		uo_i = left * ulI + (1.0 - left) * urI;
-		po_i = left * plI + (1.0 - left) * prI;
-		wo_i = left * wl_i + (1.0 - left) * wr_i;
+		sgnm[i] = one * left + (-one + left);
+		ro_i = left * rlI + (one - left) * rrI;
+		uo_i = left * ulI + (one - left) * urI;
+		po_i = left * plI + (one - left) * prI;
+		wo_i = left * wl_i + (one - left) * wr_i;
 
 		real_t co_i = sqrt(Fabs(m_gamma * po_i / ro_i));
 		co_i = Max(m_smallc, co_i);
@@ -1266,12 +1267,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 		qgdnvIPS[i] = qgdnv_IP;
 
 		// transverse velocity
-		// if (left) {
-		//   qgdnvIVS[i] = qleftIVS[i];
-		// } else {
-		//   qgdnvIVS[i] = qrightIVS[i];
-		// }
-		qgdnvIVS[i] = left * qleftIVS[i] + (1.0 - left) * qrightIVS[i];
+		// if (left) {qgdnvIVS[i] = qleftIVS[i];} else {qgdnvIVS[i] = qrightIVS[i];}
+		qgdnvIVS[i] = left * qleftIVS[i] + (one - left) * qrightIVS[i];
 	}
 }
 

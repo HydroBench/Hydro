@@ -71,6 +71,11 @@ include make.cray
 NODEFAULT=yes
 endif
 
+ifeq ($(THX2),O)
+include make.thx2
+NODEFAULT=yes
+endif
+
 ifeq ($(EPYC),O)
 include make.epyc
 NODEFAULT=yes
@@ -94,7 +99,7 @@ endif
 CFLAGS+=$(INCS)
 
 hydroc: $(OBJS)
-	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(LIBS) -lm -lrt -lpthread -o hydroc 
+	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(LIBS) -lpthread -lm -lrt -o hydroc 
 # -lrt -ldl
 	cp hydroc hydroc.$(ARCHEXT)
 
@@ -119,7 +124,7 @@ clean:
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
 	rm -f *~
-	tar czvf Archiv_$(DATEHOUR).tgz README Makefile make.* *.hpp *.cpp *.h *.c input.nml
+	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c input.nml TestThx2_1
 
 indent:
 	indent *.cpp *.hpp *.c *.h

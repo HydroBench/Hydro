@@ -27,6 +27,7 @@ SSE=O	    to force SSE usage (Nehalem)
 KNL=O	    to force MIC-AVX512 usage for the KNL
 AVX3=O 	    to force Skylake code generation.
 EPYC=O	    to compile for the Zen platform
+THX2=O	    to compile for the ThunderX 2 armv8 platform
 
 default value is to build for AVX2. 
 
