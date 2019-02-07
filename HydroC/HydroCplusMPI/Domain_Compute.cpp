@@ -141,7 +141,6 @@ int32_t Domain::tileFromMorton(int32_t t)
 real_t Domain::computeTimeStep()
 {
 	real_t dt = 0;
-	int32_t t;
 
 	for (int32_t pass = 0; pass < 2; pass++) {
 		Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
@@ -153,6 +152,7 @@ real_t Domain::computeTimeStep()
 
 		real_t *pm_localDt = m_localDt;
 		double start = dcclock();
+		int32_t t;
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
 			// int lockStep = 0;
