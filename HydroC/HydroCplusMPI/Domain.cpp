@@ -105,6 +105,9 @@ Domain::Domain(int argc, char** argv)
 #endif
 
     initMPI();
+    if (m_myPe == 0) {
+       system("cpupower frequency-info | egrep 'CPU frequency|steps'");
+    }
     double tRemain = m_tr.timeRemainAll();
     if (tRemain <= 1) {
         // useless run which can be harmful to files

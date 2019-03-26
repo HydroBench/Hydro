@@ -47,6 +47,8 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <float.h>
+#include <math.h>
 
 #include "parametres.h"
 #include "hydro_funcs.h"
@@ -154,6 +156,8 @@ main(int argc, char **argv) {
   double cellPerCycle = 0;
   double avgCellPerCycle = 0;
   long nbCycle = 0;
+  double mcsavg = 0, mcsmin = FLT_MAX, mcsmax =  0, mcssig = 0;
+  long nmcsavg = 0;
 
   // array of timers to profile the code
   memset(functim, 0, TIM_END * sizeof(functim[0]));
@@ -166,6 +170,7 @@ main(int argc, char **argv) {
   hydro_init(&H, &Hv);
 
   if (H.mype == 0)
+     system("cpupower frequency-info");
     fprintf(stdout, "Hydro starts in %s precision.\n", ((sizeof(real_t) == sizeof(double))? "double": "single"));
   gethostname(myhost, 255);
   if (H.mype == 0) {
@@ -343,6 +348,13 @@ main(int argc, char **argv) {
     if (H.mype == 0) {
 	    fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s\n", H.nstep, H.t, dt, cellPerCycle, outnum);
       fflush(stdout);
+      if (H.nstep > 5) {
+	 mcsavg += cellPerCycle;
+	 nmcsavg++;
+	 if (mcsmin > cellPerCycle) mcsmin = cellPerCycle;
+	 if (mcsmax < cellPerCycle) mcsmax = cellPerCycle;
+	 mcssig += (cellPerCycle * cellPerCycle); 
+      }
     }
 #ifdef MPI
 #if FTI==1
@@ -361,7 +373,10 @@ main(int argc, char **argv) {
   timeToString(outnum, elaps);
   if (H.mype == 0) {
     fprintf(stdout, "Hydro ends in %ss (%.3lf) <%.2lf MFlops>.\n", outnum, elaps, (float) (MflopsSUM / nbFLOPS));
-    fprintf(stdout, "       ");
+    // fprintf(stdout, "       ");
+    mcsavg = mcsavg / nmcsavg;
+    mcssig = sqrt((mcssig / nmcsavg) - (mcsavg * mcsavg));
+    fprintf(stdout, "Average MC/s: %lf min %lf, max %lf sig %lf\n", mcsavg, mcsmin, mcsmax, mcssig);
   }
   if (H.nproc == 1) {
     int sizeFmt = sizeLabel(functim, TIM_END);
