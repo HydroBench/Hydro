@@ -23,7 +23,7 @@ using namespace std;
 #include "Options.hpp"
 #define LAMBDAFUNC 0
 #if LAMBDAFUNC == 1
-#pragma message "Activation of lambdas function"
+// #pragma message "Activation of lambdas function"
 #endif
 
 #if  USEINTRINSICS != 0
@@ -876,7 +876,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 {
 
 #if ALIGNED > 0
-#pragma message "constprimOnRow aligned"
+// #pragma message "constprimOnRow aligned"
 // #pragma vector aligned
 #if TILEUSER == 0
 #pragma loop_count min=TILEMIN, avg=TILEAVG
@@ -955,7 +955,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 			Preal_t qrightIVS,
 			long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul, Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr)
 {
-#pragma message "riemannOnRow actif"
+// #pragma message "riemannOnRow actif"
 #if ALIGNED > 0
 // #pragma vector aligned
 #if TILEUSER == 0
@@ -977,7 +977,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 #if defined(jit1)
 // #pragma omp target map(to: xmin, xmax, zero, one, qleftIDS, qleftIPS, qrightIDS, qrightIUS, qrightIPS, m_smallr, smallp, m_gamma) map(from : rl,ul,pl,rr,ur,pr,cl,cr,pstar)
 // map(tofrom : ) pas utile ici!
-#pragma message "riemannOnRow actif sous CSA"
+// #pragma message "riemannOnRow actif sous CSA"
 #endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i, wr_i;
@@ -1004,7 +1004,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 // #pragma unroll(5)
 #if defined(jit1)
 // #pragma omp target map(to: xmin, xmax, zero, one, gamma6, cl, pl, pr, cr, m_niter_riemann) map(from : pstar) map(tofrom : goon)
-#pragma message "riemannOnRow actif sous CSA"
+// #pragma message "riemannOnRow actif sous CSA"
 #endif
 	for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
@@ -1046,7 +1046,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 #if defined(jit1)
 // #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp, m_gamma, gamma6, sgnm, rl,ul,pl,rr,ur,pr,cl,cr,pstar) map(from : qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
 // map(tofrom : ) pas utile ici!
-#pragma message "riemannOnRow actif sous CSA"
+// #pragma message "riemannOnRow actif sous CSA"
 #endif
 	for (int32_t i = xmin; i < xmax; i++) {
 		real_t wl_i = sqrt(cl[i]);
@@ -1131,7 +1131,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 			      Preal_t qleftIDS,
 			      Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm)
 {
-#pragma message "riemannOnRowInRegs actif"
+// #pragma message "riemannOnRowInRegs actif"
 #if ALIGNED > 0
 // #pragma vector aligned
 #if TILEUSER == 0
@@ -1145,7 +1145,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp,
 #if defined(jit1)
 // #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp, smallpp, m_gamma, gamma6, qleftIDS, qleftIUS, qleftIPS, qrightIDS, qrightIUS, qrightIPS, half) map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
 #pragma omp target map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
-#pragma message "riemannOnRow actif sous CSA in regs"
+// #pragma message "riemannOnRow actif sous CSA in regs"
 #else
 #pragma omp simd
 #endif
@@ -1310,12 +1310,12 @@ void Tile::riemann()
 		real_t *qrightIPS = qrightIP.getRow(s);
 		real_t *qrightIVS = qrightIV.getRow(s);
 #if RIEMANNINREGS == 0
-#pragma message "==> riemannOnRow selectionne"
+// #pragma message "==> riemannOnRow selectionne"
 		riemannOnRow(xmin, xmax, smallp, gamma6, smallpp,
 			     qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS,
 			     qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_goon, m_sgnm, m_pstar, m_rl, m_ul, m_pl, m_rr, m_ur, m_pr, m_cl, m_cr);
 #else
-#pragma message "==> riemannOnRowInRegs selectionne"
+// #pragma message "==> riemannOnRowInRegs selectionne"
 		riemannOnRowInRegs(xmin, xmax, smallp,
 				   gamma6, smallpp,
 				   qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS, qrightIPS, qrightIVS, m_sgnm);

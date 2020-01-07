@@ -62,19 +62,43 @@ void Domain::computeDt()
 {
 	real_t dt;
 
+#ifdef NOTASK
 #pragma omp parallel for SCHEDULE
 	for (int32_t t = 0; t < m_nbtiles; t++) {
-	   int32_t i = t;
-	   if (m_withMorton) {
-	      i = m_mortonIdx[t];
-	      assert(i>=0);
-	      assert(i<m_nbtiles);
-	   }
-	   m_tiles[i]->setBuffers(m_buffers[myThread()]);
-	   m_tiles[i]->setTcur(m_tcur);
-	   m_tiles[i]->setDt(m_dt);
-	   m_localDt[i] = m_tiles[i]->computeDt();
+		int32_t i = t;
+		if (m_withMorton) {
+			i = m_mortonIdx[t];
+			assert(i>=0);
+			assert(i<m_nbtiles);
+		}
+		m_tiles[i]->setBuffers(m_buffers[myThread()]);
+		m_tiles[i]->setTcur(m_tcur);
+		m_tiles[i]->setDt(m_dt);
+		m_localDt[i] = m_tiles[i]->computeDt();
 	}
+#else
+#pragma omp parallel
+	{
+#pragma omp single nowait
+		{
+			for (int32_t t = 0; t < m_nbtiles; t++) {
+#pragma omp task
+				{
+					int32_t i = t;
+					if (m_withMorton) {
+						i = m_mortonIdx[t];
+						assert(i>=0);
+						assert(i<m_nbtiles);
+					}
+					m_tiles[i]->setBuffers(m_buffers[myThread()]);
+					m_tiles[i]->setTcur(m_tcur);
+					m_tiles[i]->setDt(m_dt);
+					m_localDt[i] = m_tiles[i]->computeDt();
+				}
+			}
+		}
+	}
+#endif
 
 	dt = m_localDt[0];
 	for (int32_t i = 0; i < m_nbtiles; i++) {
@@ -138,6 +162,60 @@ int32_t Domain::tileFromMorton(int32_t t)
 	return it;
 }
 
+void Domain::compTStask1(int32_t t)
+{
+	// int lockStep = 0;
+	int32_t i = t;
+	int32_t thN = 0;
+#if WITH_TIMERS == 1
+	double startT = dcclock(), endT;
+	thN = myThread();
+#endif
+	if (m_withMorton) {
+		i = m_mortonIdx[t];
+		assert(i>=0);
+		assert(i<m_nbtiles);
+	}
+	m_tiles[i]->setBuffers(m_buffers[myThread()]);
+	m_tiles[i]->setTcur(m_tcur);
+	m_tiles[i]->setDt(m_dt);
+	// cerr << i << " demarre " << endl; cerr.flush();
+	// lockStep = 1;
+	// m_tiles[i]->notProcessed();
+	m_tiles[i]->gatherconserv();	// input uold      output u
+	// m_tiles[i]->doneProcessed(lockStep);
+	m_tiles[i]->godunov();
+	// m_tiles[i]->doneProcessed(lockStep);
+#if WITH_TIMERS == 1
+	endT = dcclock();
+	(m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
+#endif
+}
+
+void Domain::compTStask2(int32_t t)
+{
+	int32_t i = t;
+#if WITH_TIMERS == 1
+	int32_t thN = 0;
+	double startT = dcclock(), endT;
+	thN = myThread();
+#endif
+	if (m_withMorton) {
+		i = m_mortonIdx[t];
+		assert(i>=0);
+		assert(i<m_nbtiles);
+	}
+	m_tiles[i]->setBuffers(m_buffers[myThread()]);
+	m_tiles[i]->updateconserv();	// input u, flux       output uold
+	// if (pass == 1) {
+	m_localDt[i] = m_tiles[i]->computeDt();
+	//}
+#if WITH_TIMERS == 1
+	endT = dcclock();
+	(m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+#endif
+}
+
 real_t Domain::computeTimeStep()
 {
 	real_t dt = 0;
@@ -153,62 +231,46 @@ real_t Domain::computeTimeStep()
 		real_t *pm_localDt = m_localDt;
 		double start = dcclock();
 		int32_t t;
+#ifdef NOTASK
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
-			// int lockStep = 0;
-			int32_t i = t;
-			int32_t thN = 0;
-#if WITH_TIMERS == 1
-			double startT = dcclock(), endT;
-			thN = myThread();
-#endif
-			if (m_withMorton) {
-				i = m_mortonIdx[t];
-				assert(i>=0);
-				assert(i<m_nbtiles);
-			}
-			m_tiles[i]->setBuffers(m_buffers[myThread()]);
-			m_tiles[i]->setTcur(m_tcur);
-			m_tiles[i]->setDt(m_dt);
-			// cerr << i << " demarre " << endl; cerr.flush();
-			// lockStep = 1;
-			// m_tiles[i]->notProcessed();
-			m_tiles[i]->gatherconserv();	// input uold      output u
-			// m_tiles[i]->doneProcessed(lockStep);
-			m_tiles[i]->godunov();
-			// m_tiles[i]->doneProcessed(lockStep);
-#if WITH_TIMERS == 1
-			endT = dcclock();
-			(m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
-#endif
+			compTStask1(t);
 		}
 		// we have to wait here that all tiles are ready to update uold
 #pragma omp parallel for private(t) SCHEDULE
 		for (t = 0; t < m_nbtiles; t++) {
-			int32_t i = t;
-#if WITH_TIMERS == 1
-			int32_t thN = 0;
-			double startT = dcclock(), endT;
-			thN = myThread();
-#endif
-			if (m_withMorton) {
-				i = m_mortonIdx[t];
-				assert(i>=0);
-				assert(i<m_nbtiles);
-			}
-			m_tiles[i]->setBuffers(m_buffers[myThread()]);
-			m_tiles[i]->updateconserv();	// input u, flux       output uold
-			// if (pass == 1) {
-			m_localDt[i] = m_tiles[i]->computeDt();
-			//}
-#if WITH_TIMERS == 1
-			endT = dcclock();
-			(m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
-#endif
+			compTStask2(t);
 		}
+		
+#else
+#pragma message "Version avec TASK"
+#pragma omp parallel private(t)
+		{
+#pragma omp single nowait
+			{
+				for (t = 0; t < m_nbtiles; t++) {
+#pragma omp task 
+					{
+						compTStask1(t);
+					}
+				}
+			}
+#pragma omp barrier // we have to wait here that all tiles are ready to update uold
+#pragma omp single nowait
+			{
+				for (t = 0; t < m_nbtiles; t++) {
+#pragma omp task 
+					{
+						compTStask2(t);
+					}
+				}
+			}
+		}
+#endif
+		// we have to wait here that uold has been fully updated by all tiles
 		double end = dcclock();
 		m_mainTimer.add(ALLTILECMP, (end - start));
-// we have to wait here that uold has been fully updated by all tiles
+		
 		if (m_prt) {
 			cout << "After pass " << pass << " direction [" << m_scan << "]" << endl;
 		}
@@ -395,7 +457,7 @@ void Domain::compute()
 		}
 		double resteAll = m_tr.timeRemain() - m_timeGuard;
 		// TODO
-#pragma message "Bandwidth monitoring to do properly"
+// #pragma message "Bandwidth monitoring to do properly"
 		m_mainTimer.set(BOUNDINITBW, 0);
 		if (m_myPe == 0) {
 			int64_t totCell = int64_t(m_globNx) * int64_t(m_globNy);
@@ -516,8 +578,8 @@ void Domain::compute()
 		convertToHuman(timeHuman, m_elapsTotal);
 		printf("Total simulation time: %s in %d runs\n", timeHuman, m_nbRun);
 		if (nbTotCelSec == 0) { 
-		   nbTotCelSec = 1; // avoid divide by 0
-		   minCellPerSec = 0; // so that everything is 0
+			nbTotCelSec = 1; // avoid divide by 0
+			minCellPerSec = 0; // so that everything is 0
 		}
 		double avgCellPerSec = totalCellPerSec / nbTotCelSec;
 		printf("Average MC/s: %.3lf", avgCellPerSec);
@@ -528,50 +590,50 @@ void Domain::compute()
 		for (int32_t i = 0; i < m_numThreads; i++) {
 			printf("Thread %4d: ", i);
 			for (int32_t j = 0; j < LOOP_END; j++) {
-			  printf("loop %d: %lfs ", j, (m_timerLoops[i])[j]);
+				printf("loop %d: %lfs ", j, (m_timerLoops[i])[j]);
 			}
 			printf("\n");
 		}
 #endif
 	}
 	{
-	  // get the threads timers values and add them to our timer
-	   for (int32_t i = 0; i < m_numThreads; i++) {
+		// get the threads timers values and add them to our timer
+		for (int32_t i = 0; i < m_numThreads; i++) {
 
-	      // m_threadTimers[i].print();
-	      m_mainTimer += m_threadTimers[i];
-	   }
+			// m_threadTimers[i].print();
+			m_mainTimer += m_threadTimers[i];
+		}
 		// TODO
-#pragma message "Bandwidth monitoring to do properly"
-	   m_mainTimer.set(BOUNDINITBW, 0);
-	   m_mainTimer.getStats(); // all processes involved
-	   // cout << endl;
-	   if (m_myPe == 0) {
+// #pragma message "Bandwidth monitoring to do properly"
+		m_mainTimer.set(BOUNDINITBW, 0);
+		m_mainTimer.getStats(); // all processes involved
+		// cout << endl;
+		if (m_myPe == 0) {
 #ifdef MPI_ON
-	      m_mainTimer.printStats();
+			m_mainTimer.printStats();
 #else
-	      m_mainTimer.print();
+			m_mainTimer.print();
 #endif
-	   }
-	   if (m_myPe == 0) {
-	      double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
-	      double seenParallel = 0;
-	      for (int32_t i = 0; i < TILEOMP; ++i) {
-		 m_mainTimer.div(Fname_t(i), m_numThreads);
-		 seenParallel += m_mainTimer.get(Fname_t(i));
-	      }
-	      double efficiency = 100.0 * seenParallel / elapsParallelOMP;
-	      printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallelOMP, seenParallel, efficiency);
+		}
+		if (m_myPe == 0) {
+			double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
+			double seenParallel = 0;
+			for (int32_t i = 0; i < TILEOMP; ++i) {
+				m_mainTimer.div(Fname_t(i), m_numThreads);
+				seenParallel += m_mainTimer.get(Fname_t(i));
+			}
+			double efficiency = 100.0 * seenParallel / elapsParallelOMP;
+			printf("TotalOMP//: %lf, SeenOMP//: %lf effOMP%%=%.2lf\n", elapsParallelOMP, seenParallel, efficiency);
 #ifdef MPI_ON
-	      double seenMPI = 0.0;
-	      for (int32_t i = 0; i < BANDWIDTH; ++i) {
-		 seenMPI += m_mainTimer.get(Fname_t(i));
-	      }
-	      efficiency = 100.0 * seenMPI / (end - start);
-	      printf("TotalMPI//: %lf, SeenMPI//: %lf effMPI%%=%.2lf\n", (end - start), seenMPI, efficiency);
+			double seenMPI = 0.0;
+			for (int32_t i = 0; i < BANDWIDTH; ++i) {
+				seenMPI += m_mainTimer.get(Fname_t(i));
+			}
+			efficiency = 100.0 * seenMPI / (end - start);
+			printf("TotalMPI//: %lf, SeenMPI//: %lf effMPI%%=%.2lf\n", (end - start), seenMPI, efficiency);
 #endif
 
-	   }
+		}
 	}
 	
 	if (reader)

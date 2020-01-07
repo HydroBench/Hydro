@@ -124,6 +124,8 @@ class Domain {
 	void boundary_init();
 	void boundary_process();
 	real_t computeTimeStep();
+	void compTStask1(int32_t t);
+	void compTStask2(int32_t t);
 	void computeDt();
 	void createTestCase();
 	void changeDirection();

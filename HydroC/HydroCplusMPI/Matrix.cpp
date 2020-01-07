@@ -50,7 +50,7 @@ template < typename T > void Matrix2 < T >::allocate(void)
 #ifdef WITHNEW
 	_arr = new T[_w * _h];
 	_org = _arr;
-#pragma message "C++ NEW usage activated"
+// #pragma message "C++ NEW usage activated"
 #endif
 #ifdef WITHHBW
 	_arr = 0;
@@ -62,10 +62,10 @@ template < typename T > void Matrix2 < T >::allocate(void)
 		assert(rc == 0);
 	}
 	_org = _arr;
-#pragma message "HBW memory usage activated"
+// #pragma message "HBW memory usage activated"
 #endif
 #ifdef WITHPOSIX
-#pragma message "posix_memalign activated"
+// #pragma message "posix_memalign activated"
 	int rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
 	_org = _arr;
 #endif

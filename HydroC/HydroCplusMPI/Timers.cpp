@@ -160,7 +160,7 @@ void Timers::print(void)
 	   double percent = m_elaps[f] * 100.0 / sum;
 	   if (i > BANDWIDTH) percent = 0.0;
 	      if (i != BANDWIDTH) {
-		 printf("%-17s %lf\t%.1lf%%\n", lname, m_elaps[f], percent);
+		 printf("%-17s\t%lf\t%.1lf%%\n", lname, m_elaps[f], percent);
 	      } else {
 		 printf("%s\n", lname);
 	      }
@@ -170,7 +170,7 @@ void Timers::printStats(void)
 {
 	const char *lname;
 	double sum = 0.;
-	printf("%-17s %-8s\t%-8s\t%-8s\t%5s\t\t%5s\n", "Name", "average", "min", "max", "elaps", "%avg");
+	printf("%-17s\t%-8s\t%-8s\t%-8s\t%5s\t\t%5s\n", "Name", "average", "min", "max", "elaps", "%avg");
 	for (int i = 0; i < BANDWIDTH; ++i) {
 	   if (i == TILEOMP) continue; // ignore this marker
 	   Fname_t f = Fname_t(i);
@@ -188,9 +188,9 @@ void Timers::printStats(void)
 	   double percent = m_vavg[f] * 100.0 / sum;
 	   if (i != BANDWIDTH) {
 	      if (i < BANDWIDTH) {
-		 printf("%-17s %lf\t%lf\t%lf\t%lf\t%.1lf\n", lname, m_vavg[f], m_vmin[f], m_vmax[f], m_elaps[f], percent);
+		 printf("%-17s\t%lf\t%lf\t%lf\t%lf\t%.1lf\n", lname, m_vavg[f], m_vmin[f], m_vmax[f], m_elaps[f], percent);
 	      } else {
-	      printf("%-17s %lf\t%lf\t%lf\n", lname, m_vavg[f], m_vmin[f], m_vmax[f]);
+	      printf("%-17s\t%lf\t%lf\t%lf\n", lname, m_vavg[f], m_vmin[f], m_vmax[f]);
 	      }
 	   } else {
 	      printf("%s\n", lname);
