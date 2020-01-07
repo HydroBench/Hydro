@@ -100,6 +100,8 @@ Domain::Domain(int argc, char** argv)
     m_numThreads = 1; // runs serially by default
     m_fakeRead = 0;
     m_fakeReadSize = 3000000;
+    m_tasked = 0;
+    m_taskeddep = 0;
 #ifdef MPI_ON
     MPI_Init(&argc, &argv);
 #endif
@@ -291,6 +293,7 @@ void Domain::printSummary()
         printf("|    ts=         %d\n", TILESIZ);
 #endif
         printf("|    nt=         %d\n", m_nbtiles);
+        printf("|    tasked=     %u\n", m_tasked);
         printf("|    morton=     %u\n", m_withMorton);
         printf("|    numa=       %u\n", m_numa);
         printf("|    tend=       %lf\n", m_tend);
@@ -427,6 +430,10 @@ void Domain::readInput()
                 sscanf(pval, "%d", &m_iorder);
                 continue;
             }
+            if (strcmp(pkey, "tasked") == 0) {
+                sscanf(pval, "%d", &m_tasked);
+                continue;
+            }
             if (strcmp(pkey, "morton") == 0) {
                 sscanf(pval, "%d", &m_withMorton);
                 continue;
@@ -525,6 +532,7 @@ void Domain::readInput()
         tabint[nbvalint++] = m_nOutput;
         tabint[nbvalint++] = m_numa;
         tabint[nbvalint++] = m_iorder;
+        tabint[nbvalint++] = m_tasked;
         tabint[nbvalint++] = m_withMorton;
         tabint[nbvalint++] = m_nImage;
         tabint[nbvalint++] = m_forceSync;
