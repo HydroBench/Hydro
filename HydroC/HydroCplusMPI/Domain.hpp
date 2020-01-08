@@ -66,14 +66,14 @@ class Domain {
 	int32_t m_nStepMax;	//=
 	int32_t m_nOutput;	//=
 	int32_t m_checkPoint;
-	int32_t m_forceStop;    //=
+	int32_t m_forceStop;	//=
 
 	real_t *m_localDt;	//=
 	real_t m_tend;		//=
 	real_t m_dtOutput;	//=
 	real_t m_nextOutput;
 	real_t m_dtImage;	//=
-	int32_t m_nImage;       //=
+	int32_t m_nImage;	//=
 	real_t m_nextImage;
 	godunovScheme_t m_scheme;	//=
 
@@ -109,9 +109,9 @@ class Domain {
 	int32_t m_forceSync;
 	// timing of functions
 	double **m_timerLoops;
-	Timers *m_threadTimers; // one Timers per thread
-	int32_t m_tasked; // use tasks
-	int32_t m_taskeddep;  // use tasks with dependecies
+	Timers *m_threadTimers;	// one Timers per thread
+	int32_t m_tasked;	// use tasks
+	int32_t m_taskeddep;	// use tasks with dependecies
 
 	// member functions
 	void vtkfile(int step);
@@ -187,7 +187,7 @@ class Domain {
 
 	bool hasProtection();
 
-   void saveProtection();
+	void saveProtection();
 	void writeProtection();
 	void readProtection();
 
