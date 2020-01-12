@@ -73,6 +73,9 @@ nx=6000
 ny=6000
 tilesize=60
 morton=1
+numa=1
+tasked=   1
+taskeddep=1
 prt=0
 dx=0.05
 boundary_left=1
@@ -118,7 +121,10 @@ cells). Typical values are 28 or 60. The value really depends on the
 underlying architecture.
 
 morton = if 1, the OpenMP threads will pick tiles according to a
-morton curve
+morton curve.
+numa = 1 if numaness has to be taken into account.
+tasked = 1 to use a single task mechanism instead of omp parallel for
+taskeddep = 1 a more elaborate task mechanism that takes tile dependencies into account
 
 prt = if 1, print all arrays ... 
 

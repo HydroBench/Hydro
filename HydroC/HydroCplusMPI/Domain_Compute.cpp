@@ -62,7 +62,7 @@ void Domain::computeDt()
 {
     real_t dt;
 
-    if (m_tasked == 0) {
+    if ((m_tasked == 0) && (m_taskeddep == 0)) {
 #pragma omp parallel for SCHEDULE
 	for (int32_t t = 0; t < m_nbtiles; t++) {
 	    int32_t i = t;
@@ -163,17 +163,17 @@ int32_t Domain::tileFromMorton(int32_t t)
     return it;
 }
 
-void Domain::compTStask1(int32_t t)
+void Domain::compTStask1(int32_t tile)
 {
     // int lockStep = 0;
-    int32_t i = t;
+    int32_t i = tile;
     int32_t thN = 0;
 #if WITH_TIMERS == 1
     double startT = dcclock(), endT;
     thN = myThread();
 #endif
     if (m_withMorton) {
-	i = m_mortonIdx[t];
+	i = m_mortonIdx[tile];
 	assert(i >= 0);
 	assert(i < m_nbtiles);
     }
@@ -193,16 +193,16 @@ void Domain::compTStask1(int32_t t)
 #endif
 }
 
-void Domain::compTStask2(int32_t t)
+void Domain::compTStask2(int32_t tile, int32_t mydep, int32_t mine)
 {
-    int32_t i = t;
+    int32_t i = tile;
 #if WITH_TIMERS == 1
     int32_t thN = 0;
     double startT = dcclock(), endT;
     thN = myThread();
 #endif
     if (m_withMorton) {
-	i = m_mortonIdx[t];
+	i = m_mortonIdx[tile];
 	assert(i >= 0);
 	assert(i < m_nbtiles);
     }
@@ -215,6 +215,7 @@ void Domain::compTStask2(int32_t t)
     endT = dcclock();
     (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
+    // char txt[256]; sprintf(txt, "%03d prev %03d done\n", mine, mydep); cerr << txt;
 }
 
 real_t Domain::computeTimeStep()
@@ -223,6 +224,7 @@ real_t Domain::computeTimeStep()
 
     for (int32_t pass = 0; pass < 2; pass++) {
 	Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
+
 	if (m_prt)
 	    uold.printFormatted("uold computeTimeStep");
 
@@ -240,9 +242,41 @@ real_t Domain::computeTimeStep()
 	    // we have to wait here that all tiles are ready to update uold
 #pragma omp parallel for private(t) SCHEDULE
 	    for (t = 0; t < m_nbtiles; t++) {
-		compTStask2(t);
+		compTStask2(t, 0, 0);
 	    }
 
+	} else if (m_taskeddep > 0) {
+	    int32_t *tileProcessed =
+		(int32_t *) alloca(m_nbtiles * sizeof(int32_t));
+	    assert(tileProcessed != 0);
+	    for (int tile = 0; tile < m_nbtiles; tile++) {
+		// reset the tasks flags
+		tileProcessed[tile] = 0;
+	    }
+// #pragma message "Version avec TASK et dependance"
+	    int32_t mydep = 0, mine = 0;
+#pragma omp parallel private(t) firstprivate(mine, mydep)
+	    {
+#pragma omp single nowait
+		{
+		    for (t = 0; t < m_nbtiles; t++) {
+#pragma omp task depend(out: tileProcessed[t])
+			{
+			    compTStask1(t);
+			    tileProcessed[t]++;
+			    // char txt[256]; sprintf(txt, "%03d task done\n", tileOrder[t]); cerr << txt;
+			}
+		    }
+		    for (t = 0; t < m_nbtiles; t++) {
+			mine = t;
+			mydep = (t == 0) ? t : t - 1;
+#pragma omp task depend(in: tileProcessed[mydep], tileProcessed[mine])
+			{
+			    compTStask2(t, mydep, mine);
+			}
+		    }
+		}		// omp single
+	    }			// omp parallel
 	} else {
 // #pragma message "Version avec TASK"
 #pragma omp parallel private(t)
@@ -262,7 +296,7 @@ real_t Domain::computeTimeStep()
 		    for (t = 0; t < m_nbtiles; t++) {
 #pragma omp task
 			{
-			    compTStask2(t);
+			    compTStask2(t, 0, 0);
 			}
 		    }
 		}
@@ -277,6 +311,7 @@ real_t Domain::computeTimeStep()
 		endl;
 	}
 	changeDirection();
+	// cerr << " new dir\n";
     }				// X_SCAN - Y_SCAN
     changeDirection();		// to do X / Y then Y / X then X / Y ...
 

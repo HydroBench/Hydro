@@ -25,7 +25,7 @@
 
 // template <typename T>
 class Domain {
- private:
+private:
 	// variables to protect between runs
 	int32_t m_globNx, m_globNy;	// global size of the simulation //=
 	Soa *m_uold;		// on the full domain
@@ -47,7 +47,7 @@ class Domain {
 	int32_t m_numThreads;	// nb of threads available
 	int32_t m_withMorton;
 	int32_t *m_mortonIdx;
-	 Matrix2 < int32_t > *m_morton;
+	Matrix2 < int32_t > *m_morton;
 	ThreadBuffers **m_buffers;	// shared buffers for all threads
 
 	long m_maxrss, m_ixrss;	// memory usage;
@@ -66,14 +66,14 @@ class Domain {
 	int32_t m_nStepMax;	//=
 	int32_t m_nOutput;	//=
 	int32_t m_checkPoint;
-	int32_t m_forceStop;	//=
+	int32_t m_forceStop;    //=
 
 	real_t *m_localDt;	//=
 	real_t m_tend;		//=
 	real_t m_dtOutput;	//=
 	real_t m_nextOutput;
 	real_t m_dtImage;	//=
-	int32_t m_nImage;	//=
+	int32_t m_nImage;       //=
 	real_t m_nextImage;
 	godunovScheme_t m_scheme;	//=
 
@@ -109,10 +109,10 @@ class Domain {
 	int32_t m_forceSync;
 	// timing of functions
 	double **m_timerLoops;
-	Timers *m_threadTimers;	// one Timers per thread
-	int32_t m_tasked;	// use tasks
-	int32_t m_taskeddep;	// use tasks with dependecies
-
+	Timers *m_threadTimers; // one Timers per thread
+	int32_t m_tasked; // use tasks
+	int32_t m_taskeddep;  // use tasks with dependecies
+	
 	// member functions
 	void vtkfile(int step);
 	void vtkOutput(int step);
@@ -127,7 +127,7 @@ class Domain {
 	void boundary_process();
 	real_t computeTimeStep();
 	void compTStask1(int32_t t);
-	void compTStask2(int32_t t);
+	void compTStask2(int32_t t, int32_t t1, int32_t t2);
 	void computeDt();
 	void createTestCase();
 	void changeDirection();
@@ -193,8 +193,8 @@ class Domain {
 
 	bool StopComputation();
 
- protected:
- public:
+protected:
+public:
 	// basic constructor
 	Domain(int argc, char **argv);
 	// destructor
