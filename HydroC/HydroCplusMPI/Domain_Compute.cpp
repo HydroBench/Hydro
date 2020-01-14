@@ -255,22 +255,29 @@ real_t Domain::computeTimeStep()
 	    }
 // #pragma message "Version avec TASK et dependance"
 	    int32_t mydep = 0, mine = 0;
-#pragma omp parallel private(t) firstprivate(mine, mydep)
+#pragma omp parallel private(t) firstprivate(mine, mydep) shared(tileProcessed)
 	    {
 #pragma omp single nowait
 		{
 		    for (t = 0; t < m_nbtiles; t++) {
-#pragma omp task depend(out: tileProcessed[t])
+// #pragma omp task depend(out: tileProcessed[t])
+#pragma omp task 
 			{
 			    compTStask1(t);
 			    tileProcessed[t]++;
 			    // char txt[256]; sprintf(txt, "%03d task done\n", tileOrder[t]); cerr << txt;
 			}
-		    }
-		    for (t = 0; t < m_nbtiles; t++) {
+
 			mine = t;
 			mydep = (t == 0) ? t : t - 1;
-#pragma omp task depend(in: tileProcessed[mydep], tileProcessed[mine])
+		    }
+		}
+#pragma omp barrier		// we have to wait here that all tiles are ready to update uold
+#pragma omp single nowait
+		{
+		    for (t = 0; t < m_nbtiles; t++) {
+// #pragma omp task depend(out: tileProcessed[mydep], tileProcessed[mine])
+#pragma omp task
 			{
 			    compTStask2(t, mydep, mine);
 			}
@@ -407,8 +414,8 @@ void Domain::compute()
 	m_dt /= 2.0;
 	assert(m_dt > 1.e-15);
 	if (m_myPe == 0) {
-	    cout << " Initial dt " << setiosflags(ios::scientific) <<
-		setprecision(5)
+	    cout << " Initial dt " << setiosflags(ios::
+						  scientific) << setprecision(5)
 		<< m_dt << endl;
 	}
     }
