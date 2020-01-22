@@ -534,6 +534,7 @@ void Domain::readInput()
 		tabint[nbvalint++] = m_numa;
 		tabint[nbvalint++] = m_iorder;
 		tabint[nbvalint++] = m_tasked;
+		tabint[nbvalint++] = m_taskeddep;
 		tabint[nbvalint++] = m_withMorton;
 		tabint[nbvalint++] = m_nImage;
 		tabint[nbvalint++] = m_forceSync;
@@ -558,6 +559,8 @@ void Domain::readInput()
 			m_nOutput = tabint[nbvalint++];
 			m_numa = tabint[nbvalint++];
 			m_iorder = tabint[nbvalint++];
+			m_tasked = tabint[nbvalint++];
+			m_taskeddep = tabint[nbvalint++];
 			m_withMorton = tabint[nbvalint++];
 			m_nImage = tabint[nbvalint++];
 			m_forceSync = tabint[nbvalint++];
