@@ -518,6 +518,7 @@ void Domain::readInput()
 #ifdef MPI_ON
 #ifdef WITHBCAST
 	{
+		int checkValint = 0;
 		nbvalint = 0;
 		tabint[nbvalint++] = m_nStepMax;
 		tabint[nbvalint++] = m_checkPoint;
@@ -542,6 +543,7 @@ void Domain::readInput()
 		tabint[nbvalint++] = m_testcase;
 		tabint[nbvalint++] = m_fakeRead;
 		tabint[nbvalint++] = m_scheme;
+		checkValint = nbvalint;
 		MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
 		if (m_myPe > 0) {
 			nbvalint = 0;
@@ -568,6 +570,8 @@ void Domain::readInput()
 			m_testcase = tabint[nbvalint++];
 			m_fakeRead = tabint[nbvalint++];
 			m_scheme = (godunovScheme_t) tabint[nbvalint++];
+			// here we check that we have the right number of entries
+			assert(checkValint == nbvalint);
 		}
 
 		nbvallng = 0;
@@ -578,6 +582,7 @@ void Domain::readInput()
 			m_fakeReadSize = tablng[nbvallng++];
 		}
 		if (sizeof(real_t) == sizeof(double)) {
+			int checkValdbl = 0;
 			nbvaldbl = 0;
 			// tabdbl[nbvaldbl++] = H->slope_type;
 			tabdbl[nbvaldbl++] = m_tend;
@@ -587,6 +592,7 @@ void Domain::readInput()
 			tabdbl[nbvaldbl++] = m_smallc;
 			tabdbl[nbvaldbl++] = m_dtOutput;
 			tabdbl[nbvaldbl++] = m_dtImage;
+			checkValdbl = nbvaldbl;
 			MPI_Bcast(tabdbl, nbvaldbl, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 			if (m_myPe > 0) {
 				nbvaldbl = 0;
@@ -598,8 +604,10 @@ void Domain::readInput()
 				m_smallc = tabdbl[nbvaldbl++];
 				m_dtOutput = tabdbl[nbvaldbl++];
 				m_dtImage = tabdbl[nbvaldbl++];
+				assert(checkValdbl == nbvaldbl);
 			}
 		} else {
+			int checkValflt = 0;
 			nbvalflt = 0;
 			// tabflt[nbvalflt++] = H->slope_type;
 			tabflt[nbvalflt++] = m_tend;
@@ -609,6 +617,7 @@ void Domain::readInput()
 			tabflt[nbvalflt++] = m_smallc;
 			tabflt[nbvalflt++] = m_dtOutput;
 			tabflt[nbvalflt++] = m_dtImage;
+			checkValflt = nbvalflt;
 			MPI_Bcast(tabflt, nbvalflt, MPI_FLOAT, 0, MPI_COMM_WORLD);
 			if (m_myPe > 0) {
 				nbvalflt = 0;
@@ -620,6 +629,7 @@ void Domain::readInput()
 				tabflt[nbvalflt++] = m_smallc;
 				tabflt[nbvalflt++] = m_dtOutput;
 				tabflt[nbvalflt++] = m_dtImage;
+				assert(checkValflt == nbvalflt);
 			}
 		}
 	}
