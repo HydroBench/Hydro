@@ -88,5 +88,9 @@ static const char *Schedule = "schedule(runtime)";
 
 #define TILE_PER_THREAD 4
 
+// macros to use in conjunction with armie
+#define __START_TRACE() {asm volatile (".inst 0x2520e020");}
+#define __STOP_TRACE()  {asm volatile (".inst 0x2520e040");}
+
 #endif
 //EOF

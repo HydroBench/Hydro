@@ -143,19 +143,19 @@ Domain::Domain(int argc, char **argv)
 
 	createTestCase();	// will be overwritten if in the middle of test case
 
-	if (hasProtection()) {
-		double start, end;
-		start = dcclock();
-		readProtection();
-		end = dcclock();
-		if (m_myPe == 0) {
-			char txt[256];
-			double elaps = (end - start);
-			convertToHuman(txt, elaps);
-			cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
-			cout.flush();
-		}
-	}
+	// if (hasProtection()) {
+	// 	double start, end;
+	// 	start = dcclock();
+	// 	readProtection();
+	// 	end = dcclock();
+	// 	if (m_myPe == 0) {
+	// 		char txt[256];
+	// 		double elaps = (end - start);
+	// 		convertToHuman(txt, elaps);
+	// 		cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
+	// 		cout.flush();
+	// 	}
+	// }
 
 	if ((m_nOutput > 0) || (m_dtOutput > 0)) {
 		vtkOutput(m_nvtk);

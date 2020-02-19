@@ -486,7 +486,6 @@ void Domain::pngWriteFile(char *name)
 			abort_("File %s could not be opened for writing", imgname);
 #endif
 		}
-		
 #if WITHPNG == 0
 #define BINARY 1
 #if BINARY == 1
@@ -501,7 +500,7 @@ void Domain::pngWriteFile(char *name)
 			}
 		}
 		fprintf(m_fp, "#EOF\n");
-#else // BINARY != 1
+#else				// BINARY != 1
 		fprintf(m_fp, "P3\n");
 		fprintf(m_fp, "%d %d\n", imgSizeX, imgSizeY);
 		fprintf(m_fp, "255\n");
@@ -514,37 +513,37 @@ void Domain::pngWriteFile(char *name)
 			fprintf(m_fp, "\n");
 		}
 		fprintf(m_fp, "#EOF\n");
-#endif // BINARY != 1
-#else // WITHPNG != 0
+#endif				// BINARY != 1
+#else				// WITHPNG != 0
 		png_byte color_type = PNG_COLOR_TYPE_RGBA;
 		png_byte bit_depth = 8;
-		
+
 		/* create file */
 		// cerr << "shrink factor " << m_shrink << " " << name << endl;
-		
+
 		/* initialize stuff */
 		m_png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-		
+
 		if (!m_png_ptr)
 			abort_("[write_png_file] png_create_write_struct failed");
-		
+
 		m_info_ptr = png_create_info_struct(m_png_ptr);
 		if (!m_info_ptr)
 			abort_("[write_png_file] png_create_info_struct failed");
-		
+
 		// if (setjmp(png_jmpbuf(m_png_ptr)))
 		//      abort_("[write_png_file] Error during init_io");
-		
+
 		png_init_io(m_png_ptr, m_fp);
 		/* write header */
 		// if (setjmp(png_jmpbuf(m_png_ptr)))
 		//      abort_("[write_png_file] Error during writing header");
-		
+
 		png_set_IHDR(m_png_ptr, m_info_ptr, imgSizeX, imgSizeY, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-		
+
 		png_write_info(m_png_ptr, m_info_ptr);
 		// if (m_myPe == 0) cerr << "Header of final image written " << m_globNx << " " << m_globNy << endl;
-#endif // WITHPNG != 0
+#endif				// WITHPNG != 0
 	}
 #ifdef MPI_ON
 	MPI_Barrier(MPI_COMM_WORLD);

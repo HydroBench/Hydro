@@ -1471,9 +1471,25 @@ void Tile::godunov()
 	if (m_order > 1) {
 		slope();
 	}
+#if ARMIETRACE == 2
+__START_TRACE()
+#pragma message "ARMIE trace on trace"
+#endif
 	trace();
+#if ARMIETRACE == 2
+__STOP_TRACE()
+#endif
 	qleftr();
+
+#if ARMIETRACE == 1
+__START_TRACE()
+#pragma message "ARMIE trace on riemann"
+#endif
 	riemann();
+#if ARMIETRACE == 1
+__STOP_TRACE()
+#endif
+
 	compflx();
 	if (m_prt)
 		uold.printFormatted("Tile uold godunov apres compflx");

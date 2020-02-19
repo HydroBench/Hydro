@@ -222,6 +222,10 @@ class Tile {
 #endif
 		return r;
 	}
+	// for checkpoint / restart
+	long getLengthByte();
+	void read(const int f);
+	void write(const int f);
 };
 #endif
 //EOF

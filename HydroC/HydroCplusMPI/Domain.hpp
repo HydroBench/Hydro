@@ -180,6 +180,7 @@ private:
 	// Checkpoint helper routines
 	long protectScalars(const protectionMode_t mode, const int f);
 	long protectArrays(const protectionMode_t mode, const int f);
+	long protectTiles(const protectionMode_t mode, const int f);
 	void writeProtectionVars(const int f);
 	void readProtectionVars(const int f);
 	void writeProtectionHeader(const int f);

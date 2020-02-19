@@ -113,24 +113,19 @@ long Domain::protectScalars(const protectionMode_t mode, const int f)
 	int m_GlobNx;
 
 	lgrdstScal(f, mode, l, &m_globNx);
-	// cerr << "wr/lu: m_globNx " << m_globNx << endl;
 	lgrdstScal(f, mode, l, &m_globNy);
-	// cerr << "wr/lu: m_globNy " << m_globNy << endl;
 	lgrdstScal(f, mode, l, &m_npng);
-	// cerr << "wr/lu: m_npng " << m_npng << endl;
 	lgrdstScal(f, mode, l, &m_nvtk);
-	// cerr << "wr/lu: m_nvtk " << m_nvtk << endl;
 	lgrdstScal(f, mode, l, &m_tcur);
-	// cerr << "wr/lu: m_tcur " << m_tcur << endl;
 	lgrdstScal(f, mode, l, &m_dt);
-	// cerr << "wr/lu: m_dt " << m_dt << endl;
 	lgrdstScal(f, mode, l, &m_scan);
-	// cerr << "wr/lu: m_scan " << m_scan << endl;
 	lgrdstScal(f, mode, l, &m_iter);
 	lgrdstScal(f, mode, l, &m_nbRun);
 	lgrdstScal(f, mode, l, &m_elapsTotal);
 	lgrdstScal(f, mode, l, &m_nextOutput);
+	lgrdstScal(f, mode, l, &m_dtOutput);
 	lgrdstScal(f, mode, l, &m_nextImage);
+	lgrdstScal(f, mode, l, &m_dtImage);
 	lgrdstScal(f, mode, l, &m_nImage);
 	lgrdstScal(f, mode, l, &m_nStepMax);
 	// lgrdstScal(f, mode, l, &m_forceStop);
