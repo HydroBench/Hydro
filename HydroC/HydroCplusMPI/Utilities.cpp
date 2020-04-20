@@ -67,11 +67,11 @@ void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, 
 	if ((incy * ny + ymin) < ymax)
 		incy++;
 
-	if (mype == 0 && !done) {
-		printf("HydroC: Simple decomposition\n");
-		printf("HydroC: nx=%d ny=%d\n", nx, ny);
-		done = 1;
-	}
+	// if (mype == 0 && !done) {
+	// 	printf("HydroC: Simple decomposition\n");
+	// 	printf("HydroC: nx=%d ny=%d\n", nx, ny);
+	// 	done = 1;
+	// }
 
 	box[XMIN_D] = pex * incx + xmin;
 	if (box[XMIN_D] < 0)

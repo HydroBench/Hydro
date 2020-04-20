@@ -128,6 +128,7 @@ long Domain::protectScalars(const protectionMode_t mode, const int f)
 	lgrdstScal(f, mode, l, &m_dtImage);
 	lgrdstScal(f, mode, l, &m_nImage);
 	lgrdstScal(f, mode, l, &m_nStepMax);
+	lgrdstScal(f, mode, l, &m_nDumpline);
 	// lgrdstScal(f, mode, l, &m_forceStop);
 	return l;
 }
@@ -135,10 +136,30 @@ long Domain::protectScalars(const protectionMode_t mode, const int f)
 long Domain::protectArrays(const protectionMode_t mode, const int f)
 {
 	long l = 0;
-	int m_GlobNx;
 
 	lgrdstArr(f, mode, l, m_uold);
-	// lgrdstArrSimple(f, mode, l, m_mortonIdx, m_nbtiles);
+	return l;
+}
+
+long Domain::protectTiles(const protectionMode_t mode, const int f)
+{
+	long l = 0;
+	for (int32_t tile = 0; tile < m_nbtiles; tile++) {
+		switch (mode) {
+		case PROT_LENGTH:
+			l += m_tiles[tile]->getLengthByte();
+			break;
+		case PROT_WRITE:
+			m_tiles[tile]->write(f);
+			break;
+		case PROT_READ:
+			m_tiles[tile]->read(f);
+			break;
+		default:
+			cerr << "Checkpoint: unknown mode" << endl;
+			abort();
+		}
+	}
 	return l;
 }
 
@@ -265,17 +286,17 @@ void Domain::writeProtectionHeader(const int f)
 	free(lgrs);
 }
 
-void Domain::saveProtection() 
+void Domain::saveProtection()
 {
 	struct stat buf;
 	// first delete the old backup if it exists
 	if (stat(ProtNameOld, &buf) == 0) {
-	   unlink(ProtNameOld);
+		unlink(ProtNameOld);
 	}
 	// rename the current checkpoint as a backup
 	if (hasProtection()) {
-	   cerr << " Creating a backup of the checkpoint file " << endl;
-	   rename(ProtName, ProtNameOld);
+		cerr << " Creating a backup of the checkpoint file " << endl;
+		rename(ProtName, ProtNameOld);
 	}
 }
 
@@ -286,7 +307,7 @@ void Domain::writeProtection()
 	errno = 0;
 
 	if (m_myPe == 0) {
-	   saveProtection();
+		saveProtection();
 		cerr << " Opening " << ProtName << " for writing " << endl;
 		f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
 	}

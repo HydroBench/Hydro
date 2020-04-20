@@ -25,7 +25,7 @@
 
 // template <typename T>
 class Domain {
-private:
+ private:
 	// variables to protect between runs
 	int32_t m_globNx, m_globNy;	// global size of the simulation //=
 	Soa *m_uold;		// on the full domain
@@ -41,13 +41,14 @@ private:
 	// those variables are not protected to allow for modifications
 	TimeLimit m_tr;
 	int m_prt;
+	int m_stats; // print various stats
 	Tile **m_tiles;		//=
 	int32_t m_nbtiles;	//=
 	int32_t m_tileSize;	//=
 	int32_t m_numThreads;	// nb of threads available
 	int32_t m_withMorton;
 	int32_t *m_mortonIdx;
-	Matrix2 < int32_t > *m_morton;
+	 Matrix2 < int32_t > *m_morton;
 	ThreadBuffers **m_buffers;	// shared buffers for all threads
 
 	long m_maxrss, m_ixrss;	// memory usage;
@@ -66,14 +67,14 @@ private:
 	int32_t m_nStepMax;	//=
 	int32_t m_nOutput;	//=
 	int32_t m_checkPoint;
-	int32_t m_forceStop;    //=
+	int32_t m_forceStop;	//=
 
 	real_t *m_localDt;	//=
 	real_t m_tend;		//=
 	real_t m_dtOutput;	//=
 	real_t m_nextOutput;
 	real_t m_dtImage;	//=
-	int32_t m_nImage;       //=
+	int32_t m_nImage;	//=
 	real_t m_nextImage;
 	godunovScheme_t m_scheme;	//=
 
@@ -90,6 +91,7 @@ private:
 	char *m_inputFile;
 	int32_t m_fakeRead;
 	int64_t m_fakeReadSize;
+	int32_t m_nDumpline;
 
 	// PNG output
 	int32_t m_withPng;
@@ -109,10 +111,10 @@ private:
 	int32_t m_forceSync;
 	// timing of functions
 	double **m_timerLoops;
-	Timers *m_threadTimers; // one Timers per thread
-	int32_t m_tasked; // use tasks
-	int32_t m_taskeddep;  // use tasks with dependecies
-	
+	Timers *m_threadTimers;	// one Timers per thread
+	int32_t m_tasked;	// use tasks
+	int32_t m_taskeddep;	// use tasks with dependecies
+
 	// member functions
 	void vtkfile(int step);
 	void vtkOutput(int step);
@@ -193,9 +195,12 @@ private:
 	void readProtection();
 
 	bool StopComputation();
+	void dumpLine(void);
+	void dumpOneArray(FILE *f, Matrix2 < real_t > &p);
+	void dumpLineArray(FILE *f, Matrix2 < real_t > &p, char *name, char* ext);
 
-protected:
-public:
+ protected:
+ public:
 	// basic constructor
 	Domain(int argc, char **argv);
 	// destructor

@@ -85,7 +85,7 @@ void Domain::createTestCase()
 			x = (xmax - xmin) / 2 + m_ExtraLayer * 0;
 			y = (ymax - ymin) / 2 + m_ExtraLayer * 0;
 			uoldIP(x, y) = one / m_dx / m_dx;
-			printf("Centered test case : %d %d\n", x, y);
+			if (m_stats > 0) printf("Centered test case : %d %d\n", x, y);
 		} else {
 			x = ((m_globNx) / 2);
 			y = ((m_globNy) / 2);
@@ -94,7 +94,7 @@ void Domain::createTestCase()
 				x = x - m_box[XMIN_D] + m_ExtraLayer;
 				y = y - m_box[YMIN_D] + m_ExtraLayer;
 				uoldIP(x, y) = one / m_dx / m_dx;
-				printf("Centered test case : [%d] %d %d\n", m_myPe, x, y);
+				if (m_stats > 0) printf("Centered test case : [%d] %d %d\n", m_myPe, x, y);
 			}
 		}
 	}
@@ -103,12 +103,12 @@ void Domain::createTestCase()
 		y = m_ExtraLayer;
 		if (m_nProc == 1) {
 			uoldIP(x, y) = one / m_dx / m_dx;
-			printf("Lower corner test case : %d %d\n", x, y);
+			if (m_stats > 0) printf("Lower corner test case : %d %d\n", x, y);
 		} else {
 			if ((x >= m_box[XMIN_D]) && (x < m_box[XMAX_D])
 			    && (y >= m_box[YMIN_D]) && (y < m_box[YMAX_D])) {
 				uoldIP(x, y) = one / m_dx / m_dx;
-				printf("Lower corner test case : [%d] %d %d\n", m_myPe, x, y);
+				if (m_stats > 0) printf("Lower corner test case : [%d] %d %d\n", m_myPe, x, y);
 			}
 		}
 	}
@@ -119,7 +119,7 @@ void Domain::createTestCase()
 			for (j = y; j < ymax; j++) {
 				uoldIP(x, j) = one / m_dx / m_dx;
 			}
-			printf("SOD tube test case\n");
+			if (m_stats > 0) printf("SOD tube test case\n");
 		} else {
 			x = m_ExtraLayer;
 			y = m_ExtraLayer;
@@ -131,7 +131,7 @@ void Domain::createTestCase()
 					uoldIP(x, y) = one / m_dx / m_dx;
 				}
 			}
-			printf("SOD tube test case in //\n");
+			if (m_stats > 0) printf("SOD tube test case in //\n");
 		}
 	}
 	if (m_testcase == 3) {

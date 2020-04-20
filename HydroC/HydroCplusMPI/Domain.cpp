@@ -61,6 +61,7 @@ Domain::Domain(int argc, char **argv)
 	m_buffer = 0;
 #endif
 	m_prt = 0;
+	m_stats = 0;
 	m_inputFile = 0;
 	m_withMorton = 0;
 	m_ExtraLayer = 2;
@@ -102,18 +103,19 @@ Domain::Domain(int argc, char **argv)
 	m_fakeReadSize = 3000000;
 	m_tasked = 0;
 	m_taskeddep = 0;
+	m_nDumpline = -1;
 #ifdef MPI_ON
 	MPI_Init(&argc, &argv);
 #endif
 
 	initMPI();
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		system("cpupower frequency-info | egrep 'CPU frequency|steps'");
 	}
 	double tRemain = m_tr.timeRemainAll();
 	if (tRemain <= 1) {
 		// useless run which can be harmful to files
-		if (m_myPe == 0) {
+		if (m_myPe == 0 && m_stats > 0) {
 			cerr << "HydroC: allocated time too short " << tRemain << "s" << endl;
 		}
 #ifdef MPI_ON
@@ -132,7 +134,7 @@ Domain::Domain(int argc, char **argv)
 	if (tRemain < 60)
 		m_timeGuard = 20;
 
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s" << " time guard " << m_timeGuard << "s" << endl;
 		cout.flush();
 	}
@@ -144,17 +146,17 @@ Domain::Domain(int argc, char **argv)
 	createTestCase();	// will be overwritten if in the middle of test case
 
 	// if (hasProtection()) {
-	// 	double start, end;
-	// 	start = dcclock();
-	// 	readProtection();
-	// 	end = dcclock();
-	// 	if (m_myPe == 0) {
-	// 		char txt[256];
-	// 		double elaps = (end - start);
-	// 		convertToHuman(txt, elaps);
-	// 		cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
-	// 		cout.flush();
-	// 	}
+	//      double start, end;
+	//      start = dcclock();
+	//      readProtection();
+	//      end = dcclock();
+	//      if (m_myPe == 0) {
+	//              char txt[256];
+	//              double elaps = (end - start);
+	//              convertToHuman(txt, elaps);
+	//              cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
+	//              cout.flush();
+	//      }
 	// }
 
 	if ((m_nOutput > 0) || (m_dtOutput > 0)) {
@@ -280,7 +282,7 @@ void Domain::domainDecompose()
 
 void Domain::printSummary()
 {
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		printf("|+=+=+=+=+=+=+=\n");
 		printf("|    GlobNx=     %d\n", m_globNx);
 		printf("|    GlobNy=     %d\n", m_globNy);
@@ -298,6 +300,8 @@ void Domain::printSummary()
 		printf("|    numa=       %u\n", m_numa);
 		printf("|    tend=       %lf\n", m_tend);
 		printf("|    nstepmax=   %d\n", m_nStepMax);
+		printf("|    nDumpline=  %d\n", m_nDumpline);
+		printf("|    stats=      %d\n", m_nDumpline);
 		printf("|    noutput=    %d\n", m_nOutput);
 		printf("|    dtoutput=   %lf\n", m_dtOutput);
 		printf("|    dtimage=    %lf\n", m_dtImage);
@@ -478,6 +482,10 @@ void Domain::readInput()
 				sscanf(pval, "%d", &m_nImage);
 				continue;
 			}
+			if (strcmp(pkey, "nDumpline") == 0) {
+				sscanf(pval, "%d", &m_nDumpline);
+				continue;
+			}
 			if (strcmp(pkey, "forcesync") == 0) {
 				sscanf(pval, "%d", &m_forceSync);
 				continue;
@@ -488,6 +496,10 @@ void Domain::readInput()
 			}
 			if (strcmp(pkey, "testcase") == 0) {
 				sscanf(pval, "%d", &m_testcase);
+				continue;
+			}
+			if (strcmp(pkey, "stats") == 0) {
+				sscanf(pval, "%d", &m_stats);
 				continue;
 			}
 			if (strcmp(pkey, "fakeread") == 0) {
@@ -543,6 +555,7 @@ void Domain::readInput()
 		tabint[nbvalint++] = m_testcase;
 		tabint[nbvalint++] = m_fakeRead;
 		tabint[nbvalint++] = m_scheme;
+		tabint[nbvalint++] = m_nDumpline;
 		checkValint = nbvalint;
 		MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
 		if (m_myPe > 0) {
@@ -570,6 +583,7 @@ void Domain::readInput()
 			m_testcase = tabint[nbvalint++];
 			m_fakeRead = tabint[nbvalint++];
 			m_scheme = (godunovScheme_t) tabint[nbvalint++];
+			m_nDumpline = tabint[nbvalint++];
 			// here we check that we have the right number of entries
 			assert(checkValint == nbvalint);
 		}
@@ -715,10 +729,10 @@ void Domain::setTiles()
 // nTh) << endl;
 
 #endif
-		if (m_myPe == 0)
+		if (m_myPe == 0 && m_stats > 0)
 			cout << "Computing tilesize to " << tileSize << " R=" << (float)m_nbtiles / (float)nTh << endl;
 	} else {
-		if (m_myPe == 0)
+		if (m_myPe == 0 && m_stats > 0)
 			cout << "Forcing tilesize to " << tileSize << endl;
 	}
 #else
@@ -726,7 +740,7 @@ void Domain::setTiles()
 	if ((tileSize > m_nx) && (tileSize > m_ny)) {
 		tileSize = max(m_nx, m_ny);
 	}
-	if (m_myPe == 0)
+	if (m_myPe == 0 && m_stats > 0)
 		cout << "Forcing tilesize to " << tileSize << " at compile time" << endl;
 #endif
 
@@ -888,7 +902,7 @@ void Domain::setTiles()
 		m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann, m_iorder, m_scheme);
 		m_tiles[i]->setScan(X_SCAN);
 	}
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		char hostn[1024];
 		char cpuName[1024];
 		memset(hostn, 0, 1024);

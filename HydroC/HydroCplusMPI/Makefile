@@ -1,4 +1,4 @@
-SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp
+SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
 OBJS=$(patsubst %.cpp,%.o,$(SRCS)) cclock.o
 OPENMP=O
@@ -81,6 +81,16 @@ include make.epyc
 NODEFAULT=yes
 endif
 
+ifeq ($(CSA),O)
+include make.csa
+NODEFAULT=yes
+endif
+
+ifeq ($(SVE),O)
+include make.sve
+NODEFAULT=yes
+endif
+
 ifeq ($(NODEFAULT),no)
 # capture the default case where no arch indication has been given to make
 # note that make.local is not in the git system to avoid overidding it
@@ -98,33 +108,52 @@ endif
 
 CFLAGS+=$(INCS)
 
+PTH=
+ifeq ($(OPENMP),O)
+PTH=-L/usr/lib64 -lpthread
+endif
+
 hydroc: $(OBJS)
-	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(LIBS) -lpthread -lm -lrt -o hydroc 
+	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(STATICOPT) $(LDFLAGS) $(LIBS) $(PTH) -lm -lrt -o hydroc 
 # -lrt -ldl
 	cp hydroc hydroc.$(ARCHEXT)
+ifeq ($(STATIC),O)
+	cp hydroc hydroc.$(ARCHEXT).static
+endif
+
 
 include $(DEPS)
 
 %.o: %.cpp
-	$(CXX) -c $(CFLAGS) $(OPTIM) $< -o $@ 
+	$(CXX) -c $(CXXFLAGS) $(CFLAGS) $(OPTIM) $< -o $@ 
 
 %.o: %.c
-	$(CXX) -c $(CFLAGS) $(OPTIM) $< -o $@ 
+	$(CC) -c -O3 $< -o $@ 
 
 ifeq ($(CRAY),O)
 %.d: %.cpp
 	touch $@
 else
 %.d: %.cpp
-	$(CXX) -M $< $(DEFS) $(CFLAGS) | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
+ifneq ($(CSA),O)
+	@echo "Generating $@"
+	@$(CXX) -M $(DEFS) $(CFLAGS) $< | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
+else
+	@$(CXX) -M $(DEFS) $(CFLAGS) $< -o $@
+endif
 endif
 clean:
 	rm -rf *.o hydroc *~ toto *.optrpt
 
+cleanall:
+	rm -rf *.d *.o hydroc *~ toto *.optrpt
+
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
 	rm -f *~
-	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c input.nml TestThx2_1
+	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c input.nml
+
+# TestThx2_Omp TestThx2_1 README.after 
 
 indent:
 	indent *.cpp *.hpp *.c *.h
