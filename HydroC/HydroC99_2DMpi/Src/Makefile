@@ -6,13 +6,13 @@ include make.inc
 # OpenMP options
 #---------------
 CFLAGS += $(CFLAGS_MPI) $(DEF)
-CFLAGS += $(CFLAGS_OMP) -g
+#CFLAGS += $(CFLAGS_OMP) -g
 CFLAGS += $(CFLAGS_FTI)
-CFLAGS += -vec-report3
+#CFLAGS += -vec-report3
 LDFLAGS += $(LDFLAGS_MPI)
 LDFLAGS += $(LDFLAGS_OMP)
 LDFLAGS += $(LDFLAGS_FTI)
-LDFLAGS += -lrt
+LDFLAGS += -lnuma -lm
 
 # Sources directories
 #--------------------
@@ -21,6 +21,7 @@ SRCDIR = .
 # Objects
 #------------
 OBJ = SplitSurface.o cmpflx.o compute_deltat.o conservar.o constoprim.o equation_of_state.o hydro_funcs.o hydro_godunov.o hydro_utils.o main.o make_boundary.o parametres.o perfcnt.o qleftright.o riemann.o slope.o trace.o utils.o vtkfile.o hydro_numa.o cclock.o
+ASM=$(OBJ:.o=.s)
 
 # Sources files
 #--------------
@@ -35,22 +36,29 @@ ifeq ($(PREC),SP)
 CFLAGS += -DPREC_SP=1
 endif
 
-hydro:  $(OBJ)
+hydro: $(ASM) $(OBJ)
 	$(CC) $(OBJ) -o hydro $(LDFLAGS) 
 
 clean:
-	rm -f *.o *~ hydro
+	rm -f *.o *.s *~ hydro
 
 cleanall:
-	rm -f *.o *~ hydro
+	rm -f *.o *.s *.yaml *~ hydro
 
 listing:
 	a2ps --medium=A4dj -C -1 -R -l90 --toc -E --prologue=color --file-align=fill -o listing.ps Makefile $(HEADER) $(SRC)
 	ps2pdf -sPAPERSIZE=a4 listing.ps
 	rm listing.ps
 
-%.o: $(SRCDIR)/%.c
+#%.o: $(SRCDIR)/%.c
+#	$(CC) $(CFLAGS) -c $<
+
+%.s: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) -S $<
+
+%.o: $(SRCDIR)/%.s
 	$(CC) $(CFLAGS) -c $<
+
 
 %.o: $(SRCDIR)/%.cu
 	$(NVCC) $(NVCFLAGS) -c $<
