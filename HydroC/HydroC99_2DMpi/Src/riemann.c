@@ -79,11 +79,137 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #ifdef SOLVE_USE_FUNC
 
-
-#ifdef __ARM_FEATURE_SVE
 #include <arm_sve.h>
 
+//#define UNIFORM_IS_VECTOR
+#define UNIFORM_IS_GLOBAL
 
+#ifdef  UNIFORM_IS_VECTOR
+void solve_one_direct_sve(real_t *restrict pstar,
+			  /* I have to disable the const because of case CAS-127965-Z6L3C2 */
+			  /* const */ real_t * /* const */ restrict ul,
+			  /* const */ real_t * /* const */ restrict pl,
+			  /* const */ real_t * /* const */ restrict ur,
+			  /* const */ real_t * /* const */ restrict pr,
+			  /* const */ real_t * /* const */ restrict cl,
+			  /* const */ real_t * /* const */ restrict cr,
+			  int * restrict goon,
+			  const svfloat64_t vgamma6,
+			  const svfloat64_t vsmallpp,
+			  svbool_t mask) {
+  printf("%s\n", __PRETTY_FUNCTION__);
+  /* assume real_t == double */
+  svfloat64_t vone = svdup_n_f64(1.);
+  svfloat64_t vtwo = svdup_n_f64(2.);
+  svfloat64_t vpst = svld1_f64(mask, pstar);
+  svfloat64_t vul = svld1_f64(mask, ul);
+  svfloat64_t vpl = svld1_f64(mask, pl);
+  svfloat64_t vur = svld1_f64(mask, ur);
+  svfloat64_t vpr = svld1_f64(mask, pr);
+  svfloat64_t vcl = svld1_f64(mask, cl);
+  svfloat64_t vcr = svld1_f64(mask, cr);
+  // Newton-Raphson iterations to find pstar at the required accuracy
+  svfloat64_t vwwl = svsqrt_f64_z(mask,
+				  svmul_f64_z(mask,
+					      vcl,
+					      svadd_f64_z(mask,
+							  vone,
+							  svmul_f64_z(mask,
+								      vgamma6,
+								      svdiv_f64_z(mask,
+										  svsub_f64_z(mask, vpst, vpl),
+										  vpl)))));
+  svfloat64_t vwwr = svsqrt_f64_z(mask,
+				  svmul_f64_z(mask,
+					      vcr,
+					      svadd_f64_z(mask,
+							  vone,
+							  svmul_f64_z(mask,
+								      vgamma6,
+								      svdiv_f64_z(mask,
+										  svsub_f64_z(mask, vpst, vpr),
+										  vpr)))));
+  svfloat64_t vswwl = svmul_f64_z(mask, vwwl, vwwl);
+  svfloat64_t vswwr = svmul_f64_z(mask, vwwr, vwwr);
+  svfloat64_t vql = svdiv_f64_z(mask,
+				svmul_f64_z(mask, vtwo, svmul_f64_z(mask, vwwl, vswwl)),
+				svadd_f64_z(mask, vswwl, vcl));
+  svfloat64_t vqr = svdiv_f64_z(mask,
+				svmul_f64_z(mask, vtwo, svmul_f64_z(mask, vwwr, vswwr)),
+				svadd_f64_z(mask, vswwr, vcr));
+  svfloat64_t vusl = svsub_f64_z(mask,
+			       vul,
+			       svdiv_f64_z(mask,
+					   svsub_f64_z(mask, vpst, vpl),
+					   vwwl));
+  svfloat64_t vusr = svadd_f64_z(mask,
+			       vur,
+			       svdiv_f64_z(mask,
+					   svsub_f64_z(mask, vpst, vpr),
+					   vwwl));
+  svfloat64_t vtmpmiddle = svdiv_f64_z(mask,
+				     vql,
+				     svadd_f64_z(mask, vqr, vql));
+  svfloat64_t vtmpfront = svmul_f64_z(mask,
+				    vqr,
+				    vtmpmiddle);
+  svfloat64_t vtmp = svmul_f64_z(mask,
+			       vtmpfront,
+			       svadd_f64_z(mask, vusl, vusr));
+  svfloat64_t vdelp_i = svmax_f64_z(mask, vtmp, svneg_f64_z(mask, vpst));
+  vpst = svadd_f64_z(mask, vpst, vdelp_i);
+  // Convergence indicator
+  svfloat64_t vtmp2 = svdiv_f64_z(mask,
+				  vdelp_i,
+				  svadd_f64_z(mask, vpst, vsmallpp));
+  svfloat64_t vuo_i = svabs_f64_z(mask, vtmp2);
+
+  //svbool_t notconverged = svcmpgt_f64(mask, vuo_i, svdup_n_f64(PRECISION));
+  svbool_t converged = svcmple_f64(mask, vuo_i, svdup_n_f64(PRECISION));
+  svst1_s32(converged, goon, svdup_n_s32(0)); // hopefully doesn't overshoot the array...
+
+  // FLOPS(29, 10, 2, 0);
+  svst1_f64(mask, pstar, vpst);
+}
+
+#pragma omp declare variant(solve_one_direct_sve)	\
+  match(construct = {simd(inbranch,linear(pstar,ul,pl,ur,pr,cl,cr,goon))}, \
+	device = {isa("sve")},				\
+	implementation = {extension("scalable")})
+//#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
+void solve_one_direct(real_t *restrict pstar,
+				    /* const */ real_t * /* const */ restrict ul,
+				    /* const */ real_t * /* const */ restrict pl,
+				    /* const */ real_t * /* const */ restrict ur,
+				    /* const */ real_t * /* const */ restrict pr,
+				    /* const */ real_t * /* const */ restrict cl,
+				    /* const */ real_t * /* const */ restrict cr,
+		      	   	    int * restrict goon,
+		      	   	    const real_t gamma6,
+			  	    const real_t smallpp) {
+  real_t pst = *pstar;
+  // Newton-Raphson iterations to find pstar at the required accuracy
+  real_t wwl = MYSQRT(*cl * (one + gamma6 * (pst - *pl) / *pl));
+  real_t wwr = MYSQRT(*cr * (one + gamma6 * (pst - *pr) / *pr));
+  real_t swwl = Square(wwl);
+  real_t ql = two * wwl * swwl / (swwl + *cl);
+  real_t qr = two * wwr * Square(wwr) / (Square(wwr) + *cr);
+  real_t usl = *ul - (pst - *pl) / wwl;
+  real_t usr = *ur + (pst - *pr) / wwr;
+  real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
+  real_t delp_i = fmax(tmp, (-pst));
+  // *pstar = *pstar + delp_i;
+  pst += delp_i;
+  // Convergence indicator
+  real_t tmp2 = delp_i / (pst + smallpp);
+  real_t uo_i = fabs(tmp2);
+  *goon = uo_i > PRECISION;
+  // FLOPS(29, 10, 2, 0);
+  *pstar = pst;
+}
+#endif // UNIFORM_IS_VECTOR
+
+#ifdef UNIFORM_IS_GLOBAL
 /* super-ugly, non-thread safe workaround for lack of 'uniform'... use a couple of global variables for loop invariant */
 static real_t ggamma6;
 static real_t gsmallpp;
@@ -178,7 +304,6 @@ void solve_one_direct_sve(real_t *restrict pstar,
   match(construct = {simd(inbranch,linear(pstar,ul,pl,ur,pr,cl,cr,goon))}, \
 	device = {isa("sve")},				\
 	implementation = {extension("scalable")})
-#endif
 //#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
 void solve_one_direct(real_t *restrict pstar,
 				    /* const */ real_t * /* const */ restrict ul,
@@ -208,7 +333,7 @@ void solve_one_direct(real_t *restrict pstar,
   // FLOPS(29, 10, 2, 0);
   *pstar = pst;
 }
-
+#endif // UNIFORM_IS_GLOBAL
 
 #if 0
 // not yet doable this way, because the current Arm Compiler (20.0) doesn't support 'uniform' <https://developer.arm.com/docs/101458/2000/vector-math-routines/interface-user-vector-functions-with-serial-code>
@@ -244,7 +369,7 @@ static inline void solve_one_clean(real_t *restrict pstar,
   // FLOPS(29, 10, 2, 0);
   pstar[i] = pst;
 }
-#endif
+#endif // 0
 
 #endif
 
@@ -377,9 +502,14 @@ riemann(int narray, const real_t Hsmallr,
 	  pstar[i] = pst;
 #else
 	  //	  solve_one_clean(pstar,ul,pl,ur,pr,cl,cr,goon,i,gamma6,smallpp);
+#ifdef UNIFORM_IS_VECTOR
+	  solve_one_direct(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i], gamma6, smallpp);
+#endif
+#ifdef UNIFORM_IS_GLOBAL
 	  ggamma6 = gamma6;
 	  gsmallpp = smallpp;
 	  solve_one_direct(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i]);
+#endif
 #endif
 	}
       }
