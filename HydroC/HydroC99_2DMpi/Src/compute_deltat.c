@@ -70,6 +70,7 @@ ComputeQEforRow(const int j,
 
 #pragma omp parallel for shared(q, e) private(s, i) COLLAPSE
   for (s = 0; s < slices; s++) {
+#pragma omp simd
     for (i = 0; i < Hnx; i++) {
       real_t eken;
       real_t tmp;
@@ -114,6 +115,8 @@ courantOnXY(real_t *cournox,
 
 #pragma omp parallel for shared(tmpm1, tmpm2) private(s,i) reduction(max:tmp1) reduction(max:tmp2)
   for (s = 0; s < slices; s++) {
+    //armclang 20.0 fails on this one
+    //#pragma omp simd
     for (i = 0; i < Hnx; i++) {
       tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
       tmp2 = MAX(tmp2, c[s][i] + DABS(q[IV][s][i]));

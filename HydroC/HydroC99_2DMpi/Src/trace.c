@@ -86,6 +86,7 @@ trace(const real_t dtdx,
 
 #pragma omp parallel for private(s,i), shared(qxp, qxm) 
   for (s = 0; s < slices; s++) {
+#pragma omp simd
     for (i = ijmin + 1; i < ijmax - 1; i++) {
       real_t cc, csq, r, u, v, p;
       real_t dr, du, dv, dp;

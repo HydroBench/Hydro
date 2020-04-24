@@ -61,6 +61,7 @@ constoprim(const int n,
 
 #pragma omp parallel for private(i, s, eken), shared(q,e) COLLAPSE
   for (s = 0; s < slices; s++) {
+#pragma omp simd
     for (i = ijmin; i < ijmax; i++) {
       real_t qid = MAX(u[ID][s][i], Hsmallr);
       q[ID][s][i] = qid;

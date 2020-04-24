@@ -73,6 +73,7 @@ gatherConservativeVars(const int idim,
     // Gather conservative variables
 #pragma omp parallel for private(i, s), shared(u) COLLAPSE
     for (s = 0; s < slices; s++) {
+#pragma omp simd
       for (i = Himin; i < Himax; i++) {
         int idxuoID = IHU(i, rowcol + s, ID);
         u[ID][s][i] = uold[idxuoID];
@@ -102,6 +103,7 @@ gatherConservativeVars(const int idim,
     // Gather conservative variables
 #pragma omp parallel for private(j, s), shared(u) 
     for (s = 0; s < slices; s++) {
+#pragma omp simd
       for (j = Hjmin; j < Hjmax; j++) {
 	u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
 	u[IU][s][j] = uold[IHU(rowcol + s, j, IV)];
@@ -173,6 +175,7 @@ updateConservativeVars(const int idim,
     // Update conservative variables
 #pragma omp parallel for private(j, s), shared(uold) 
     for (s = 0; s < slices; s++) {
+#pragma omp simd
       for (j = (Hjmin + ExtraLayer); j < (Hjmax - ExtraLayer); j++) {
 	uold[IHU(rowcol + s, j, ID)] = u[ID][s][j] + (flux[ID][s][j - 2] - flux[ID][s][j - 1]) * dtdx;
 	uold[IHU(rowcol + s, j, IV)] = u[IU][s][j] + (flux[IU][s][j - 2] - flux[IU][s][j - 1]) * dtdx;
