@@ -81,6 +81,139 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #include <arm_sve.h>
 
+#define EMBED_MASKING
+
+#ifdef EMBED_MASKING
+void solve_one_masking_sve(real_t *restrict pstar,
+			  const real_t * const restrict ul,
+			  const real_t * const restrict pl,
+			  const real_t * const restrict ur,
+			  const real_t * const restrict pr,
+			  const real_t * const restrict cl,
+			  const real_t * const restrict cr,
+			  int * restrict goon,
+			  const svfloat64_t vgamma6,
+			  const svfloat64_t vsmallpp,
+			  svbool_t mandatory) {
+  //printf("%s\n", __PRETTY_FUNCTION__);
+  svbool_t mask = svcmpeq_s32(mandatory, svld1_s32(svptrue_b32(), goon), svdup_n_s32(1)); // overshoot ...
+  /* assume real_t == double */
+  svfloat64_t vone = svdup_n_f64(1.);
+  svfloat64_t vtwo = svdup_n_f64(2.);
+  svfloat64_t vpst = svld1_f64(mask, pstar);
+  svfloat64_t vul = svld1_f64(mask, ul);
+  svfloat64_t vpl = svld1_f64(mask, pl);
+  svfloat64_t vur = svld1_f64(mask, ur);
+  svfloat64_t vpr = svld1_f64(mask, pr);
+  svfloat64_t vcl = svld1_f64(mask, cl);
+  svfloat64_t vcr = svld1_f64(mask, cr);
+  // Newton-Raphson iterations to find pstar at the required accuracy
+  svfloat64_t vwwl = svsqrt_f64_z(mask,
+				  svmul_f64_z(mask,
+					      vcl,
+					      svadd_f64_z(mask,
+							  vone,
+							  svmul_f64_z(mask,
+								      vgamma6,
+								      svdiv_f64_z(mask,
+										  svsub_f64_z(mask, vpst, vpl),
+										  vpl)))));
+  svfloat64_t vwwr = svsqrt_f64_z(mask,
+				  svmul_f64_z(mask,
+					      vcr,
+					      svadd_f64_z(mask,
+							  vone,
+							  svmul_f64_z(mask,
+								      vgamma6,
+								      svdiv_f64_z(mask,
+										  svsub_f64_z(mask, vpst, vpr),
+										  vpr)))));
+  svfloat64_t vswwl = svmul_f64_z(mask, vwwl, vwwl);
+  svfloat64_t vswwr = svmul_f64_z(mask, vwwr, vwwr);
+  svfloat64_t vql = svdiv_f64_z(mask,
+				svmul_f64_z(mask, vtwo, svmul_f64_z(mask, vwwl, vswwl)),
+				svadd_f64_z(mask, vswwl, vcl));
+  svfloat64_t vqr = svdiv_f64_z(mask,
+				svmul_f64_z(mask, vtwo, svmul_f64_z(mask, vwwr, vswwr)),
+				svadd_f64_z(mask, vswwr, vcr));
+  svfloat64_t vusl = svsub_f64_z(mask,
+			       vul,
+			       svdiv_f64_z(mask,
+					   svsub_f64_z(mask, vpst, vpl),
+					   vwwl));
+  svfloat64_t vusr = svadd_f64_z(mask,
+			       vur,
+			       svdiv_f64_z(mask,
+					   svsub_f64_z(mask, vpst, vpr),
+					   vwwl));
+  svfloat64_t vtmpmiddle = svdiv_f64_z(mask,
+				     vql,
+				     svadd_f64_z(mask, vqr, vql));
+  svfloat64_t vtmpfront = svmul_f64_z(mask,
+				    vqr,
+				    vtmpmiddle);
+  svfloat64_t vtmp = svmul_f64_z(mask,
+			       vtmpfront,
+			       svadd_f64_z(mask, vusl, vusr));
+  svfloat64_t vdelp_i = svmax_f64_z(mask, vtmp, svneg_f64_z(mask, vpst));
+  vpst = svadd_f64_z(mask, vpst, vdelp_i);
+  // Convergence indicator
+  svfloat64_t vtmp2 = svdiv_f64_z(mask,
+				  vdelp_i,
+				  svadd_f64_z(mask, vpst, vsmallpp));
+  svfloat64_t vuo_i = svabs_f64_z(mask, vtmp2);
+
+  //svbool_t notconverged = svcmpgt_f64(mask, vuo_i, svdup_n_f64(PRECISION));
+  svbool_t converged = svcmple_f64(mask, vuo_i, svdup_n_f64(PRECISION));
+  svst1_s32(converged, goon, svdup_n_s32(0)); // hopefully doesn't overshoot the array...
+
+  // FLOPS(29, 10, 2, 0);
+  svst1_f64(mask, pstar, vpst);
+}
+
+/* #pragma omp declare variant(solve_one_masking_sve)	\ */
+/*   match(construct = {simd(notinbranch,linear(pstar,ul,pl,ur,pr,cl,cr,goon))}, \ */
+/* 	device = {isa("sve")},				\ */
+/* 	implementation = {extension("scalable")}) */
+#pragma omp declare variant(solve_one_masking_sve)	\
+  match(construct = {simd(notinbranch,linear(pstar),linear(ul),linear(pl),linear(ur),linear(pr),linear(cl),linear(cr),linear(goon))}, \
+	device = {isa("sve")},				\
+	implementation = {extension("scalable")})
+//#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
+void solve_one_masking(real_t *restrict pstar,
+				    const real_t * const restrict ul,
+				    const real_t * const restrict pl,
+				    const real_t * const restrict ur,
+				    const real_t * const restrict pr,
+				    const real_t * const restrict cl,
+				    const real_t * const restrict cr,
+		      	   	    int * restrict goon,
+		      	   	    const real_t gamma6,
+		       const real_t smallpp) {
+  if (!(*goon)) return;
+  real_t pst = *pstar;
+  // Newton-Raphson iterations to find pstar at the required accuracy
+  real_t wwl = MYSQRT(*cl * (one + gamma6 * (pst - *pl) / *pl));
+  real_t wwr = MYSQRT(*cr * (one + gamma6 * (pst - *pr) / *pr));
+  real_t swwl = Square(wwl);
+  real_t ql = two * wwl * swwl / (swwl + *cl);
+  real_t qr = two * wwr * Square(wwr) / (Square(wwr) + *cr);
+  real_t usl = *ul - (pst - *pl) / wwl;
+  real_t usr = *ur + (pst - *pr) / wwr;
+  real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
+  real_t delp_i = fmax(tmp, (-pst));
+  // *pstar = *pstar + delp_i;
+  pst += delp_i;
+  // Convergence indicator
+  real_t tmp2 = delp_i / (pst + smallpp);
+  real_t uo_i = fabs(tmp2);
+  *goon = uo_i > PRECISION;
+  // FLOPS(29, 10, 2, 0);
+  *pstar = pst;
+}
+
+#else 
+
 #define UNIFORM_IS_VECTOR
 //#define UNIFORM_IS_GLOBAL
 
@@ -370,7 +503,9 @@ void solve_one_direct(real_t *restrict pstar,
 }
 #endif
 
-#endif
+#endif // EMBED_MASKING
+
+#endif // SOLVE_USE_FUNC
 
 void
 riemann(int narray, const real_t Hsmallr, 
@@ -478,6 +613,9 @@ riemann(int narray, const real_t Hsmallr,
 #endif
 #pragma omp simd
       for (i = 0; i < narray; i++) {
+#if defined (EMBED_MASKING)
+	  solve_one_masking(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i], gamma6, smallpp);
+#else
 	if (goon[i]) {
 #ifndef SOLVE_USE_FUNC
 	  real_t pst = pstar[i];
@@ -513,6 +651,7 @@ riemann(int narray, const real_t Hsmallr,
 #endif // UNIFORM_IS_*
 #endif // SOLVE_USE_FUNC
 	}
+#endif // EMBED_MASKING
       }
     }                           // iter_riemann
 
