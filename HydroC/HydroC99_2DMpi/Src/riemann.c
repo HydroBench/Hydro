@@ -81,18 +81,17 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #include <arm_sve.h>
 
-//#define UNIFORM_IS_VECTOR
-#define UNIFORM_IS_GLOBAL
+#define UNIFORM_IS_VECTOR
+//#define UNIFORM_IS_GLOBAL
 
 #ifdef  UNIFORM_IS_VECTOR
 void solve_one_direct_sve(real_t *restrict pstar,
-			  /* I have to disable the const because of case CAS-127965-Z6L3C2 */
-			  /* const */ real_t * /* const */ restrict ul,
-			  /* const */ real_t * /* const */ restrict pl,
-			  /* const */ real_t * /* const */ restrict ur,
-			  /* const */ real_t * /* const */ restrict pr,
-			  /* const */ real_t * /* const */ restrict cl,
-			  /* const */ real_t * /* const */ restrict cr,
+			  const real_t * const restrict ul,
+			  const real_t * const restrict pl,
+			  const real_t * const restrict ur,
+			  const real_t * const restrict pr,
+			  const real_t * const restrict cl,
+			  const real_t * const restrict cr,
 			  int * restrict goon,
 			  const svfloat64_t vgamma6,
 			  const svfloat64_t vsmallpp,
@@ -178,12 +177,12 @@ void solve_one_direct_sve(real_t *restrict pstar,
 	implementation = {extension("scalable")})
 //#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
 void solve_one_direct(real_t *restrict pstar,
-				    /* const */ real_t * /* const */ restrict ul,
-				    /* const */ real_t * /* const */ restrict pl,
-				    /* const */ real_t * /* const */ restrict ur,
-				    /* const */ real_t * /* const */ restrict pr,
-				    /* const */ real_t * /* const */ restrict cl,
-				    /* const */ real_t * /* const */ restrict cr,
+				    const real_t * const restrict ul,
+				    const real_t * const restrict pl,
+				    const real_t * const restrict ur,
+				    const real_t * const restrict pr,
+				    const real_t * const restrict cl,
+				    const real_t * const restrict cr,
 		      	   	    int * restrict goon,
 		      	   	    const real_t gamma6,
 			  	    const real_t smallpp) {
@@ -215,13 +214,12 @@ static real_t ggamma6;
 static real_t gsmallpp;
 
 void solve_one_direct_sve(real_t *restrict pstar,
-			  /* I have to disable the const because of case CAS-127965-Z6L3C2 */
-			  /* const */ real_t * /* const */ restrict ul,
-			  /* const */ real_t * /* const */ restrict pl,
-			  /* const */ real_t * /* const */ restrict ur,
-			  /* const */ real_t * /* const */ restrict pr,
-			  /* const */ real_t * /* const */ restrict cl,
-			  /* const */ real_t * /* const */ restrict cr,
+			  const real_t * const restrict ul,
+			  const real_t * const restrict pl,
+			  const real_t * const restrict ur,
+			  const real_t * const restrict pr,
+			  const real_t * const restrict cl,
+			  const real_t * const restrict cr,
 			  int * restrict goon,
 			  svbool_t mask) {
   /* assume real_t == double */
@@ -306,12 +304,12 @@ void solve_one_direct_sve(real_t *restrict pstar,
 	implementation = {extension("scalable")})
 //#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
 void solve_one_direct(real_t *restrict pstar,
-				    /* const */ real_t * /* const */ restrict ul,
-				    /* const */ real_t * /* const */ restrict pl,
-				    /* const */ real_t * /* const */ restrict ur,
-				    /* const */ real_t * /* const */ restrict pr,
-				    /* const */ real_t * /* const */ restrict cl,
-				    /* const */ real_t * /* const */ restrict cr,
+				    const real_t * const restrict ul,
+				    const real_t * const restrict pl,
+				    const real_t * const restrict ur,
+				    const real_t * const restrict pr,
+				    const real_t * const restrict cl,
+				    const real_t * const restrict cr,
 				    int * restrict goon) {
   real_t pst = *pstar;
   // Newton-Raphson iterations to find pstar at the required accuracy
@@ -335,10 +333,11 @@ void solve_one_direct(real_t *restrict pstar,
 }
 #endif // UNIFORM_IS_GLOBAL
 
-#if 0
+#if !defined(UNIFORM_IS_VECTOR) && !defined(UNIFORM_IS_GLOBAL)
 // not yet doable this way, because the current Arm Compiler (20.0) doesn't support 'uniform' <https://developer.arm.com/docs/101458/2000/vector-math-routines/interface-user-vector-functions-with-serial-code>
-//#pragma omp declare simd linear(i) uniform(pstar,ul,pl,ur,pr,cl,cr,goon,gamma6,smallpp) inbranch
-static inline void solve_one_clean(real_t *restrict pstar,
+// For 20.1, see <https://developer.arm.com/docs/101458/2010/vector-routines-support/support-level-for-declare-simd>
+#pragma omp declare simd linear(i) uniform(pstar,ul,pl,ur,pr,cl,cr,goon,gamma6,smallpp) inbranch
+/* static inline  */ void solve_one_clean(real_t *restrict pstar,
 			     const real_t * const restrict ul,
 			     const real_t * const restrict pl,
 			     const real_t * const restrict ur,
@@ -346,7 +345,7 @@ static inline void solve_one_clean(real_t *restrict pstar,
 			     const real_t * const restrict cl,
 			     const real_t * const restrict cr,
 			     int * restrict goon,
-			     /* const */ int i,
+			     const int i,
 			     const real_t gamma6,
 			     const real_t smallpp) {
   real_t pst = pstar[i];
@@ -369,7 +368,7 @@ static inline void solve_one_clean(real_t *restrict pstar,
   // FLOPS(29, 10, 2, 0);
   pstar[i] = pst;
 }
-#endif // 0
+#endif
 
 #endif
 
@@ -501,16 +500,18 @@ riemann(int narray, const real_t Hsmallr,
 	  // FLOPS(29, 10, 2, 0);
 	  pstar[i] = pst;
 #else
-	  //	  solve_one_clean(pstar,ul,pl,ur,pr,cl,cr,goon,i,gamma6,smallpp);
-#ifdef UNIFORM_IS_VECTOR
+#if !defined(UNIFORM_IS_VECTOR) && !defined(UNIFORM_IS_GLOBAL)
+	  solve_one_clean(pstar,ul,pl,ur,pr,cl,cr,goon,i,gamma6,smallpp);
+#elif defined(UNIFORM_IS_VECTOR)
 	  solve_one_direct(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i], gamma6, smallpp);
-#endif
-#ifdef UNIFORM_IS_GLOBAL
+#elif defined(UNIFORM_IS_GLOBAL)
 	  ggamma6 = gamma6;
 	  gsmallpp = smallpp;
 	  solve_one_direct(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i]);
-#endif
-#endif
+#else
+#error "Uh?"
+#endif // UNIFORM_IS_*
+#endif // SOLVE_USE_FUNC
 	}
       }
     }                           // iter_riemann

@@ -70,7 +70,7 @@ pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffe
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
       // #warning "GATHER to vectorize ?"
-      // armclang 20.0 silently ignore this one
+      // armclang 20.0/20.1 silently ignore this one
       // #pragma omp simd
       for (i = xmin; i < xmin + ExtraLayer; i++) {
         buffer[p++] = Hv->uold[IHv(i, j, ivar)];
@@ -86,8 +86,8 @@ unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv, real_t *buf
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = 0; j < H.nyt; j++) {
       // #warning "SCATTER to vectorize ?"
-      // armclang 20.0 silently ignore this one
-      // #pragma omp simd
+      // armclang 20.0/20.1 silently ignore this one
+      #pragma omp simd
       for (i = xmin; i < xmin + ExtraLayer; i++) {
         Hv->uold[IHv(i, j, ivar)] = buffer[p++];
       }
@@ -103,8 +103,8 @@ pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buffe
     for (j = ymin; j < ymin + ExtraLayer; j++) {
       // #warning "GATHER to vectorize ?"
       // #pragma simd
-      // armclang 20.0 silently ignore this one
-      // #pragma omp simd
+      // armclang 20.0/20.1 silently ignore this one
+      #pragma omp simd
       for (i = 0; i < H.nxt; i++) {
         buffer[p++] = Hv->uold[IHv(i, j, ivar)];
       }
@@ -119,8 +119,8 @@ unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv, real_t *buf
   for (ivar = 0; ivar < H.nvar; ivar++) {
     for (j = ymin; j < ymin + ExtraLayer; j++) {
       // #warning "SCATTER to vectorize ?"
-      // armclang 20.0 silently ignore this one
-      // #pragma omp simd
+      // armclang 20.0/20.1 silently ignore this one
+      #pragma omp simd
       for (i = 0; i < H.nxt; i++) {
         Hv->uold[IHv(i, j, ivar)] = buffer[p++];
       }
