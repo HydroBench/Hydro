@@ -2,7 +2,14 @@ ifeq ($(PNG),O)
    DEFS+=-DWITHPNG=1
 endif
 
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+else
+   OPTIM+=-O0
+endif
+
 ifeq ($(CXX),icpc)
+  OPTIM+=-g
 # OPTIM+=-mkl
   ifeq ($(OPENMP),O)
      OPTIM+=-qopenmp
@@ -23,8 +30,42 @@ ifeq ($(CXX),icpc)
   # OPTIM+=-openmp-report1 
   ifeq ($(NOVEC),O)
      OPTIM+=-no-vec -no-simd -qno-openmp-simd
-   else
+     OPTIM+=-no-fma	
+  else
      OPTIM+=-simd -qopenmp-simd
+     OPTIM+=-fma	
+  endif
+  ifeq ($(DIVOPTS),)
+      # OPTIM+=-qopt-zmm-usage=high
+      # OPTIM+=-mCG_use_zeroupper=0
+      # OPTIM+=-mP1OPT_max_rec_copy_size=128
+   endif
+endif
+
+ifeq ($(CXX),icx)
+# OPTIM+=-mkl
+  LIBS+=-lstdc++
+  ifeq ($(OPENMP),O)
+     OPTIM+=-qopenmp
+  endif
+  OPTIM+=-ansi-alias 
+  ifeq ($(PG),O)
+     OPTIM+=-pg
+  endif
+  ifeq ($(XHOST),O)
+     OPTIM+=-xHost 
+  endif
+  ifeq ($(VERB),O)
+     # OPTIM+=-vec-report6
+     # for compiler >= 15
+     OPTIM+=-qopt-report=5
+  endif
+
+  # OPTIM+=-openmp-report1 
+  ifeq ($(NOVEC),O)
+     OPTIM+=-no-vec -no-simd -qno-openmp-simd
+   else
+     OPTIM+=-qopenmp-simd
    endif
    ifeq ($(DIVOPTS),)
       # OPTIM+=-qopt-zmm-usage=high
@@ -35,6 +76,7 @@ ifeq ($(CXX),icpc)
 endif
 
 ifeq ($(CXX),g++)
+  OPTIM+=-g
   ifeq ($(PG),O)
      OPTIM+=-pg
   endif
@@ -59,6 +101,7 @@ ifeq ($(CXX),g++)
 endif
 
 ifeq ($(CXX),clang++)
+  OPTIM+=-g
   ifeq ($(NOVEC),O)
      OPTIM+=-fno-vectorize
   else

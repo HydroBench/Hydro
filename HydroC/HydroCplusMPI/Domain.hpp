@@ -41,7 +41,7 @@ class Domain {
 	// those variables are not protected to allow for modifications
 	TimeLimit m_tr;
 	int m_prt;
-	int m_stats; // print various stats
+	int32_t m_stats; // print various stats
 	Tile **m_tiles;		//=
 	int32_t m_nbtiles;	//=
 	int32_t m_tileSize;	//=

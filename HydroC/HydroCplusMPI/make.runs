@@ -29,7 +29,7 @@ runsde: hydroc
 
 lrun: hydroc
 	@rm -rf Dep/* STOP
-	env OMP_NUM_THREADS=32 ./hydroc -i input.nml
+	env OMP_NUM_THREADS=8 ./hydroc -i input.nml
 
 vecmic: hydroc
 	@rm -rf Dep/* STOP

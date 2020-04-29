@@ -444,8 +444,11 @@ void Domain::compute()
 				break;
 		}
 
-		// GCDV temporaire. A intégrer
-		if (m_iter == m_nDumpline) dumpLine();
+		// 
+		if (m_iter == m_nDumpline) {
+			dumpLine();
+			sprintf(vtkprt, "%s{dumpline}", vtkprt);
+		}
 
 		int outputVtk = 0;
 		if (m_nOutput > 0) {
@@ -461,7 +464,7 @@ void Domain::compute()
 		}
 		if (outputVtk) {
 			vtkOutput(m_nvtk);
-			sprintf(vtkprt, "[%05d]", m_nvtk);
+			sprintf(vtkprt, "%s[%05d]", vtkprt, m_nvtk);
 			m_nvtk++;
 			needSync++;
 		}

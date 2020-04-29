@@ -81,13 +81,13 @@ include make.epyc
 NODEFAULT=yes
 endif
 
-ifeq ($(CSA),O)
-include make.csa
+ifeq ($(SVE),O)
+include make.sve
 NODEFAULT=yes
 endif
 
-ifeq ($(SVE),O)
-include make.sve
+ifeq ($(GEN9),O)
+include make.gen9
 NODEFAULT=yes
 endif
 
@@ -135,12 +135,8 @@ ifeq ($(CRAY),O)
 	touch $@
 else
 %.d: %.cpp
-ifneq ($(CSA),O)
 	@echo "Generating $@"
 	@$(CXX) -M $(DEFS) $(CFLAGS) $< | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
-else
-	@$(CXX) -M $(DEFS) $(CFLAGS) $< -o $@
-endif
 endif
 clean:
 	rm -rf *.o hydroc *~ toto *.optrpt

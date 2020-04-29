@@ -61,7 +61,7 @@ Domain::Domain(int argc, char **argv)
 	m_buffer = 0;
 #endif
 	m_prt = 0;
-	m_stats = 0;
+	m_stats = 1; // Default we print everything
 	m_inputFile = 0;
 	m_withMorton = 0;
 	m_ExtraLayer = 2;
@@ -300,8 +300,8 @@ void Domain::printSummary()
 		printf("|    numa=       %u\n", m_numa);
 		printf("|    tend=       %lf\n", m_tend);
 		printf("|    nstepmax=   %d\n", m_nStepMax);
-		printf("|    nDumpline=  %d\n", m_nDumpline);
-		printf("|    stats=      %d\n", m_nDumpline);
+		printf("|    ndumpline=  %d\n", m_nDumpline);
+		printf("|    stats=      %d\n", m_stats);
 		printf("|    noutput=    %d\n", m_nOutput);
 		printf("|    dtoutput=   %lf\n", m_dtOutput);
 		printf("|    dtimage=    %lf\n", m_dtImage);
@@ -322,24 +322,42 @@ static void keyval(char *buffer, char **pkey, char **pval)
 	*pval = buffer;
 
 	// kill the newline
-	*pval = strchr(buffer, '\n');
-	if (*pval)
-		**pval = 0;
+	ptr = strchr(buffer, '\n');
+	if (ptr)
+		*ptr = NULL;
+	// strip comment from value
+	ptr = strchr(buffer, '#');
+	if (ptr) *ptr = NULL;
 
-	// suppress leading whites or tabs
+	// suppress leading whites or tabs from key
 	while ((**pkey == ' ') || (**pkey == '\t'))
 		(*pkey)++;
-	*pval = strchr(buffer, '=');
-	if (*pval) {
-		**pval = 0;
-		(*pval)++;
+
+	ptr = strchr(buffer, '=');
+	if (ptr) {
+		*ptr = NULL;
+		ptr++;
+	} else {
+		ptr = buffer; // no = sign, probably a comment
 	}
-	// strip key from white or tab
+	// suppress leading whites or tabs from value
+	while ((*ptr == ' ') || (*ptr == '\t'))
+		ptr++;
+	*pval = ptr;
+	
+	// strip key from ending white or tab
 	while ((ptr = strchr(*pkey, ' ')) != NULL) {
-		*ptr = 0;
+		*ptr = NULL;
 	}
 	while ((ptr = strchr(*pkey, '\t')) != NULL) {
-		*ptr = 0;
+		*ptr = NULL;
+	}
+	// strip val from ending white or tab
+	while ((ptr = strchr(*pval, ' ')) != NULL) {
+		*ptr = NULL;
+	}
+	while ((ptr = strchr(*pval, '\t')) != NULL) {
+		*ptr = NULL;
 	}
 }
 
@@ -482,7 +500,7 @@ void Domain::readInput()
 				sscanf(pval, "%d", &m_nImage);
 				continue;
 			}
-			if (strcmp(pkey, "nDumpline") == 0) {
+			if (strcmp(pkey, "ndumpline") == 0) {
 				sscanf(pval, "%d", &m_nDumpline);
 				continue;
 			}
@@ -513,11 +531,12 @@ void Domain::readInput()
 			}
 			// string parameter
 			if (strcmp(pkey, "scheme") == 0) {
-				if (strcmp(pval, "muscl") == 0) {
+				cerr << "[" << pval << "]" << endl;
+				if (strstr(pval, "muscl") != 0) {
 					m_scheme = SCHEME_MUSCL;
-				} else if (strcmp(pval, "plmde") == 0) {
+				} else if (strstr(pval, "plmde") != 0) {
 					m_scheme = SCHEME_PLMDE;
-				} else if (strcmp(pval, "collela") == 0) {
+				} else if (strstr(pval, "collela") != 0) {
 					m_scheme = SCHEME_COLLELA;
 				} else {
 					cerr << "Scheme name <%s> is unknown, should be one of " "[muscl,plmde,collela]\n" << pval << endl;
