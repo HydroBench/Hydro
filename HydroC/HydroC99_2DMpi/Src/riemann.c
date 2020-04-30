@@ -75,6 +75,8 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #define MYSQRT sqrt
 
+#if defined(__aarch64_)
+
 #define SOLVE_USE_FUNC
 
 #ifdef SOLVE_USE_FUNC
@@ -145,7 +147,7 @@ void solve_one_masking_sve(real_t *restrict pstar,
 			       vur,
 			       svdiv_f64_z(mask,
 					   svsub_f64_z(mask, vpst, vpr),
-					   vwwl));
+					   vwwr));
   svfloat64_t vtmpmiddle = svdiv_f64_z(mask,
 				     vql,
 				     svadd_f64_z(mask, vqr, vql));
@@ -154,7 +156,7 @@ void solve_one_masking_sve(real_t *restrict pstar,
 				    vtmpmiddle);
   svfloat64_t vtmp = svmul_f64_z(mask,
 			       vtmpfront,
-			       svadd_f64_z(mask, vusl, vusr));
+			       svsub_f64_z(mask, vusl, vusr));
   svfloat64_t vdelp_i = svmax_f64_z(mask, vtmp, svneg_f64_z(mask, vpst));
   vpst = svadd_f64_z(mask, vpst, vdelp_i);
   // Convergence indicator
@@ -179,7 +181,8 @@ void solve_one_masking_sve(real_t *restrict pstar,
   match(construct = {simd(notinbranch,linear(pstar),linear(ul),linear(pl),linear(ur),linear(pr),linear(cl),linear(cr),linear(goon))}, \
 	device = {isa("sve")},				\
 	implementation = {extension("scalable")})
-//#pragma omp declare simd linear(i,pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
+#endif
+#pragma omp declare simd linear(pstar,ul,pl,ur,pr,cl,cr,goon) inbranch
 void solve_one_masking(real_t *restrict pstar,
 				    const real_t * const restrict ul,
 				    const real_t * const restrict pl,
@@ -278,7 +281,7 @@ void solve_one_direct_sve(real_t *restrict pstar,
 			       vur,
 			       svdiv_f64_z(mask,
 					   svsub_f64_z(mask, vpst, vpr),
-					   vwwl));
+					   vwwr));
   svfloat64_t vtmpmiddle = svdiv_f64_z(mask,
 				     vql,
 				     svadd_f64_z(mask, vqr, vql));
@@ -287,7 +290,7 @@ void solve_one_direct_sve(real_t *restrict pstar,
 				    vtmpmiddle);
   svfloat64_t vtmp = svmul_f64_z(mask,
 			       vtmpfront,
-			       svadd_f64_z(mask, vusl, vusr));
+			       svsub_f64_z(mask, vusl, vusr));
   svfloat64_t vdelp_i = svmax_f64_z(mask, vtmp, svneg_f64_z(mask, vpst));
   vpst = svadd_f64_z(mask, vpst, vdelp_i);
   // Convergence indicator
@@ -405,7 +408,7 @@ void solve_one_direct_sve(real_t *restrict pstar,
 			       vur,
 			       svdiv_f64_z(mask,
 					   svsub_f64_z(mask, vpst, vpr),
-					   vwwl));
+					   vwwr));
   svfloat64_t vtmpmiddle = svdiv_f64_z(mask,
 				     vql,
 				     svadd_f64_z(mask, vqr, vql));
@@ -414,7 +417,7 @@ void solve_one_direct_sve(real_t *restrict pstar,
 				    vtmpmiddle);
   svfloat64_t vtmp = svmul_f64_z(mask,
 			       vtmpfront,
-			       svadd_f64_z(mask, vusl, vusr));
+			       svsub_f64_z(mask, vusl, vusr));
   svfloat64_t vdelp_i = svmax_f64_z(mask, vtmp, svneg_f64_z(mask, vpst));
   vpst = svadd_f64_z(mask, vpst, vdelp_i);
   // Convergence indicator
@@ -501,11 +504,12 @@ void solve_one_direct(real_t *restrict pstar,
   // FLOPS(29, 10, 2, 0);
   pstar[i] = pst;
 }
-#endif
 
 #endif // EMBED_MASKING
 
 #endif // SOLVE_USE_FUNC
+
+#endif // __aarch64__
 
 void
 riemann(int narray, const real_t Hsmallr, 
@@ -546,7 +550,7 @@ riemann(int narray, const real_t Hsmallr,
 //#pragma message "active pragma simd "
 #define SIMDNEEDED 1
 #define __ICC 200000
-#if __ICC < 1300
+#if defined(__ICC) && __ICC < 1300
 #define SIMD ivdep
 #else
 #define SIMD omp simd
@@ -628,7 +632,7 @@ riemann(int narray, const real_t Hsmallr,
 	  real_t usl = ul[i] - (pst - pl[i]) / wwl;
 	  real_t usr = ur[i] + (pst - pr[i]) / wwr;
 	  real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
-	  real_t delp_i = Fmax(tmp, (-pst));
+	  real_t delp_i = Fmax(tmp, (-pst)); 
 	  // pstar[i] = pstar[i] + delp_i;
 	  pst += delp_i;
 	  // Convergence indicator
