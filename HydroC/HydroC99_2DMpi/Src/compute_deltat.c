@@ -52,7 +52,7 @@ knowledge of the CeCILL license and that you accept its terms.
 
 #define DABS(x) (real_t) fabs((x))
 
-inline void
+/* inline */ void
 ComputeQEforRow(const int j,
                 const real_t Hsmallr,
                 const int Hnx,
