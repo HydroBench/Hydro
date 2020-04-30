@@ -75,6 +75,177 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #define MYSQRT sqrt
 
+
+#define printvf64(v, gvl) do {\
+	real_t buf[gvl];\
+	int i;\
+	printf("%s ", #v);\
+	__builtin_epi_vstore_1xf64(buf, v, gvl);\
+	for (i = 0 ; i < gvl; i ++) {\
+		printf("(%d)%e ", i, buf[i]);\
+	}\
+	printf("\n");\
+	}while(0)
+#define printvi32(v, gvl) do {\
+	 int buf[gvl];\
+	int i;\
+	printf("%s ", #v);\
+	__builtin_epi_vstore_2xi32(buf, v, gvl);\
+	for (i = 0 ; i < gvl; i ++) {\
+		printf("(%d)%d ", i, buf[i]);\
+	}\
+	printf("\n");\
+	}while(0)
+#define printvmaski2(v, gvl) do {\
+	unsigned int buf[512];\
+	int i;\
+	printf("%s ", #v);\
+	__builtin_epi_vstore_2xi1(buf, v);\
+	for (i = 0 ; i < gvl; i ++) {\
+		printf("(%d)%d ", i, buf[i]?1:0);	\
+	}\
+	printf("\n");\
+	}while(0)
+#define printvmaski1(v, gvl) do {\
+	unsigned long buf[512];\
+	int i;\
+	printf("%s ", #v);\
+	__builtin_epi_vstore_1xi1(buf, v);\
+	for (i = 0 ; i < gvl; i ++) {\
+		printf("(%d)%d ", i, buf[i]?1:0);	\
+	}\
+	printf("\n");\
+	}while(0)
+
+void solve_all_masking_rvv(const int s, // for debugging
+			   const int narray,
+			   real_t *restrict pstar,
+			   const real_t * const restrict ul,
+			   const real_t * const restrict pl,
+			   const real_t * const restrict ur,
+			   const real_t * const restrict pr,
+			   const real_t * const restrict cl,
+			   const real_t * const restrict cr,
+			  int * restrict goon,
+			   const real_t gamma6,
+			   const real_t smallpp) {
+	//fprintf(stderr, "%s start\n", __PRETTY_FUNCTION__);
+	int i = 0, j;
+	
+	while (i < narray) {
+		unsigned long gvl = __builtin_epi_vsetvl(narray - i, __epi_e64, __epi_m1);
+		unsigned long long goon64[gvl];
+		//fprintf(stderr, "%s: gvl = %lu for %d / %d (= %d)\n", __PRETTY_FUNCTION__, gvl, i, narray, narray - i);
+		__epi_1xf64 vgamma6 = __builtin_epi_vfmv_v_f_1xf64(gamma6, gvl);
+		__epi_1xf64 vsmallpp = __builtin_epi_vfmv_v_f_1xf64(smallpp, gvl);
+		for (j = 0 ; j < gvl ; j++) goon64[j] = goon[i + j]; // i've yet to find a better way
+		__epi_1xi64 vgoon = __builtin_epi_vload_1xi64(goon64, gvl);
+		__epi_1xi1 mask = __builtin_epi_vmseq_1xi64(vgoon, __builtin_epi_vmv_v_x_1xi64(1, gvl), gvl);
+		/* currently crashes in vehave */
+/* 		if (__builtin_epi_vfirst_1xi1(mask, gvl) < 0) */
+/* 			return; // early abort when nothing to do. */
+		/* mask = __builtin_epi_vmxnor_1xi1(mask, mask, gvl); */
+		/* assume real_t == double */
+		const __epi_1xf64 vone = __builtin_epi_vfmv_v_f_1xf64(1., gvl);
+		const __epi_1xf64 vtwo = __builtin_epi_vfmv_v_f_1xf64(2., gvl);
+		const __epi_1xf64 vzero = __builtin_epi_vfmv_v_f_1xf64(0., gvl);
+#if 0 // EPI compiler doesn't support masked load/store yet, no big deal, do it by hand; loads are good - data exist
+		__epi_1xf64 vpst = __builtin_epi_vload_1xf64_mask(vzero, pstar + i, mask, gvl);
+		__epi_1xf64 vul = __builtin_epi_vload_1xf64_mask(vzero, ul + i, mask, gvl);
+		__epi_1xf64 vpl = __builtin_epi_vload_1xf64_mask(vzero, pl + i, mask, gvl);
+		__epi_1xf64 vur = __builtin_epi_vload_1xf64_mask(vzero, ur + i, mask, gvl);
+		__epi_1xf64 vpr = __builtin_epi_vload_1xf64_mask(vzero, pr + i, mask, gvl);
+		__epi_1xf64 vcl = __builtin_epi_vload_1xf64_mask(vzero, cl + i, mask, gvl);
+		__epi_1xf64 vcr = __builtin_epi_vload_1xf64_mask(vzero, cr + i, mask, gvl);
+#else
+		__epi_1xf64 vpst = __builtin_epi_vload_1xf64(pstar + i, gvl);
+		__epi_1xf64 vul = __builtin_epi_vload_1xf64(ul + i, gvl);
+		__epi_1xf64 vpl = __builtin_epi_vload_1xf64(pl + i, gvl);
+		__epi_1xf64 vur = __builtin_epi_vload_1xf64(ur + i, gvl);
+		__epi_1xf64 vpr = __builtin_epi_vload_1xf64(pr + i, gvl);
+		__epi_1xf64 vcl = __builtin_epi_vload_1xf64(cl + i, gvl);
+		__epi_1xf64 vcr = __builtin_epi_vload_1xf64(cr + i, gvl);
+		__epi_1xf64 orig_vpst = vpst; // to merge before store
+#endif
+		// Newton-Raphson iterations to find pstar at the required accuracy
+		__epi_1xf64 vwwl = __builtin_epi_vfsqrt_1xf64_mask(vzero,
+								   __builtin_epi_vfmul_1xf64_mask(vzero,
+												  vcl,
+												  __builtin_epi_vfadd_1xf64_mask(vzero,
+																 vone,
+																 __builtin_epi_vfmul_1xf64_mask(vzero,
+																				vgamma6,
+																				__builtin_epi_vfdiv_1xf64_mask(vzero,
+																							       __builtin_epi_vfsub_1xf64_mask(vzero, vpst, vpl, mask, gvl),
+																							       vpl, mask, gvl), mask, gvl), mask, gvl), mask, gvl), mask, gvl);
+		__epi_1xf64 vwwr = __builtin_epi_vfsqrt_1xf64_mask(vzero,
+								   __builtin_epi_vfmul_1xf64_mask(vzero,
+												  vcr,
+												  __builtin_epi_vfadd_1xf64_mask(vzero,
+																 vone,
+																 __builtin_epi_vfmul_1xf64_mask(vzero,
+																				vgamma6,
+																				__builtin_epi_vfdiv_1xf64_mask(vzero,
+																							       __builtin_epi_vfsub_1xf64_mask(vzero, vpst, vpr, mask, gvl),
+																							       vpr, mask, gvl), mask, gvl), mask, gvl), mask, gvl), mask, gvl);
+		__epi_1xf64 vswwl = __builtin_epi_vfmul_1xf64_mask(vzero, vwwl, vwwl, mask, gvl);
+		__epi_1xf64 vswwr = __builtin_epi_vfmul_1xf64_mask(vzero, vwwr, vwwr, mask, gvl);
+		__epi_1xf64 vql = __builtin_epi_vfdiv_1xf64_mask(vzero,
+								 __builtin_epi_vfmul_1xf64_mask(vzero, vtwo, __builtin_epi_vfmul_1xf64_mask(vzero, vwwl, vswwl, mask, gvl), mask, gvl),
+								 __builtin_epi_vfadd_1xf64_mask(vzero, vswwl, vcl, mask, gvl), mask, gvl);
+		__epi_1xf64 vqr = __builtin_epi_vfdiv_1xf64_mask(vzero,
+								 __builtin_epi_vfmul_1xf64_mask(vzero, vtwo, __builtin_epi_vfmul_1xf64_mask(vzero, vwwr, vswwr, mask, gvl), mask, gvl),
+								 __builtin_epi_vfadd_1xf64_mask(vzero, vswwr, vcr, mask, gvl), mask, gvl);
+		__epi_1xf64 vusl = __builtin_epi_vfsub_1xf64_mask(vzero,
+								  vul,
+								  __builtin_epi_vfdiv_1xf64_mask(vzero,
+												 __builtin_epi_vfsub_1xf64_mask(vzero, vpst, vpl, mask, gvl),
+												 vwwl, mask, gvl), mask, gvl);
+/* 		if (s == 32) printvf64(vusl, gvl); */
+		__epi_1xf64 vusr = __builtin_epi_vfadd_1xf64_mask(vzero,
+								  vur,
+								  __builtin_epi_vfdiv_1xf64_mask(vzero,
+												 __builtin_epi_vfsub_1xf64_mask(vzero, vpst, vpr, mask, gvl),
+												 vwwr, mask, gvl), mask, gvl);
+/* 		if (s == 32) printvf64(vusr, gvl); */
+		__epi_1xf64 vtmpmiddle = __builtin_epi_vfdiv_1xf64_mask(vzero,
+									__builtin_epi_vfmul_1xf64_mask(vzero,
+												       vqr,
+												       vql, mask, gvl),
+									__builtin_epi_vfadd_1xf64_mask(vzero, vqr, vql, mask, gvl), mask, gvl);
+		__epi_1xf64 vtmp = __builtin_epi_vfmul_1xf64_mask(vzero,
+								  vtmpmiddle,
+								  __builtin_epi_vfsub_1xf64_mask(vzero, vusl, vusr, mask, gvl), mask, gvl);
+/* 		if (s == 32) printvf64(vtmp, gvl); */
+		__epi_1xf64 vdelp_i = __builtin_epi_vfmax_1xf64_mask(vzero, vtmp, __builtin_epi_vfsgnjn_1xf64_mask(vzero, vpst, vpst, mask, gvl), mask, gvl); // fsgnjn for fneg
+		vpst = __builtin_epi_vfadd_1xf64_mask(vzero, vpst, vdelp_i, mask, gvl);
+/* 		if (s == 32) printvf64(vpst, gvl); */
+		// Convergence indicator
+		__epi_1xf64 vtmp2 = __builtin_epi_vfdiv_1xf64_mask(vzero,
+								   vdelp_i,
+								   __builtin_epi_vfadd_1xf64_mask(vzero, vpst, vsmallpp, mask, gvl), mask, gvl);
+		__epi_1xf64 vuo_i = __builtin_epi_vfsgnjx_1xf64_mask(vzero, vtmp2, vtmp2, mask, gvl); // fsgnjx for fabs
+		__epi_1xi1 converged = __builtin_epi_vmfle_1xf64(vuo_i, __builtin_epi_vfmv_v_f_1xf64(PRECISION, gvl), gvl); // no masked version ?
+		converged = __builtin_epi_vmand_1xi1(mask, converged, gvl);
+
+		/* again masjked version is not yet implemented
+		   ... though the performance limitations is probably from the big copy ... */
+		vgoon = __builtin_epi_vmerge_1xi64(vgoon, __builtin_epi_vmv_v_x_1xi64(0, gvl), converged, gvl);
+		__builtin_epi_vstore_1xi64(goon64, vgoon, gvl);
+		for (j = 0 ; j < gvl ; j++) goon[i + j] = goon64[j];
+	
+#if 0
+		__builtin_epi_vstore_1xf64_mask(pstar + i, vpst, mask, gvl);
+#else
+		vpst = __builtin_epi_vfmerge_1xf64(orig_vpst, vpst, mask, gvl);
+		__builtin_epi_vstore_1xf64(pstar + i, vpst, gvl);
+#endif
+
+		i += gvl;
+	}
+	//fprintf(stderr, "%s stop\n", __PRETTY_FUNCTION__);
+}
+
 void
 riemann(int narray, const real_t Hsmallr, 
 	const real_t Hsmallc, const real_t Hgamma, 
@@ -139,7 +310,6 @@ riemann(int narray, const real_t Hsmallr,
     goon = &Fgoon[s * narray];
 
     // Precompute values for this slice
-
 #ifdef SIMDNEEDED
 #if __ICC < 1300
 #pragma ivdep
@@ -178,6 +348,7 @@ riemann(int narray, const real_t Hsmallr,
 #pragma SIMD
 #endif
 #endif
+#if 0
       for (i = 0; i < narray; i++) {
 	if (goon[i]) {
 	  real_t pst = pstar[i];
@@ -201,6 +372,20 @@ riemann(int narray, const real_t Hsmallr,
 	  pstar[i] = pst;
 	}
       }
+#else
+      solve_all_masking_rvv(s,
+			    narray,
+			    pstar,
+			    ul,
+			    pl,
+			    ur,
+			    pr,
+			    cl,
+			    cr,
+			    goon,
+			    gamma6,
+			    smallpp);
+#endif
     }                           // iter_riemann
 
 #ifdef SIMDNEEDED
