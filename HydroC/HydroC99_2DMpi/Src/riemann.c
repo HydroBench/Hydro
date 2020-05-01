@@ -141,11 +141,10 @@ void solve_all_masking_rvv(const int s, // for debugging
 		for (j = 0 ; j < gvl ; j++) goon64[j] = goon[i + j]; // i've yet to find a better way
 		__epi_1xi64 vgoon = __builtin_epi_vload_1xi64(goon64, gvl);
 		__epi_1xi1 mask = __builtin_epi_vmseq_1xi64(vgoon, __builtin_epi_vmv_v_x_1xi64(1, gvl), gvl);
-		/* currently crashes in vehave */
-/* 		if (__builtin_epi_vfirst_1xi1(mask, gvl) < 0) { */
-/* 			i += gvl; */
-/* 			continue; */
-/* 		} */
+		if (__builtin_epi_vfirst_1xi1(mask, gvl) < 0) {
+			i += gvl;
+			continue;
+		}
 		/* mask = __builtin_epi_vmxnor_1xi1(mask, mask, gvl); */
 		/* assume real_t == double */
 		const __epi_1xf64 vone = __builtin_epi_vfmv_v_f_1xf64(1., gvl);
