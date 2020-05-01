@@ -121,6 +121,10 @@ void solve_all_masking_sve(const int s, // for debugging
     svbool_t tailmask32 = svcmplt_s32(svptrue_b32(), svindex_s32(0, 1), svdup_n_s32(narray - i));
     svint32_t vgoon32 = svld1_s32(tailmask32, goon + i);
     svbool_t mask32 = svcmpeq_s32(tailmask32, vgoon32, svdup_n_s32(1));
+    if (!svptest_any(mask32, mask32)) {
+      i += vc/sizeof(real_t);
+      continue;
+    }
     svbool_t mask = svunpklo_b(mask32); // unpack to convert the mask to the wider type
 #endif
     /* assume real_t == double */
