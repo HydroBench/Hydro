@@ -79,7 +79,7 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #include <arm_sve.h>
 
-#define SOLVE_ALL_FUNC
+//#define SOLVE_ALL_FUNC
 
 #ifdef SOLVE_ALL_FUNC
 
@@ -214,7 +214,7 @@ void solve_all_masking_sve(const int s, // for debugging
 
 #else
 
-#define SOLVE_USE_FUNC
+//#define SOLVE_USE_FUNC
 
 #ifdef SOLVE_USE_FUNC
 
@@ -354,7 +354,7 @@ void solve_one_masking(real_t *restrict pstar,
 
 #else 
 
-#define UNIFORM_IS_VECTOR
+//#define UNIFORM_IS_VECTOR
 //#define UNIFORM_IS_GLOBAL
 
 #ifdef  UNIFORM_IS_VECTOR
@@ -775,9 +775,10 @@ riemann(int narray, const real_t Hsmallr,
 #if defined (EMBED_MASKING)
 	  solve_one_masking(&pstar[i],&ul[i],&pl[i],&ur[i],&pr[i],&cl[i],&cr[i],&goon[i], gamma6, smallpp);
 #else
-	if (goon[i]) {
+	/* if (goon[i]) */ {
 #ifndef SOLVE_USE_FUNC
 	  real_t pst = pstar[i];
+real_t oldpst = pst;
 	  // Newton-Raphson iterations to find pstar at the required accuracy
 	  real_t wwl = MYSQRT(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
 	  real_t wwr = MYSQRT(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
@@ -793,6 +794,7 @@ riemann(int narray, const real_t Hsmallr,
 	  // Convergence indicator
 	  real_t tmp2 = delp_i / (pst + smallpp);
 	  real_t uo_i = Fabs(tmp2);
+pst = goon[i] ? pst : oldpst;
 	  goon[i] = uo_i > PRECISION;
 	  // FLOPS(29, 10, 2, 0);
 	  pstar[i] = pst;
