@@ -79,7 +79,7 @@ Dmemset(size_t nbr, real_t t[nbr], real_t motif) {
 
 #include <arm_sve.h>
 
-//#define SOLVE_ALL_FUNC
+#define SOLVE_ALL_FUNC
 
 #ifdef SOLVE_ALL_FUNC
 
