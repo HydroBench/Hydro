@@ -156,10 +156,10 @@ void Domain::dumpLine(void)
 			strncat(ext, pvar, 250);
 		}
 	}
-	dumpLineArray(f, puold, "P", ext);
-	dumpLineArray(f, duold, "D", ext);
-	dumpLineArray(f, uuold, "U", ext);
-	dumpLineArray(f, vuold, "V", ext);
+	dumpLineArray(f, puold, (char*) "P", ext);
+	dumpLineArray(f, duold, (char*) "D", ext);
+	dumpLineArray(f, uuold, (char*) "U", ext);
+	dumpLineArray(f, vuold, (char*) "V", ext);
 
 	Matrix2 < real_t > speed (uuold);
 	for (int32_t j = 0; j < speed.getH(); j++) {
@@ -169,5 +169,5 @@ void Domain::dumpLine(void)
 			speed(i, j) = sqrt(valU * valU + valV * valV);
 		}
 	}
-	dumpLineArray(f, speed, "S", ext);
+	dumpLineArray(f, speed, (char*) "S", ext);
 }

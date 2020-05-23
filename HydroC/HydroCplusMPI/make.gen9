@@ -32,7 +32,7 @@ ifeq ($(MPI),O)
 endif
 
 ifeq ($(CXX),icpc)
-   OPTIM+=-march=core-avx2 -fma
+   OPTIM+=-xcore-avx2 -fma
    # -DAVX -D__vectorize_avx
    OPTIM+=-mCG_use_zeroupper=0
    OPTIM+=-mP1OPT_max_rec_copy_size=128
@@ -56,7 +56,7 @@ endif
 
 ifeq ($(CXX),icx)
      # OPTIM+=-mavx2 -fopenmp -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
-    OPTIM+=-mavx2 -fopenmp -fiopenmp -fopenmp-targets=spir64 
+    OPTIM+=-xcore-avx2 -fopenmp -fiopenmp -fopenmp-targets=spir64 
     LIBS+=-lstdc++
 endif
 

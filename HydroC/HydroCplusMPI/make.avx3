@@ -1,3 +1,7 @@
+ifeq ($(CXX),)
+     CXX=icpc
+endif
+
 CFLAGS+=-std=c++11
 
 ifneq ($(DBG),O)
@@ -20,6 +24,15 @@ ifeq ($(MPI),O)
 endif
 
 ifeq ($(CXX),icpc)
+   OPTIM+=-xCORE-AVX512
+   OPTIM+=$(DIVOPTS)
+   # 0 - 3
+   # OPTIM+=-qopt-streaming-cache-evict=1
+   # auto always never   (always for mem bound codes)
+   # OPTIM+=-qopt-streaming-stores=always
+endif
+
+ifeq ($(CXX),icx)
    OPTIM+=-xCORE-AVX512
    OPTIM+=$(DIVOPTS)
    # 0 - 3

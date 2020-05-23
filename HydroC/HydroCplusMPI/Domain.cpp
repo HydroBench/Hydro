@@ -110,7 +110,7 @@ Domain::Domain(int argc, char **argv)
 
 	initMPI();
 	if (m_myPe == 0 && m_stats > 0) {
-		system("cpupower frequency-info | egrep 'CPU frequency|steps'");
+		int src = system("cpupower frequency-info | egrep 'CPU frequency|steps'");
 	}
 	double tRemain = m_tr.timeRemainAll();
 	if (tRemain <= 1) {
@@ -324,10 +324,10 @@ static void keyval(char *buffer, char **pkey, char **pval)
 	// kill the newline
 	ptr = strchr(buffer, '\n');
 	if (ptr)
-		*ptr = NULL;
+		*ptr = 0;
 	// strip comment from value
 	ptr = strchr(buffer, '#');
-	if (ptr) *ptr = NULL;
+	if (ptr) *ptr = 0;
 
 	// suppress leading whites or tabs from key
 	while ((**pkey == ' ') || (**pkey == '\t'))
@@ -335,7 +335,7 @@ static void keyval(char *buffer, char **pkey, char **pval)
 
 	ptr = strchr(buffer, '=');
 	if (ptr) {
-		*ptr = NULL;
+		*ptr = 0;
 		ptr++;
 	} else {
 		ptr = buffer; // no = sign, probably a comment
@@ -347,17 +347,17 @@ static void keyval(char *buffer, char **pkey, char **pval)
 	
 	// strip key from ending white or tab
 	while ((ptr = strchr(*pkey, ' ')) != NULL) {
-		*ptr = NULL;
+		*ptr = 0;
 	}
 	while ((ptr = strchr(*pkey, '\t')) != NULL) {
-		*ptr = NULL;
+		*ptr = 0;
 	}
 	// strip val from ending white or tab
 	while ((ptr = strchr(*pval, ' ')) != NULL) {
-		*ptr = NULL;
+		*ptr = 0;
 	}
 	while ((ptr = strchr(*pval, '\t')) != NULL) {
-		*ptr = NULL;
+		*ptr = 0;
 	}
 }
 
@@ -531,7 +531,7 @@ void Domain::readInput()
 			}
 			// string parameter
 			if (strcmp(pkey, "scheme") == 0) {
-				cerr << "[" << pval << "]" << endl;
+				// cerr << "[" << pval << "]" << endl;
 				if (strstr(pval, "muscl") != 0) {
 					m_scheme = SCHEME_MUSCL;
 				} else if (strstr(pval, "plmde") != 0) {

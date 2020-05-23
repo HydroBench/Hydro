@@ -10,8 +10,10 @@ NODEFAULT=no
 
 # INCS+=-I$(HOME)/vecadv/advisor_xe/include
 
-CXX=icpc
 DEFS+=$(DEFSEXT)
+
+# for compiler selection
+include make.compil
 
 ifeq ($(PI),O)
 include make.pi
@@ -147,7 +149,8 @@ cleanall:
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
 	rm -f *~
-	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c input.nml
+	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c inputlong.nml cmpDumps cmpCompilos
+# config.lua goOneview
 
 # TestThx2_Omp TestThx2_1 README.after 
 
