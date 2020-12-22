@@ -4,19 +4,22 @@ This namelist contains various input parameters for HYDRO runs
 tend=20000
 #tend=3
 # noutput=1
-nstepmax=20
+nstepmax=11
 # dtoutput=0.1
-# dtimage=10
 # chkpt=1
+nimage=-1
+nDumpline= 10
+stats= 0
 /
 
 &MESH0
-nx=5500
-ny=5500
+nx=500
+ny=500
 nxystep=480
-tilesize=508
-tilesize=60
+tilesize=64
 morton=1
+tasked=0
+taskeddep=0
 prt=0
 dx=0.05
 boundary_left=1

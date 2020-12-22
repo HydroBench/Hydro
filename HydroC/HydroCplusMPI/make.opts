@@ -1,70 +1,108 @@
 ifeq ($(PNG),O)
    DEFS+=-DWITHPNG=1
 endif
+OPTIM+=-g 
+
+ifeq ($(DBG),O)
+     OPTIM+=-O0
+     NOVEC=O
+     NOFMA=O
+else
+   ifeq ($(OPTLVL),)
+	OPTIM+=-O3
+   else
+	OPTIM+=$(OPTLVL)
+   endif
+endif
 
 ifeq ($(CXX),icpc)
 # OPTIM+=-mkl
   ifeq ($(OPENMP),O)
-     OPTIM+=-qopenmp
+       OPTIM+=-qopenmp
   endif
   OPTIM+=-ansi-alias 
   ifeq ($(PG),O)
-     OPTIM+=-pg
+       OPTIM+=-pg
   endif
   ifeq ($(XHOST),O)
-     OPTIM+=-xHost 
+       OPTIM+=-xHost 
   endif
   ifeq ($(VERB),O)
-     # OPTIM+=-vec-report6
-     # for compiler >= 15
-     OPTIM+=-qopt-report=5
+       # OPTIM+=-vec-report6
+       # for compiler >= 15
+       OPTIM+=-qopt-report=5
+       OPTIM+=-qopt-report -qopt-report-phase=vec
   endif
 
-  # OPTIM+=-openmp-report1 
+  ifeq ($(NOFMA),)
+      	OPTIM+=-fma
+  else
+      	OPTIM+=-no-fma
+  endif
   ifeq ($(NOVEC),O)
-     OPTIM+=-no-vec -no-simd -qno-openmp-simd
-   else
-     OPTIM+=-simd -qopenmp-simd
-   endif
-   ifeq ($(DIVOPTS),)
+       OPTIM+=-no-vec -no-simd -qno-openmp-simd
+  else
+	OPTIM+=-simd -qopenmp-simd
+  endif
+  ifeq ($(DIVOPTS),)
       # OPTIM+=-qopt-zmm-usage=high
       # OPTIM+=-mCG_use_zeroupper=0
       # OPTIM+=-mP1OPT_max_rec_copy_size=128
-      OPTIM+=-fma
-   endif
+  endif
 endif
 
 ifeq ($(CXX),g++)
   ifeq ($(PG),O)
-     OPTIM+=-pg
+       OPTIM+=-pg
   endif
   ifeq ($(OPENMP),O)
-     OPTIM+=-fopenmp
+       OPTIM+=-fopenmp
   endif
   ifeq ($(NOVEC),O)
-     OPTIM+=-fno-tree-vectorize -fno-openmp-simd
+       OPTIM+=-fno-tree-vectorize -fno-openmp-simd
   else
-     ifneq ($(DBG),O)
-        OPTIM+=-ftree-vectorize -fopenmp-simd
-     endif
+	OPTIM+=-ftree-vectorize 
+	OPTIM+=-fopenmp-simd
   endif	
-  ifeq ($(DBG),O)
-     OPTIM+=-g
-  else
-     OPTIM+=-O3
-  endif
   ifeq ($(VERB),O)
-     OPTIM+=-ftree-vectorizer-verbose=2 -fopt-info
+       OPTIM+=-ftree-vectorizer-verbose=2 -fopt-info
+  endif
+  ifeq ($(STATIC),O)
+       STATICOPT=--static
   endif
 endif
 
 ifeq ($(CXX),clang++)
   ifeq ($(NOVEC),O)
-     OPTIM+=-fno-vectorize
+       OPTIM+=-fno-vectorize
+       OPTIM+=-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize 
   else
-     OPTIM+=-mllvm -force-vector-width=2
+	OPTIM+=-mllvm -force-vector-width=2
   endif
-  ifeq ($(NOVEC),O)
-     OPTIM+=-Rpass=loop-vectorize -Rpass-analysis=loop-vectorize 
+endif
+
+ifeq ($(CXX), armclang++)
+   ifeq ($(NOVEC),O)
+	OPTIM+=-fno-vectorize -fno-simdmath -fno-openmp-simd 
+   else
+	OPTIM+=-fvectorize -fslp-vectorize -ffp-contract=fast -fsimdmath
+	ifeq ($(OPENMP),O)
+	   OPTIM+=-fopenmp-simd	
+	endif
+   endif
+   ifeq ($(OPENMP),O)
+        CFLAGS+=-fopenmp 
+   endif
+   ifeq ($(VERB),O)
+   	OPTIM+=-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize
+   endif
+   ifeq ($(STATIC),O)
+     	STATICOPT=--static
+   endif
+endif # armclang++
+
+ifeq ($(CXX),icx) 
+  ifeq ($(OPENMP),O)
+   CFLAGS+=-fopenmp
   endif
 endif

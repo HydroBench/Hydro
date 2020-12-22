@@ -3,7 +3,7 @@ CFLAGS+=-std=c++11
 ifneq ($(DBG),O)
    OPTIM+=-O3
 endif
-OPTIM+=-g
+OPTIM+=-g3
 
 ifeq ($(MPI),O)
    ifneq ($(I_MPI_ROOT),)
