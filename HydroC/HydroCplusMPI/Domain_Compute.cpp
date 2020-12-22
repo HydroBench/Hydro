@@ -443,9 +443,9 @@ void Domain::compute()
 			if (m_iter > m_nStepMax)
 				break;
 		}
-
 		// GCDV temporaire. A intégrer
-		if (m_iter == m_nDumpline) dumpLine();
+		if (m_iter == m_nDumpline)
+			dumpLine();
 
 		int outputVtk = 0;
 		if (m_nOutput > 0) {
