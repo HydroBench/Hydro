@@ -1,0 +1,15 @@
+collapse(3)
+-- Kernel#__omp_offloading_fd01_1a4006d__Z5slope_l88: 450.396061, 390.136603
+collapse(2) simd
+-- Kernel#__omp_offloading_fd01_1a4006d__Z5slope_l88: 735.614777, 672.323074
+no collapse simd
+-- Kernel#__omp_offloading_fd01_1a4006d__Z5slope_l88: 2573.381662, 2504.670001
+no collapse no simd
+-- Kernel#__omp_offloading_fd01_1a4006d__Z5slope_l88: 2901.144981, 2829.451242
+
+CPU
+0.0471 rien
+0.0448 simd au centre
+0.0444      collapse(2) simd
+0.0432	    collapse(2) nosimd
+0.0413	    collapse(3)

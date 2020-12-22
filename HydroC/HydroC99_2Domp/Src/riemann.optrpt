@@ -1,0 +1,225 @@
+Intel(R) Advisor can now assist with vectorization and show optimization
+  report messages with your source code.
+See "https://software.intel.com/en-us/intel-advisor-xe" for details.
+
+
+    Report from: Interprocedural optimizations [ipo]
+
+INLINING OPTION VALUES:
+  -inline-factor: 100
+  -inline-min-size: 30
+  -inline-max-size: 230
+  -inline-max-total-size: 2000
+  -inline-max-per-routine: 10000
+  -inline-max-per-compile: 500000
+
+
+Begin optimization report for: Dmemset(size_t, real_t *, real_t)
+
+    Report from: Interprocedural optimizations [ipo]
+
+INLINE REPORT: (Dmemset(size_t, real_t *, real_t)) [1] riemann.c(63,50)
+
+
+    Report from: Loop nest, Vector & Auto-parallelization optimizations [loop, vec, par]
+
+
+LOOP BEGIN at riemann.c(65,3)
+<Peeled loop for vectorization>
+LOOP END
+
+LOOP BEGIN at riemann.c(65,3)
+   remark #15300: LOOP WAS VECTORIZED
+LOOP END
+
+LOOP BEGIN at riemann.c(65,3)
+<Remainder loop for vectorization>
+   remark #15301: REMAINDER LOOP WAS VECTORIZED
+LOOP END
+
+LOOP BEGIN at riemann.c(65,3)
+<Remainder loop for vectorization>
+LOOP END
+
+    Report from: Code generation optimizations [cg]
+
+riemann.c(63,50):remark #34051: REGISTER ALLOCATION : [Dmemset] riemann.c:63
+
+    Hardware registers
+        Reserved     :    2[ rsp rip]
+        Available    :   39[ rax rdx rcx rbx rbp rsi rdi r8-r15 mm0-mm7 zmm0-zmm15]
+        Callee-save  :    6[ rbx rbp r12-r15]
+        Assigned     :    9[ rax rdx rcx rsi rdi r8-r9 zmm0-zmm1]
+        
+    Routine temporaries
+        Total         :      43
+            Global    :      24
+            Local     :      19
+        Regenerable   :       0
+        Spilled       :       0
+        
+    Routine stack
+        Variables     :       0 bytes*
+            Reads     :       0 [0.00e+00 ~ 0.0%]
+            Writes    :       0 [0.00e+00 ~ 0.0%]
+        Spills        :       0 bytes*
+            Reads     :       0 [0.00e+00 ~ 0.0%]
+            Writes    :       0 [0.00e+00 ~ 0.0%]
+    
+    Notes
+    
+        *Non-overlapping variables and spills may share stack space,
+         so the total stack size might be less than this.
+    
+
+===========================================================================
+
+Begin optimization report for: riemann(int, const real_t, const real_t, const real_t, const int, const int, const int, const int, const int, real_t (*)[*][*], real_t (*)[*][*], real_t (*)[*][*], int (*)[*], hydrowork_t *)
+
+    Report from: Interprocedural optimizations [ipo]
+
+INLINE REPORT: (riemann(int, const real_t, const real_t, const real_t, const int, const int, const int, const int, const int, real_t (*)[*][*], real_t (*)[*][*], real_t (*)[*][*], int (*)[*], hydrowork_t *)) [2] riemann.c(92,1)
+
+
+    Report from: OpenMP optimizations [openmp]
+
+OpenMP Construct at riemann.c(149,3)
+remark #16204: OpenMP multithreaded code generation for SINGLE was successful
+OpenMP Construct at riemann.c(144,1)
+remark #16201: OpenMP DEFINED REGION WAS PARALLELIZED
+OpenMP Construct at riemann.c(199,3)
+remark #16204: OpenMP multithreaded code generation for SINGLE was successful
+OpenMP Construct at riemann.c(194,1)
+remark #16201: OpenMP DEFINED REGION WAS PARALLELIZED
+OpenMP Construct at riemann.c(250,3)
+remark #16204: OpenMP multithreaded code generation for SINGLE was successful
+OpenMP Construct at riemann.c(246,1)
+remark #16201: OpenMP DEFINED REGION WAS PARALLELIZED
+
+    Report from: Loop nest, Vector & Auto-parallelization optimizations [loop, vec, par]
+
+
+LOOP BEGIN at riemann.c(360,5)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at riemann.c(361,7)
+      remark #25084: Preprocess Loopnests: Moving Out Store    [ riemann.c(365,2) ]
+      remark #25084: Preprocess Loopnests: Moving Out Store    [ riemann.c(361,31) ]
+      remark #15542: loop was not vectorized: inner loop was already vectorized
+
+      LOOP BEGIN at riemann.c(365,2)
+      <Peeled loop for vectorization>
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+
+      LOOP BEGIN at riemann.c(365,2)
+         remark #15301: SIMD LOOP WAS VECTORIZED
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+
+      LOOP BEGIN at riemann.c(365,2)
+      <Remainder loop for vectorization>
+         remark #15301: REMAINDER LOOP WAS VECTORIZED
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+
+      LOOP BEGIN at riemann.c(365,2)
+      <Remainder loop for vectorization>
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+   LOOP END
+LOOP END
+
+LOOP BEGIN at riemann.c(149,3)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at riemann.c(171,5)
+   <Peeled loop for vectorization>
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+
+   LOOP BEGIN at riemann.c(171,5)
+      remark #15301: SIMD LOOP WAS VECTORIZED
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+
+   LOOP BEGIN at riemann.c(171,5)
+   <Remainder loop for vectorization>
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+LOOP END
+
+LOOP BEGIN at riemann.c(199,3)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at riemann.c(214,5)
+      remark #15542: loop was not vectorized: inner loop was already vectorized
+
+      LOOP BEGIN at riemann.c(220,7)
+      <Peeled loop for vectorization>
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+
+      LOOP BEGIN at riemann.c(220,7)
+         remark #15301: SIMD LOOP WAS VECTORIZED
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+
+      LOOP BEGIN at riemann.c(220,7)
+      <Remainder loop for vectorization>
+         remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+      LOOP END
+   LOOP END
+LOOP END
+
+LOOP BEGIN at riemann.c(250,3)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at riemann.c(268,5)
+   <Peeled loop for vectorization>
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+
+   LOOP BEGIN at riemann.c(268,5)
+      remark #15301: SIMD LOOP WAS VECTORIZED
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+
+   LOOP BEGIN at riemann.c(268,5)
+   <Remainder loop for vectorization>
+      remark #25456: Number of Array Refs Scalar Replaced In Loop: 1
+   LOOP END
+LOOP END
+
+    Report from: Code generation optimizations [cg]
+
+riemann.c(92,1):remark #34051: REGISTER ALLOCATION : [riemann] riemann.c:92
+
+    Hardware registers
+        Reserved     :    2[ rsp rip]
+        Available    :   39[ rax rdx rcx rbx rbp rsi rdi r8-r15 mm0-mm7 zmm0-zmm15]
+        Callee-save  :    6[ rbx rbp r12-r15]
+        Assigned     :   30[ rax rdx rcx rbx rsi rdi r8-r15 zmm0-zmm15]
+        
+    Routine temporaries
+        Total         :    1481
+            Global    :     409
+            Local     :    1072
+        Regenerable   :     203
+        Spilled       :     203
+        
+    Routine stack
+        Variables     :     312 bytes*
+            Reads     :      21 [4.34e-02 ~ 0.0%]
+            Writes    :      46 [5.39e-01 ~ 0.5%]
+        Spills        :    1848 bytes*
+            Reads     :     445 [7.78e+00 ~ 7.8%]
+            Writes    :     273 [2.78e+00 ~ 2.8%]
+    
+    Notes
+    
+        *Non-overlapping variables and spills may share stack space,
+         so the total stack size might be less than this.
+    
+
+===========================================================================

@@ -1,0 +1,14 @@
+#!/bin/bash
+rm steps.log run.log average.log
+
+for comp in icc gcc /usr/bin/clang clang icx ; do
+    make CC=$comp clean 
+    make CC=$comp run | tee run.log
+    echo $comp >> steps.log
+    echo $comp >> average.log
+    grep step= run.log | tail -1 >> steps.log
+    grep Average run.log | tail -1 >> average.log
+done
+cat steps.log
+cat average.log
+#EOF
