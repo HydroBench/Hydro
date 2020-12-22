@@ -10,8 +10,10 @@ NODEFAULT=no
 
 # INCS+=-I$(HOME)/vecadv/advisor_xe/include
 
-CXX=icpc
 DEFS+=$(DEFSEXT)
+
+# for compiler selection
+include make.compil
 
 ifeq ($(PI),O)
 include make.pi
@@ -81,13 +83,13 @@ include make.epyc
 NODEFAULT=yes
 endif
 
-ifeq ($(CSA),O)
-include make.csa
+ifeq ($(SVE),O)
+include make.sve
 NODEFAULT=yes
 endif
 
-ifeq ($(SVE),O)
-include make.sve
+ifeq ($(GEN9),O)
+include make.gen9
 NODEFAULT=yes
 endif
 
@@ -135,12 +137,8 @@ ifeq ($(CRAY),O)
 	touch $@
 else
 %.d: %.cpp
-ifneq ($(CSA),O)
 	@echo "Generating $@"
 	@$(CXX) -M $(DEFS) $(CFLAGS) $< | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
-else
-	@$(CXX) -M $(DEFS) $(CFLAGS) $< -o $@
-endif
 endif
 clean:
 	rm -rf *.o hydroc *~ toto *.optrpt
@@ -151,7 +149,8 @@ cleanall:
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
 	rm -f *~
-	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c input.nml
+	tar czvf Archiv_$(DATEHOUR).tgz hydroAverage README Makefile make.* *.hpp *.cpp *.h *.c inputlong.nml cmpDumps cmpCompilos
+# config.lua goOneview
 
 # TestThx2_Omp TestThx2_1 README.after 
 
