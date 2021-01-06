@@ -94,17 +94,19 @@ include $(DEPS)
 #alldeps.d: $(SRC)
 #	env CFLAGS='$(CFLAGS)' ./makedeps > alldeps.d
 
-TARGETFUNCS=slope.o trace.o cmpflx.o constoprim.o qleftright.o conservar.o riemann.o
+TARGETFUNCS=*.o
 
 runcpu:
-	rm -f $(TARGETFUNCS)
+	if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS); fi
 	make -j GPU=N
 	env OMP_NUM_THREADS=8 ./hydro -i input.nml
+	touch lastcpu
 
 rungpu:
-	rm -f $(TARGETFUNCS)
+	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS); fi
 	make GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
+	touch lastgpu
 
 rungpud: hydro
 	rm -f $(TARGETFUNCS)
@@ -119,4 +121,7 @@ tarball:
 	make clean CC=gcc
 	tar czvf tarball_$(DATEHOUR).tgz Makefile *.h *.c input.nml
 
+runall:
+	make runcpu | grep 'step=  12,'
+	make rungpu | grep 'step=  12,'
 #EOF

@@ -58,6 +58,7 @@
 
 #include "cmpflx.h"
 #include "conservar.h"
+#include "perfcnt.h"
 
 // variables auxiliaires pour mettre en place le mode resident de HMPP
 void
@@ -196,8 +197,15 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 
 	    start = cclock();
 	    {
+#ifdef TARGETON
+#endif
 		equation_of_state(0, Hdimsize, H.nxyt, H.nvar, H.smallc,
 				  H.gamma, slices, Hstep, e, q, c);
+		{ 
+			int nops = slices * (Hdimsize);
+			FLOPS(1, 1, 0, 0);
+			FLOPS(5 * nops, 2 * nops, 1 * nops, 0 * nops);
+		}
 	    }
 	    end = cclock();
 	    functim[TIM_EOS] += ccelaps(start, end);
