@@ -270,7 +270,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw, hydrovarw
   Hw->ro    = DMalloc(domain); MOVEPAGE(Hw->ro);
 #endif
   Hw->goon  = IMalloc(domain);
-  Hw->sgnm  = IMalloc(domain);
+  Hw->sgnm  = IMalloc(domainVar);
 
   //   Hw->uo = DMalloc(ngrid);
   //   Hw->po = DMalloc(ngrid);

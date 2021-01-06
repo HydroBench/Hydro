@@ -65,10 +65,17 @@ equation_of_state(int imin,
    FLOPS(1, 1, 0, 0);
 
   // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
-#ifdef _OPENMP
-	inpar = omp_in_parallel();
-	//#pragma omp parallel for if (!inpar) schedule(auto) private(s,k), shared(c,q), collapse(2)
-#pragma omp parallel for  private(s,k), shared(c,q) COLLAPSE
+#ifdef TARGETON
+#pragma omp target				\
+	map(tofrom: q[0:Hnvar][0:Hstep][0:Hnxyt])				\
+	map(tofrom: c[0:Hstep][0:Hnxyt]) \
+	map(tofrom: eint[0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for default(none), \
+	firstprivate(slices, Hgamma, smallp, imin, imax) \
+	private(s,k), \
+	shared(c,q, eint) collapse(2)
+#else
+#pragma omp parallel for default(none) firstprivate(slices, Hgamma, smallp, imin, imax) private(s,k), shared(c,q, eint) COLLAPSE
 #endif
   for (s = 0; s < slices; s++) {
     for (k = imin; k < imax; k++) {
