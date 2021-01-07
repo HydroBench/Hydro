@@ -3,4 +3,4 @@
 
 void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv);
 
-#endif // MAKE_BOUNDARY_H_INCLUDED
+#endif				// MAKE_BOUNDARY_H_INCLUDED

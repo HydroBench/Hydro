@@ -8,8 +8,13 @@ ifeq ($(GPU),O)
 CFLAGS_OMP+=-DTARGETON
 endif
 ifeq ($(CC),icx)
-# 
-CFLAGS_OMP+= -fiopenmp -fopenmp-targets=spir64 -qopenmp-simd -pg -O3 -mavx2 -fno-color-diagnostics -fvectorize
+#
+ifeq ($(GPU),O)
+CFLAGS_OMP+= -fiopenmp -fopenmp-targets=spir64
+else
+CFLAGS_OMP+= -fiopenmp
+endif
+CFLAGS_OMP+= -qopenmp-simd -pg -O3 -mavx2 -fno-color-diagnostics -fvectorize
 endif
 ifeq ($(CC),icc)
 CFLAGS_OMP+= -fopenmp -qopenmp-simd -O3 -mavx2
@@ -97,13 +102,13 @@ include $(DEPS)
 TARGETFUNCS=*.o
 
 runcpu:
-	if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS); fi
+	sh -c "if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS) lastgpu; fi"
 	make -j GPU=N
 	env OMP_NUM_THREADS=8 ./hydro -i input.nml
 	touch lastcpu
 
 rungpu:
-	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS); fi
+	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
 	make GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
 	touch lastgpu

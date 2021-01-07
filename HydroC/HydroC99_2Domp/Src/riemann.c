@@ -166,8 +166,8 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 		    // FLOPS(29, 10, 2, 0);
 		    pstar[ii] = pst;
 		}
-	    } // iter_riemann
-	}			
+	    }			// iter_riemann
+	}
     }
 
 #ifdef WITHTARGET

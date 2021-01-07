@@ -6,16 +6,16 @@
 //
 
 // number of floatting ops per operation type
-#define FLOPSARI  1 
+#define FLOPSARI  1
 // + - * -x
 
-#define FLOPSSQR  2 
+#define FLOPSSQR  2
 // / sqrt 
 
-#define FLOPSMIN  1 
+#define FLOPSMIN  1
 // min, max, sign, abs 
 
-#define FLOPSTRA  5 
+#define FLOPSTRA  5
 // exp, sin, cos 
 
 extern long flopsAri, flopsSqr, flopsMin, flopsTra;

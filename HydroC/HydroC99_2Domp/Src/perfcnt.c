@@ -6,9 +6,9 @@
 #include <malloc.h>
 #include <assert.h>
 #include <limits.h>
-# include <sys/time.h>
-# include <float.h>
-# include <math.h>
+#include <sys/time.h>
+#include <float.h>
+#include <math.h>
 
 //
 #include "perfcnt.h"

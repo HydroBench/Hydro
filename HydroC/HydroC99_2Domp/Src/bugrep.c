@@ -14,25 +14,25 @@
 typedef struct timespec ts_t;
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-  ts_t cclock (void);	
-  double dcclock (void);
+    ts_t cclock(void);
+    double dcclock(void);
 
-  double ccelaps (ts_t start, ts_t end);
+    double ccelaps(ts_t start, ts_t end);
 #ifdef __cplusplus
 };
 #endif
 
 #endif
 
-int main(int argc, char ** argv) {
-	struct timespec start, end;
-	start = cclock();
-	printf("Hello World\n"); 
-	end = cclock();
+int main(int argc, char **argv)
+{
+    struct timespec start, end;
+    start = cclock();
+    printf("Hello World\n");
+    end = cclock();
 
-	printf("%lf %lf\n", start, end); 
-	return 0;
+    printf("%lf %lf\n", start, end);
+    return 0;
 }
