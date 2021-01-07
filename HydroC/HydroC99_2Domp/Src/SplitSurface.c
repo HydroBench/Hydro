@@ -1,7 +1,4 @@
 #ifdef MPI
-#if FTI>0
-#include <fti.h>
-#endif
 #include <mpi.h>
 #endif
 #include <stdio.h>
@@ -164,13 +161,7 @@ CalcSubSurface(int xmin, int xmax,
 			"\tERROR: please adapt the number of process\n");
 	    }
 #ifdef MPI
-#if FTI==0
 	    MPI_Finalize();
-#endif
-#if FTI>0
-	    FTI_Finalize();
-	    MPI_Finalize();
-#endif
 #endif
 	    exit(1);
 	}

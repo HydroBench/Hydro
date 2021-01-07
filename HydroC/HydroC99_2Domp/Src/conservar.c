@@ -37,7 +37,6 @@ gatherConservativeVars(const int idim,
     if (idim == 1) {
 	// Gather conservative variables
 #ifdef TARGETON
-#pragma message "TARGET on GATHERCONSERVATIVEVARS"
 #pragma omp target				\
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar *Hnxt * Hnyt])

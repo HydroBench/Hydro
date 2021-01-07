@@ -20,7 +20,8 @@ ComputeQEforRow(const int j,
 		const int Hnyt,
 		const int Hnxyt,
 		const int Hnvar,
-		const int slices, const int Hstep,
+		const int slices,
+		const int Hstep,
 		real_t * uold,
 		real_t q[Hnvar][Hstep][Hnxyt], real_t e[Hstep][Hnxyt]
     )
@@ -29,7 +30,24 @@ ComputeQEforRow(const int j,
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#pragma omp parallel for shared(q, e) private(s, i) COLLAPSE
+#ifdef TARGETONoff // ici ça merde sans le off !!!
+#pragma omp target				\
+	map(tofrom: uold[0: Hnvar *Hnxt * Hnyt])\
+	map(tofrom: e[Hstep][Hnxyt])\
+	map(tofrom: q[Hnvar][Hstep][Hnxyt])\
+	map(tofrom: Hsmallr, slices, Hnx, Hnxt, Hnyt, j)
+#pragma omp teams distribute parallel for \
+	default(none)	\
+	shared(q, e, uold, Hsmallr, slices, Hnx, Hnxt, Hnyt, j)		  \
+	private(s, i)
+#else
+#pragma omp parallel for \
+	default(none)	\
+	shared(q, e, uold)	\
+	firstprivate(Hsmallr, slices, Hnx, Hnxt, Hnyt, j)	\
+	private(s, i)\
+	collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < Hnx; i++) {
 	    real_t eken;
@@ -55,9 +73,6 @@ ComputeQEforRow(const int j,
 #undef IHVW
 }
 
-// to force a parallel reduction with OpenMP
-#define WOMP
-
 void
 courantOnXY(real_t * cournox,
 	    real_t * cournoy,
@@ -67,12 +82,28 @@ courantOnXY(real_t * cournox,
 	    real_t c[Hstep][Hnxyt], real_t q[Hnvar][Hstep][Hnxyt],
 	    real_t * tmpm1, real_t * tmpm2)
 {
-#ifdef WOMP
     int s, i;
     // real_t maxValC = zero;
     real_t tmp1 = *cournox, tmp2 = *cournoy;
 
-#pragma omp parallel for shared(tmpm1, tmpm2) private(s,i) reduction(max:tmp1) reduction(max:tmp2)
+#ifdef TARGETON
+#pragma omp target \
+	map(tofrom: tmp1, tmp2)\
+	map(tofrom: c[0:Hstep][0:Hnxyt])\
+	map(tofrom: q[0:Hnvar][0:Hstep][0:Hnxyt])
+    
+#pragma omp teams distribute parallel for \
+	shared(tmpm1, tmpm2) \
+	private(s,i) \
+	reduction(max:tmp1, tmp2)\
+	collapse(2)
+#else
+#pragma omp parallel for \
+	shared(tmpm1, tmpm2) \
+	private(s,i) \
+	reduction(max:tmp1, tmp2)\
+	collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < Hnx; i++) {
 	    tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
@@ -85,22 +116,6 @@ courantOnXY(real_t * cournox,
 	int nops = (slices) * Hnx;
 	FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);
     }
-#else
-    int i, s;
-    real_t tmp1, tmp2;
-    for (s = 0; s < slices; s++) {
-	for (i = 0; i < Hnx; i++) {
-	    tmp1 = c[s][i] + DABS(q[IU][s][i]);
-	    tmp2 = c[s][i] + DABS(q[IV][s][i]);
-	    *cournox = MAX(*cournox, tmp1);
-	    *cournoy = MAX(*cournoy, tmp2);
-	}
-    }
-    {
-	int nops = (slices) * Hnx;
-	FLOPS(2 * nops, 0 * nops, 5 * nops, 0 * nops);
-    }
-#endif
 #undef IHVW
 }
 
@@ -154,8 +169,23 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
 	slices = jend - j;	// numbre of slices to compute
 	ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar, slices,
 			Hstep, Hv->uold, q, e);
+#ifdef TARGETON
+	fprintf(stderr, "avant le map\n");
+#pragma omp target data				\
+	map(tofrom: q[0:H.nvar][0:Hstep][0:H.nxyt])				\
+	map(tofrom: c[0:Hstep][0:H.nxyt]) \
+	map(tofrom: e[0:Hstep][0:H.nxyt])
+#endif
+	{
+#ifdef TARGETON
+	fprintf(stderr, "avant le equation_of_state\n");
+#endif
 	equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma, slices,
 			  Hstep, e, q, c);
+	}
+#ifdef TARGETON
+	fprintf(stderr, "après le equation_of_state\n");
+#endif
 	courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c,
 		    q, Hw->tmpm1, Hw->tmpm2);
 	// fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);

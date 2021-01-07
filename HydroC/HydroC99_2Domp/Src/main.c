@@ -1,8 +1,5 @@
 #ifdef MPI
 #include <mpi.h>
-#if FTI>0
-#include <fti.h>
-#endif
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +126,7 @@ void printTimingsLabel(const int N, const int fmtSize)
 	    txt = "ALLRED";
 	    break;
 	default:;
-		txt = "      ";
+	    txt = "      ";
 	}
 	fprintf(stdout, fmt, txt);
     }
@@ -195,12 +192,7 @@ int main(int argc, char **argv)
     // PRINTUOLD(H, &Hv);
 #ifdef MPI
     if (H.nproc > 1)
-#if FTI>0
-	MPI_Barrier(FTI_COMM_WORLD);
-#endif
-#if FTI==0
     MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #endif
 
     if (H.dtoutput > 0) {
@@ -222,19 +214,6 @@ int main(int argc, char **argv)
     allocate_work_space(H.nxyt, H, &Hw_godunov, &Hvw_godunov);
     compute_deltat_init_mem(H, &Hw_deltat, &Hvw_deltat);
     end = cclock();
-#ifdef MPI
-#if FTI==1
-    FTI_Protect(0, functim, TIM_END, FTI_DBLE);
-    FTI_Protect(1, &nvtk, 1, FTI_INTG);
-    FTI_Protect(2, &next_output_time, 1, FTI_DBLE);
-    FTI_Protect(3, &dt, 1, FTI_DBLE);
-    FTI_Protect(4, &MflopsSUM, 1, FTI_DBLE);
-    FTI_Protect(5, &nbFLOPS, 1, FTI_LONG);
-    FTI_Protect(6, &(H.nstep), 1, FTI_INTG);
-    FTI_Protect(7, &(H.t), 1, FTI_DBLE);
-    FTI_Protect(8, Hv.uold, H.nvar * H.nxt * H.nyt, FTI_DBLE);
-#endif
-#endif
     if (H.mype == 0)
 	fprintf(stdout, "Hydro: init mem %lfs\n", ccelaps(start, end));
     // we start timings here to avoid the cost of initial memory allocation
@@ -250,7 +229,9 @@ int main(int argc, char **argv)
 	    dt = 0;
 	    // if (H.mype == 0) fprintf(stdout, "Hydro computes deltat.\n");
 	    start = cclock();
-	    compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
+	    {
+		compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
+	    }
 	    end = cclock();
 	    functim[TIM_COMPDT] += ccelaps(start, end);
 	    if (H.nstep == 0) {
@@ -262,7 +243,6 @@ int main(int argc, char **argv)
 	    if (H.nproc > 1) {
 		real_t dtmin;
 		// printf("pe=%4d\tdt=%lg\n",H.mype, dt);
-#if FTI==0
 		if (sizeof(real_t) == sizeof(double)) {
 		    MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN,
 				  MPI_COMM_WORLD);
@@ -270,16 +250,6 @@ int main(int argc, char **argv)
 		    MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN,
 				  MPI_COMM_WORLD);
 		}
-#endif
-#if FTI>0
-		if (sizeof(real_t) == sizeof(double)) {
-		    MPI_Allreduce(&dt, &dtmin, 1, MPI_DOUBLE, MPI_MIN,
-				  FTI_COMM_WORLD);
-		} else {
-		    MPI_Allreduce(&dt, &dtmin, 1, MPI_FLOAT, MPI_MIN,
-				  FTI_COMM_WORLD);
-		}
-#endif
 		dt = dtmin;
 	    }
 #endif
@@ -307,7 +277,6 @@ int main(int argc, char **argv)
 #ifdef MPI
 	    long flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t;
 	    start = cclock();
-#if FTI==0
 	    MPI_Allreduce(&flopsAri, &flopsAri_t, 1, MPI_LONG, MPI_SUM,
 			  MPI_COMM_WORLD);
 	    MPI_Allreduce(&flopsSqr, &flopsSqr_t, 1, MPI_LONG, MPI_SUM,
@@ -316,17 +285,6 @@ int main(int argc, char **argv)
 			  MPI_COMM_WORLD);
 	    MPI_Allreduce(&flopsTra, &flopsTra_t, 1, MPI_LONG, MPI_SUM,
 			  MPI_COMM_WORLD);
-#endif
-#if FTI>0
-	    MPI_Allreduce(&flopsAri, &flopsAri_t, 1, MPI_LONG, MPI_SUM,
-			  FTI_COMM_WORLD);
-	    MPI_Allreduce(&flopsSqr, &flopsSqr_t, 1, MPI_LONG, MPI_SUM,
-			  FTI_COMM_WORLD);
-	    MPI_Allreduce(&flopsMin, &flopsMin_t, 1, MPI_LONG, MPI_SUM,
-			  FTI_COMM_WORLD);
-	    MPI_Allreduce(&flopsTra, &flopsTra_t, 1, MPI_LONG, MPI_SUM,
-			  FTI_COMM_WORLD);
-#endif
 	    //       if (H.mype == 1)
 	    //        printf("%ld %ld %ld %ld %ld %ld %ld %ld \n", flopsAri, flopsSqr, flopsMin, flopsTra, flopsAri_t, flopsSqr_t, flopsMin_t, flopsTra_t);
 	    flops =
@@ -378,11 +336,6 @@ int main(int argc, char **argv)
 		mcssig += (cellPerCycle * cellPerCycle);
 	    }
 	}
-#ifdef MPI
-#if FTI==1
-	FTI_Snapshot();
-#endif
-#endif
     }				// while
     end_time = dcclock();
 
@@ -413,7 +366,7 @@ int main(int argc, char **argv)
 	}
 	printTimings(functim, TIM_END, sizeFmt);
 	fprintf(stdout, "\n");
-	    fprintf(stdout, "%%      ");
+	fprintf(stdout, "%%      ");
 	percentTimings(functim, TIM_END);
 	printTimings(functim, TIM_END, sizeFmt);
 	fprintf(stdout, "\n");
@@ -423,22 +376,12 @@ int main(int argc, char **argv)
 	double timMAX[TIM_END];
 	double timMIN[TIM_END];
 	double timSUM[TIM_END];
-#if FTI==0
 	MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX,
 		      MPI_COMM_WORLD);
 	MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN,
 		      MPI_COMM_WORLD);
 	MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM,
 		      MPI_COMM_WORLD);
-#endif
-#if FTI>0
-	MPI_Allreduce(functim, timMAX, TIM_END, MPI_DOUBLE, MPI_MAX,
-		      FTI_COMM_WORLD);
-	MPI_Allreduce(functim, timMIN, TIM_END, MPI_DOUBLE, MPI_MIN,
-		      FTI_COMM_WORLD);
-	MPI_Allreduce(functim, timSUM, TIM_END, MPI_DOUBLE, MPI_SUM,
-		      FTI_COMM_WORLD);
-#endif
 	if (H.mype == 0) {
 	    int sizeFmt = sizeLabel(timMAX, TIM_END);
 	    printTimingsLabel(TIM_END, sizeFmt);
@@ -461,9 +404,6 @@ int main(int argc, char **argv)
 		(double)(avgCellPerCycle / nbCycle));
     }
 #ifdef MPI
-#if FTI>0
-    FTI_Finalize();
-#endif
     MPI_Finalize();
 #endif
     return 0;

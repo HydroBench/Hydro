@@ -32,7 +32,7 @@ equation_of_state(int imin,
     // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
 #ifdef TARGETON
 #pragma omp target			\
-	map(q[0:Hnvar][0:Hstep][0:Hnxyt]) \
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(c[0:Hstep][0:Hnxyt]) \
 	map(eint[0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for default(none), \

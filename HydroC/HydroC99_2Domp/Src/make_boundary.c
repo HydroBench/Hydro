@@ -1,8 +1,5 @@
 #ifdef MPI
 #include <mpi.h>
-#if FTI>0
-#include <fti.h>
-#endif
 #endif
 #include <stdlib.h>
 #include <unistd.h>

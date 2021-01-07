@@ -109,7 +109,7 @@ runcpu:
 
 rungpu:
 	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
-	make GPU=O QUIET=O
+	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
 	touch lastgpu
 
@@ -127,6 +127,6 @@ tarball:
 	tar czvf tarball_$(DATEHOUR).tgz Makefile *.h *.c input.nml
 
 runall:
-	make runcpu | grep 'step=  12,'
-	make rungpu | grep 'step=  12,'
+	make runcpu | tail -7
+	make rungpu | tail -7
 #EOF

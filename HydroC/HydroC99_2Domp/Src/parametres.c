@@ -1,8 +1,5 @@
 #ifdef MPI
 #include <mpi.h>
-#if FTI>0
-#include <fti.h>
-#endif
 #endif
 
 #include <stdio.h>
@@ -228,7 +225,6 @@ void process_args(int argc, char **argv, hydroparam_t * H)
     char donnees[512];
     char config[512];
 
-#if FTI==0
     default_values(H);
 
 #ifdef MPI
@@ -272,66 +268,6 @@ void process_args(int argc, char **argv, hydroparam_t * H)
 	fprintf(stderr, "Option -i is missing\n");
 	exit(1);
     }
-#endif
-#if FTI>0
-    H->prt = 0;
-    default_values(H);
-
-    while (n < argc) {
-	if (strcmp(argv[n], "--help") == 0) {
-	    usage();
-	    n++;
-	    continue;
-	}
-	if (strcmp(argv[n], "-v") == 0) {
-	    n++;
-	    H->prt++;
-	    continue;
-	}
-	if (strcmp(argv[n], "-i") == 0) {
-	    n++;
-	    strncpy(donnees, argv[n], 512);
-	    donnees[511] = 0;	// security
-	    n++;
-	    continue;
-	}
-	if (strcmp(argv[n], "-c") == 0) {
-	    n++;
-	    strncpy(config, argv[n], 512);
-	    config[511] = 0;	// security
-	    n++;
-	    continue;
-	}
-	fprintf(stderr, "Key %s is unkown\n", argv[n]);
-	n++;
-    }
-    if (config != NULL) {
-#ifdef MPI
-	//FTI initialization
-	FTI_Init(config, MPI_COMM_WORLD);
-#else
-	fprintf(stderr, "FTI need MPI\n", argv[n]);
-#endif
-    } else {
-	fprintf(stderr, "Option -c is missing\n");
-	exit(1);
-    }
-    default_values(H);
-
-#ifdef MPI
-    MPI_Comm_size(FTI_COMM_WORLD, &H->nproc);
-    MPI_Comm_rank(FTI_COMM_WORLD, &H->mype);
-#else
-    H->nproc = 1;
-    H->mype = 0;
-#endif
-    if (donnees != NULL) {
-	process_input(donnees, H);
-    } else {
-	fprintf(stderr, "Option -i is missing\n");
-	exit(1);
-    }
-#endif
 
     H->globnx = H->nx;
     H->globny = H->ny;
@@ -342,12 +278,7 @@ void process_args(int argc, char **argv, hydroparam_t * H)
 
 #ifdef MPI
     if (H->nproc > 1) {
-#if FTI==0
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-#if FTI>0
-	MPI_Barrier(FTI_COMM_WORLD);
-#endif
 	// first pass : determin our actual sub problem size
 	CalcSubSurface(0, H->globnx, 0, H->globny, 0, H->nproc - 1, 0, H->box,
 		       H->mype, 0);
@@ -373,12 +304,7 @@ void process_args(int argc, char **argv, hydroparam_t * H)
 	}
 
 	if (H->nx == 0 || H->ny == 0) {
-#if FTI==0
 	    MPI_Abort(MPI_COMM_WORLD, 123);
-#endif
-#if FTI>0
-	    MPI_Abort(FTI_COMM_WORLD, 123);
-#endif
 	}
 	// adapt the boundary conditions 
 	if (H->box[LEFT_BOX] != -1) {

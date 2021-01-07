@@ -1,8 +1,5 @@
 #ifdef MPI
 #include <mpi.h>
-#if FTI>0
-#include <fti.h>
-#endif
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,26 +169,14 @@ void vtkfile(int step, const hydroparam_t H, hydrovar_t * Hv)
 
     // First step : create the directory structure ONLY using PE0
 #ifdef MPI
-#if FTI==0
     if (H.nproc > 1)
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-#if FTI>0
-    if (H.nproc > 1)
-	MPI_Barrier(FTI_COMM_WORLD);
-#endif
 #endif
     vtknm(vfrname, H.mype, step);	// create the directory structure
     // if (H.mype == 0) fprintf(stderr, "%s\n", vfrname);
 #ifdef MPI
-#if FTI==0
     if (H.nproc > 1)
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-#if FTI>0
-    if (H.nproc > 1)
-	MPI_Barrier(FTI_COMM_WORLD);
-#endif
 #endif
 
     // Write a domain per PE
@@ -316,14 +301,8 @@ void vtkfile(int step, const hydroparam_t H, hydrovar_t * Hv)
     // PE only.
 
 #ifdef MPI
-#if FTI==0
     if (H.nproc > 1)
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-#if FTI>0
-    if (H.nproc > 1)
-	MPI_Barrier(FTI_COMM_WORLD);
-#endif
 #endif
     if (H.mype == 0) {
 	sprintf(name, "outputvtk_%05d.pvtr", step);
