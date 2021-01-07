@@ -169,7 +169,7 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
 	slices = jend - j;	// numbre of slices to compute
 	ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar, slices,
 			Hstep, Hv->uold, q, e);
-#ifdef TARGETON
+#ifdef TARGETONoff
 	fprintf(stderr, "avant le map\n");
 #pragma omp target data				\
 	map(tofrom: q[0:H.nvar][0:Hstep][0:H.nxyt])				\
@@ -177,13 +177,13 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
 	map(tofrom: e[0:Hstep][0:H.nxyt])
 #endif
 	{
-#ifdef TARGETON
+#ifdef TARGETONoff
 	fprintf(stderr, "avant le equation_of_state\n");
 #endif
 	equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma, slices,
 			  Hstep, e, q, c);
 	}
-#ifdef TARGETON
+#ifdef TARGETONoff
 	fprintf(stderr, "après le equation_of_state\n");
 #endif
 	courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c,
