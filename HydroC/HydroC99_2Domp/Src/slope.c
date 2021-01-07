@@ -29,29 +29,14 @@ slope(const int n,
     WHERE("slope");
     ijmin = 0;
     ijmax = n;
-    // for (s = 0; s < slices; s++) {
-    //      for (nbv = 0; nbv < Hnvar; nbv++) {
-    //              for (i = ijmin + 1; i < ijmax - 1; i++) {
-    //                      printf("ORG Hslope_type, qi, qim1, qip1, dq: %lg %lg %lg %lg %lg \n", Hslope_type, q[nbv][s][i], q[nbv][s][i - 1], q[nbv][s][i + 1], dq[nbv][s][i]);
-    //              }
-    //      }
-    // }
-// #ifdef TARGETON
-// #pragma omp target teams distribute parallel for private(nbv, s, i) shared(dq) map(alloc: dq[0:Hnvar][0:Hstep][ijmin + 1:ijmax - 1])
-//      for (s = 0; s < slices; s++) {
-//              for (nbv = 0; nbv < Hnvar; nbv++) {
-//                      for (i = ijmin + 1; i < ijmax - 1; i++) {
-//                              dq[nbv][s][i] = 0.0;
-//                      }
-//              }
-//      }
-// #endif
 #ifdef TARGETON
-#pragma omp target teams distribute parallel for private(nbv, s, i) shared(q, dq) \
-	map(to: q[0:Hnvar][0:Hstep][ijmin + 1:ijmax - 1]) \
-	map(from: dq[0:Hnvar][0:Hstep][ijmin + 1:ijmax - 1]) collapse(3)
+#pragma omp target \
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt]) \
+	map(dq[0:Hnvar][0:Hstep][0:Hnxyt]) 
+#pragma omp teams distribute parallel for \
+	private(nbv, s, i) shared(q, dq) \
+	collapse(3)
     {
-// #pragma omp teams distribute parallel for private(nbv, s, i) shared(dq) 
 #else
 #pragma omp parallel for private(nbv, s, i) shared(dq) collapse(3)	// COLLAPSE
     {

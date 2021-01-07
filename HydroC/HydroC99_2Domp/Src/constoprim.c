@@ -25,12 +25,15 @@ constoprim(const int n,
     ijmax = n;
 
 #ifdef TARGETON
-#pragma message "TARGET on CONSTOPRIM"
 #pragma omp target				\
-	map(to:u[0:Hnvar][0:Hstep][ijmin:ijmax])	\
-	map(from:q[0:Hnvar][0:Hstep][ijmin:ijmax])	\
-	map(from:e[0:Hstep][ijmin:ijmax])
-#pragma omp teams distribute parallel for default(none) private(s, i), shared(u, q, e) collapse(2)
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(e[0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for \
+	default(none) \
+	private(s, i), \
+	shared(u, q, e) \
+	collapse(2)
 #else
 #pragma omp parallel for private(i, s, eken), shared(q,e) COLLAPSE
 #endif

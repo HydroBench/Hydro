@@ -31,13 +31,15 @@ qleftright(const int idim,
     }
 
 #ifdef TARGETON
-#pragma message "TARGET on QLEFTRIGHT"
 #pragma omp target				\
-	map(to:qxm[0:Hnvar][0:Hstep][0:bmax])	\
-	map(to:qxp[0:Hnvar][0:Hstep][0:bmax])	\
-	map(from:qleft[0:Hnvar][0:Hstep][0:bmax])	\
-	map(from:qright[0:Hnvar][0:Hstep][0:bmax])
-#pragma omp teams distribute parallel for default(none) private(s, i, nvar), shared(qleft, qright, qxm, qxp)  collapse(3)
+	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(qleft[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for \
+	default(none) private(s, i, nvar), \
+	shared(qleft, qright, qxm, qxp)  \
+	collapse(3)
 #else
 #pragma omp parallel for private(nvar, i, s), shared(qleft, qright)
 #endif

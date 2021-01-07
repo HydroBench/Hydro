@@ -46,7 +46,7 @@ int sizeLabel(double *tim, const int N)
     // if (maxi < 100) return 8;
     // if (maxi < 1000) return 9;
     // if (maxi < 10000) return 10;
-    return 9;
+    return 10;
 }
 
 void percentTimings(double *tim, const int N)
@@ -75,7 +75,7 @@ void printTimings(double *tim, const int N, const int sizeFmt)
     int i;
     char fmt[256];
 
-    sprintf(fmt, "%%-%d.4lf ", sizeFmt);
+    sprintf(fmt, "%%%d.4lf ", sizeFmt);
 
     for (i = 0; i < N; i++)
 	fprintf(stdout, fmt, tim[i]);
@@ -88,6 +88,8 @@ void printTimingsLabel(const int N, const int fmtSize)
     char fmt[256];
 
     sprintf(fmt, "%%-%ds ", fmtSize);
+    fprintf(stdout, fmt, " ");
+
     for (i = 0; i < N; i++) {
 	switch (i) {
 	case TIM_COMPDT:
@@ -127,6 +129,7 @@ void printTimingsLabel(const int N, const int fmtSize)
 	    txt = "ALLRED";
 	    break;
 	default:;
+		txt = "      ";
 	}
 	fprintf(stdout, fmt, txt);
     }
@@ -410,7 +413,7 @@ int main(int argc, char **argv)
 	}
 	printTimings(functim, TIM_END, sizeFmt);
 	fprintf(stdout, "\n");
-	fprintf(stdout, "%%      ");
+	    fprintf(stdout, "%%      ");
 	percentTimings(functim, TIM_END);
 	printTimings(functim, TIM_END, sizeFmt);
 	fprintf(stdout, "\n");

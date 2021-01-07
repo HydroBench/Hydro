@@ -60,23 +60,25 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     // Pressure, density and velocity
 #ifdef WITHTARGET
     // fprintf(stderr, "riemann IN\n");
-#pragma omp target teams distribute parallel for default(none)		\
+#pragma omp target \
+	map(qleft[0:Hnvar][0:Hstep][0:Hnxyt])			\
+	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])			\
+	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])			\
+	map(sgnm[0:Hstep][0:Hnxyt])				\
+	map(pstar[0:tmpsiz])					\
+	map(rl[0:tmpsiz])					\
+	map(ul[0:tmpsiz])					\
+	map(pl[0:tmpsiz])					\
+	map(rr[0:tmpsiz])					\
+	map(ur[0:tmpsiz])					\
+	map(cl[0:tmpsiz])					\
+	map(pr[0:tmpsiz])					\
+	map(cr[0:tmpsiz])					\
+	map(goon[0:tmpsiz])
+#pragma omp teams distribute parallel for default(none)		\
 	private(s, i),							\
 	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
-	map(tofrom: qleft[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qright[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: sgnm[0:Hstep][0:narray])				\
-	map(tofrom: pstar[0:tmpsiz])					\
-	map(tofrom: rl[0:tmpsiz])					\
-	map(tofrom: ul[0:tmpsiz])					\
-	map(tofrom: pl[0:tmpsiz])					\
-	map(tofrom: rr[0:tmpsiz])					\
-	map(tofrom: ur[0:tmpsiz])					\
-	map(tofrom: cl[0:tmpsiz])					\
-	map(tofrom: pr[0:tmpsiz])					\
-	map(tofrom: cr[0:tmpsiz])					\
-	map(tofrom: goon[0:tmpsiz]) collapse(2)
+	collapse(2)
 #else
 #pragma omp parallel for private(s, i),					\
 	firstprivate(Hsmallr, Hgamma, slices, narray, smallp)		\

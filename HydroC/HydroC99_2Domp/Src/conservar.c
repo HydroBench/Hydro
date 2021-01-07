@@ -39,8 +39,8 @@ gatherConservativeVars(const int idim,
 #ifdef TARGETON
 #pragma message "TARGET on GATHERCONSERVATIVEVARS"
 #pragma omp target				\
-	map(from:u[0:Hnvar][0:Hstep][Himin:Himax])	\
-	map(to:uold[0:Hnvar *Hnxt * Hnyt])
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar *Hnxt * Hnyt])
 #pragma omp teams distribute parallel for default(none) private(s, i), shared(u, uold) collapse(2)
 #else
 #pragma omp parallel for private(i, s), shared(u) COLLAPSE
@@ -74,10 +74,9 @@ gatherConservativeVars(const int idim,
     } else {
 	// Gather conservative variables
 #ifdef TARGETON
-#pragma message "TARGET on GATHERCONSERVATIVEVARS"
 #pragma omp target				\
-	map(from:u[0:Hnvar][0:Hstep][Himin:Himax])	\
-	map(to:uold[0:Hnvar *Hnxt * Hnyt])
+	map(u[0:Hnvar][0:Hstep][Himin:Himax])	\
+	map(uold[0:Hnvar * Hnxt * Hnyt])
 #pragma omp teams distribute parallel for default(none) private(s, i), shared(u, uold) collapse(2)
 #else
 #pragma omp parallel for private(j, s), shared(u)
@@ -171,12 +170,15 @@ updateConservativeVars(const int idim,
     } else {
 	// Update conservative variables
 #ifdef TARGETON
-#pragma message "TARGET on UPDATECONSERVATIVEVARS"
 #pragma omp target				\
-	map(tofrom:u[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(tofrom:flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(tofrom:uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none) private(s, i, ivar), shared(u, uold, flux) collapse(2)
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar * Hnxt * Hnyt])
+#pragma omp teams distribute parallel for \
+	default(none) \
+	private(s, i, ivar), \
+	shared(u, uold, flux) \
+	collapse(2)
 #else
 #pragma omp parallel for private(j, s), shared(uold)
 #endif

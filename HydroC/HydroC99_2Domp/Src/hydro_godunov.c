@@ -129,6 +129,11 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    if (clear)
 		Dmemset((H.nxyt) * H.nxystep * H.nvar, (real_t *) dq, 0);
 	    start = cclock();
+#ifdef TARGETON
+#pragma omp target data				\
+	map(from:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(to:uold[0:H.nvar *H.nxt * H.nyt])
+#endif
 	    {
 		gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax,
 				       H.nvar, H.nxt, H.nyt, H.nxyt, slices,
@@ -142,11 +147,14 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	    PRINTARRAYV2(fic, u, Hdimsize, "u", H);
 
-	    if (clear)
-		Dmemset((H.nxyt) * H.nxystep * H.nvar, (real_t *) dq, 0);
-
 	    // Convert to primitive variables
 	    start = cclock();
+#ifdef TARGETON
+#pragma omp target data				\
+	map(to:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(from:q[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(from:e[0:Hstep][0:H.nxyt])
+#endif
 	    {
 		constoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hstep, u,
 			   q, e);
@@ -177,6 +185,11 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    // Characteristic tracing
 	    if (H.iorder != 1) {
 		start = cclock();
+#ifdef TARGETON
+#pragma omp target data \
+	map(to: q[0:H.nvar][0:Hstep][0:H.nxyt]) \
+	map(from: dq[0:H.nvar][0:Hstep][0:H.nxyt])
+#endif
 		{
 		    slope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep,
 			  q, dq);
@@ -186,19 +199,15 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 		PRINTARRAYV2(fic, dq, Hdimsize, "dq", H);
 	    }
 
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qxm, 0);
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qxp, 0);
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qleft, 0);
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qright, 0);
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) flux, 0);
-	    if (clear)
-		Dmemset(H.nxyt * H.nxystep * H.nvar, (real_t *) qgdnv, 0);
 	    start = cclock();
+#ifdef TARGETON
+#pragma omp target data	\
+	map(to: c[0:Hstep][0:H.nxyt])			\
+	map(to: q[0:H.nvar][0:Hstep][0:H.nxyt])		\
+	map(to: dq[0:H.nvar][0:Hstep][0:H.nxyt])		\
+	map(from: qxp[0:H.nvar][0:Hstep][0:H.nxyt])		\
+	map(from: qxm[0:H.nvar][0:Hstep][0:H.nxyt])
+#endif
 	    {
 		trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep,
 		      q, dq, c, qxm, qxp);
@@ -209,6 +218,13 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    PRINTARRAYV2(fic, qxp, Hdimsize, "qxp", H);
 
 	    start = cclock();
+#ifdef TARGETON
+#pragma omp target data				\
+	map(to:qxm[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(to:qxp[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(from:qleft[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(from:qright[0:H.nvar][0:Hstep][0:H.nxyt])
+#endif
 	    {
 		qleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxm,
 			   qxp, qleft, qright);
@@ -219,6 +235,24 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    PRINTARRAYV2(fic, qright, Hdimsize, "qright", H);
 
 	    start = cclock();
+#ifdef TARGETON
+	    int tmpsiz = H.nxyt * Hstep;
+#pragma omp target data \
+	map(tofrom: qleft[0:H.nvar][0:Hstep][0:H.nxyt])			\
+	map(tofrom: qright[0:H.nvar][0:Hstep][0:H.nxyt])		\
+	map(tofrom: qgdnv[0:H.nvar][0:Hstep][0:H.nxyt])			\
+	map(tofrom: sgnm[0:Hstep][0:H.nxyt])				\
+	map(tofrom: Hw->pstar[0:tmpsiz])					\
+	map(tofrom: Hw->rl[0:tmpsiz])					\
+	map(tofrom: Hw->ul[0:tmpsiz])					\
+	map(tofrom: Hw->pl[0:tmpsiz])					\
+	map(tofrom: Hw->rr[0:tmpsiz])					\
+	map(tofrom: Hw->ur[0:tmpsiz])					\
+	map(tofrom: Hw->cl[0:tmpsiz])					\
+	map(tofrom: Hw->pr[0:tmpsiz])					\
+	map(tofrom: Hw->cr[0:tmpsiz])					\
+	map(tofrom: Hw->goon[0:tmpsiz])
+#endif
 	    {
 		riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann,
 			H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv,
@@ -229,6 +263,12 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    PRINTARRAYV2(fic, qgdnv, Hdimsize, "qgdnv", H);
 
 	    start = cclock();
+#ifdef TARGETON
+#pragma message "TARGET on CMPFLX"
+#pragma omp target data				\
+	map(to:qgdnv[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(from:flux[0:H.nvar][0:Hstep][0:H.nxyt])
+#endif
 	    {
 		cmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hstep, qgdnv,
 		       flux);
@@ -239,6 +279,12 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    PRINTARRAYV2(fic, u, Hdimsize, "u", H);
 
 	    start = cclock();
+#ifdef TARGETON
+#pragma omp target data				\
+	map(tofrom:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(tofrom:flux[0:H.nvar][0:Hstep][0:H.nxyt])	\
+	map(tofrom:uold[0:H.nvar * H.nxt * H.nyt])
+#endif
 	    {
 		updateConservativeVars(idim, j, dtdx, H.imin, H.imax, H.jmin,
 				       H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt,

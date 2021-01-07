@@ -33,9 +33,12 @@ cmpflx(const int narray,
 #ifdef TARGETON
 #pragma message "TARGET on CMPFLX"
 #pragma omp target				\
-	map(to:qgdnv[0:Hnvar][0:Hstep][0:nface])	\
-	map(from:flux[0:Hnvar][0:Hstep][0:nface])
-#pragma omp teams distribute parallel for default(none) private(s, i, ekin, etot), shared(flux, qgdnv) collapse(2)
+	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for \
+	default(none) private(s, i, ekin, etot), \
+	shared(flux, qgdnv) \
+	collapse(2)
 #else
 #pragma omp parallel for private(s, i, ekin, etot), shared(flux)
 #endif
