@@ -10,6 +10,7 @@
 #include "parametres.h"
 #include "perfcnt.h"
 #include "utils.h"
+#include "cclock.h"
 
 void
 equation_of_state(int imin,
@@ -25,8 +26,10 @@ equation_of_state(int imin,
     int k, s;
     int inpar = 0;
     real_t smallp;
+    struct timespec start, end;
 
     WHERE("equation_of_state");
+    start = cclock();
     smallp = Square(Hsmallc) / Hgamma;
 
     // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
@@ -57,6 +60,8 @@ equation_of_state(int imin,
 	FLOPS(1, 1, 0, 0);
 	FLOPS(5 * nops, 2 * nops, 1 * nops, 0 * nops);
     }
+    end = cclock();
+    functim[TIM_EOS] += ccelaps(start, end);
 }				// equation_of_state
 
 // EOF

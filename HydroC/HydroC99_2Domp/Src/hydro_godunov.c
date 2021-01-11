@@ -46,59 +46,41 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
     real_t(*qxp)[H.nxystep][H.nxyt];
     real_t(*q)[H.nxystep][H.nxyt];
     real_t(*dq)[H.nxystep][H.nxyt];
+    int idimIndex = 0;
 
     static FILE *fic = NULL;
 
-    if (fic == NULL && H.prt == 1) {
-	char logname[256];
-	sprintf(logname, "TRACE.%04d_%04d.txt", H.nproc, H.mype);
-	fic = fopen(logname, "w");
-    }
-
     WHERE("hydro_godunov");
 
-    int idimIndex = 0;
+    uold = Hv->uold;
+    qgdnv = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
+    flux = (real_t(*)[H.nxystep][H.nxyt]) Hvw->flux;
+    c = (real_t(*)[H.nxyt]) Hw->c;
+    e = (real_t(*)[H.nxyt]) Hw->e;
+    qleft = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qleft;
+    qright = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qright;
+    sgnm = (int (*)[H.nxyt])Hw->sgnm;
+    q = (real_t(*)[H.nxystep][H.nxyt]) Hvw->q;
+    dq = (real_t(*)[H.nxystep][H.nxyt]) Hvw->dq;
+    u = (real_t(*)[H.nxystep][H.nxyt]) Hvw->u;
+    qxm = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qxm;
+    qxp = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qxp;
 
     for (idimIndex = 0; idimIndex < 2; idimIndex++) {
 	int idim = (idimStart - 1 + idimIndex) % 2 + 1;
+	int Hmin, Hmax, Hstep;
+	int Hdimsize;
+	int Hndim_1;
+	int tmpsiz;
+
 	// constant
 	dtdx = dt / H.dx;
 
 	// Update boundary conditions
-	if (H.prt) {
-	    fprintf(fic, "godunov %d %le %le\n", idim, dt, H.t);
-	    PRINTUOLD(fic, H, Hv);
-	}
-	// if (H.mype == 1) fprintf(fic, "Hydro makes boundary.\n");
-	start = cclock();
-	{
-	    make_boundary(idim, H, Hv);
-	}
-	end = cclock();
-	functim[TIM_MAKBOU] += ccelaps(start, end);
 
-	if (H.prt) {
-	    fprintf(fic, "MakeBoundary\n");
-	}
-	PRINTUOLD(fic, H, Hv);
-
-	uold = Hv->uold;
-	qgdnv = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
-	flux = (real_t(*)[H.nxystep][H.nxyt]) Hvw->flux;
-	c = (real_t(*)[H.nxyt]) Hw->c;
-	e = (real_t(*)[H.nxyt]) Hw->e;
-	qleft = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qleft;
-	qright = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qright;
-	sgnm = (int (*)[H.nxyt])Hw->sgnm;
-	q = (real_t(*)[H.nxystep][H.nxyt]) Hvw->q;
-	dq = (real_t(*)[H.nxystep][H.nxyt]) Hvw->dq;
-	u = (real_t(*)[H.nxystep][H.nxyt]) Hvw->u;
-	qxm = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qxm;
-	qxp = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qxp;
-
-	int Hmin, Hmax, Hstep;
-	int Hdimsize;
-	int Hndim_1;
+#pragma omp target update from ( uold)
+	make_boundary(idim, H, Hv);
+#pragma omp target update to( uold)
 
 	if (idim == 1) {
 	    Hmin = H.jmin + ExtraLayer;
@@ -113,198 +95,49 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    Hndim_1 = H.ny + 1;
 	    Hstep = H.nxystep;
 	}
+	tmpsiz = H.nxyt * Hstep;
 
-	if (!H.nstep && idim == 1) {
-	    /* LM -- HERE a more secure implementation should be used: a new parameter ? */
-	}
-	// if (H.mype == 1) fprintf(fic, "Hydro computes slices.\n");
 	for (j = Hmin; j < Hmax; j += Hstep) {
 	    // we try to compute many slices each pass
 	    int jend = j + Hstep;
 	    if (jend >= Hmax)
 		jend = Hmax;
 	    int slices = jend - j;	// numbre of slices to compute
-	    // fprintf(stderr, "Godunov idim=%d, j=%d %d \n", idim, j, slices);
 
-	    if (clear)
-		Dmemset((H.nxyt) * H.nxystep * H.nvar, (real_t *) dq, 0);
-	    start = cclock();
-#ifdef TARGETON
-#pragma omp target data				\
-	map(from:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(to:uold[0:H.nvar *H.nxt * H.nyt])
-#endif
 	    {
 		gatherConservativeVars(idim, j, H.imin, H.imax, H.jmin, H.jmax,
 				       H.nvar, H.nxt, H.nyt, H.nxyt, slices,
 				       Hstep, uold, u);
-	    }
-	    end = cclock();
-	    functim[TIM_GATCON] += ccelaps(start, end);
-	    if (H.prt) {
-		fprintf(fic, "ConservativeVars %d %d %d %d %d %d\n", H.nvar,
-			H.nxt, H.nyt, H.nxyt, slices, Hstep);
-	    }
-	    PRINTARRAYV2(fic, u, Hdimsize, "u", H);
-
-	    // Convert to primitive variables
-	    start = cclock();
-#ifdef TARGETON
-#pragma omp target data				\
-	map(to:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(from:q[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(from:e[0:Hstep][0:H.nxyt])
-#endif
-	    {
+		// Convert to primitive variables
 		constoprim(Hdimsize, H.nxyt, H.nvar, H.smallr, slices, Hstep, u,
 			   q, e);
-	    }
-	    end = cclock();
-	    functim[TIM_CONPRI] += ccelaps(start, end);
-	    PRINTARRAY(fic, e, Hdimsize, "e", H);
-	    PRINTARRAYV2(fic, q, Hdimsize, "q", H);
-
-	    start = cclock();
-	    {
-#ifdef TARGETON
-#pragma omp target data				\
-	map(tofrom: q[0:H.nvar][0:Hstep][0:H.nxyt])				\
-	map(from: c[0:Hstep][0:H.nxyt]) \
-	map(to: e[0:Hstep][0:H.nxyt])
-#endif
-		{
-		    equation_of_state(0, Hdimsize, H.nxyt, H.nvar, H.smallc,
-				      H.gamma, slices, Hstep, e, q, c);
-		}
-	    }
-	    end = cclock();
-	    functim[TIM_EOS] += ccelaps(start, end);
-	    PRINTARRAY(fic, c, Hdimsize, "c", H);
-	    PRINTARRAYV2(fic, q, Hdimsize, "q", H);
-
-	    // Characteristic tracing
-	    if (H.iorder != 1) {
-		start = cclock();
-#ifdef TARGETON
-#pragma omp target data \
-	map(to: q[0:H.nvar][0:Hstep][0:H.nxyt]) \
-	map(from: dq[0:H.nvar][0:Hstep][0:H.nxyt])
-#endif
-		{
+		equation_of_state(0, Hdimsize, H.nxyt, H.nvar, H.smallc,
+				  H.gamma, slices, Hstep, e, q, c);
+		// Characteristic tracing
+		if (H.iorder != 1) {
 		    slope(Hdimsize, H.nvar, H.nxyt, H.slope_type, slices, Hstep,
 			  q, dq);
 		}
-		end = cclock();
-		functim[TIM_SLOPE] += ccelaps(start, end);
-		PRINTARRAYV2(fic, dq, Hdimsize, "dq", H);
-	    }
-
-	    start = cclock();
-#ifdef TARGETON
-#pragma omp target data	\
-	map(to: c[0:Hstep][0:H.nxyt])			\
-	map(to: q[0:H.nvar][0:Hstep][0:H.nxyt])		\
-	map(to: dq[0:H.nvar][0:Hstep][0:H.nxyt])		\
-	map(from: qxp[0:H.nvar][0:Hstep][0:H.nxyt])		\
-	map(from: qxm[0:H.nvar][0:Hstep][0:H.nxyt])
-#endif
-	    {
 		trace(dtdx, Hdimsize, H.scheme, H.nvar, H.nxyt, slices, Hstep,
 		      q, dq, c, qxm, qxp);
-	    }
-	    end = cclock();
-	    functim[TIM_TRACE] += ccelaps(start, end);
-	    PRINTARRAYV2(fic, qxm, Hdimsize, "qxm", H);
-	    PRINTARRAYV2(fic, qxp, Hdimsize, "qxp", H);
-
-	    start = cclock();
-#ifdef TARGETON
-#pragma omp target data				\
-	map(to:qxm[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(to:qxp[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(from:qleft[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(from:qright[0:H.nvar][0:Hstep][0:H.nxyt])
-#endif
-	    {
+//
+		start = cclock();
 		qleftright(idim, H.nx, H.ny, H.nxyt, H.nvar, slices, Hstep, qxm,
 			   qxp, qleft, qright);
-	    }
-	    end = cclock();
-	    functim[TIM_QLEFTR] += ccelaps(start, end);
-	    PRINTARRAYV2(fic, qleft, Hdimsize, "qleft", H);
-	    PRINTARRAYV2(fic, qright, Hdimsize, "qright", H);
-
-	    start = cclock();
-#ifdef TARGETON
-	    int tmpsiz = H.nxyt * Hstep;
-#pragma omp target data \
-	map(tofrom: qleft[0:H.nvar][0:Hstep][0:H.nxyt])			\
-	map(tofrom: qright[0:H.nvar][0:Hstep][0:H.nxyt])		\
-	map(tofrom: qgdnv[0:H.nvar][0:Hstep][0:H.nxyt])			\
-	map(tofrom: sgnm[0:Hstep][0:H.nxyt])				\
-	map(tofrom: Hw->pstar[0:tmpsiz])					\
-	map(tofrom: Hw->rl[0:tmpsiz])					\
-	map(tofrom: Hw->ul[0:tmpsiz])					\
-	map(tofrom: Hw->pl[0:tmpsiz])					\
-	map(tofrom: Hw->rr[0:tmpsiz])					\
-	map(tofrom: Hw->ur[0:tmpsiz])					\
-	map(tofrom: Hw->cl[0:tmpsiz])					\
-	map(tofrom: Hw->pr[0:tmpsiz])					\
-	map(tofrom: Hw->cr[0:tmpsiz])					\
-	map(tofrom: Hw->goon[0:tmpsiz])
-#endif
-	    {
+		end = cclock();
+//      
+		functim[TIM_QLEFTR] += ccelaps(start, cclock());
 		riemann(Hndim_1, H.smallr, H.smallc, H.gamma, H.niter_riemann,
 			H.nvar, H.nxyt, slices, Hstep, qleft, qright, qgdnv,
 			sgnm, Hw);
-	    }
-	    end = cclock();
-	    functim[TIM_RIEMAN] += ccelaps(start, end);
-	    PRINTARRAYV2(fic, qgdnv, Hdimsize, "qgdnv", H);
-
-	    start = cclock();
-#ifdef TARGETON
-#pragma message "TARGET on CMPFLX"
-#pragma omp target data				\
-	map(to:qgdnv[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(from:flux[0:H.nvar][0:Hstep][0:H.nxyt])
-#endif
-	    {
 		cmpflx(Hdimsize, H.nxyt, H.nvar, H.gamma, slices, Hstep, qgdnv,
 		       flux);
-	    }
-	    end = cclock();
-	    functim[TIM_CMPFLX] += ccelaps(start, end);
-	    PRINTARRAYV2(fic, flux, Hdimsize, "flux", H);
-	    PRINTARRAYV2(fic, u, Hdimsize, "u", H);
-
-	    start = cclock();
-#ifdef TARGETON
-#pragma omp target data				\
-	map(tofrom:u[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(tofrom:flux[0:H.nvar][0:Hstep][0:H.nxyt])	\
-	map(tofrom:uold[0:H.nvar * H.nxt * H.nyt])
-#endif
-	    {
 		updateConservativeVars(idim, j, dtdx, H.imin, H.imax, H.jmin,
 				       H.jmax, H.nvar, H.nxt, H.nyt, H.nxyt,
 				       slices, Hstep, uold, u, flux);
 	    }
-	    end = cclock();
-	    functim[TIM_UPDCON] += ccelaps(start, end);
-	    PRINTUOLD(fic, H, Hv);
 	}			// for j
-
-	if (H.prt) {
-	    fprintf(fic, "[%d] After pass %d\n", H.mype, idim);
-	    PRINTUOLD(fic, H, Hv);
-	}
     }
-
-    if ((H.t + dt >= H.tend) || (H.nstep + 1 >= H.nstepmax)) {
-	/* LM -- HERE a more secure implementation should be used: a new parameter ? */
-    }
-
 }				// hydro_godunov
 
 // EOF

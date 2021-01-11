@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "conservar.h"
 #include "perfcnt.h"
+#include "cclock.h"
 
 #define BLOCKING 0
 #define SSST 32
@@ -29,11 +30,14 @@ gatherConservativeVars(const int idim,
     )
 {
     int i, j, ivar, s;
+    struct timespec start, end;
 
 #define IHU(i, j, v)  ((i) + Hnxt  * ((j) + Hnyt  * (v)))
 #define IHST(v,s,i)   ((i) + Hstep * ((j) + Hnvar * (v)))
 
     WHERE("gatherConservativeVars");
+    start = cclock();
+
     if (idim == 1) {
 	// Gather conservative variables
 #ifdef TARGETON
@@ -99,6 +103,8 @@ gatherConservativeVars(const int idim,
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_GATCON] += ccelaps(start, end);
 }
 
 #undef IHU
@@ -122,7 +128,9 @@ updateConservativeVars(const int idim,
     )
 {
     int i, j, ivar, s;
+    struct timespec start, end;
     WHERE("updateConservativeVars");
+    start = cclock();
 
 #define IHU(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
@@ -214,6 +222,8 @@ updateConservativeVars(const int idim,
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_UPDCON] += ccelaps(start, end);
 }
 
 #undef IHU

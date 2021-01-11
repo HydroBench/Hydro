@@ -13,6 +13,7 @@
 #include "make_boundary.h"
 #include "perfcnt.h"
 #include "utils.h"
+#include "cclock.h"
 
 static int
 pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
@@ -135,10 +136,12 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
     MPI_Datatype mpiFormat = MPI_DOUBLE;
 #endif
     int reqcnt = 0;
+    struct timespec start, end;
 
     static FILE *fic = NULL;
 
     WHERE("make_boundary");
+    start = cclock();
 
 #ifdef MPI
     if (sizeof(real_t) == sizeof(float))
@@ -383,6 +386,8 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_MAKBOU] += ccelaps(start, end);
 }
 
 // make_boundary

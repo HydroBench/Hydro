@@ -7,6 +7,7 @@
 #include "perfcnt.h"
 #include "utils.h"
 #include "riemann.h"
+#include "cclock.h"
 
 #define PRECISION 1e-6
 
@@ -36,6 +37,10 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     real_t smallp_ = Square(Hsmallc) / Hgamma;
     real_t gamma6_ = (Hgamma + one) / (two * Hgamma);
     real_t smallpp_ = Hsmallr * smallp_;
+    struct timespec start, end;
+
+    WHERE("riemann");
+	    start = cclock();
 
     FLOPS(4, 2, 0, 0);
     // __declspec(align(256)) thevariable
@@ -115,20 +120,20 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp target teams distribute parallel for default(none)		\
 	private(s, i, iter),							\
 	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
-	map(tofrom: qleft[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qright[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: sgnm[0:Hstep][0:narray])				\
-	map(tofrom: pstar[0:tmpsiz])					\
-	map(tofrom: rl[0:tmpsiz])					\
-	map(tofrom: ul[0:tmpsiz])					\
-	map(tofrom: pl[0:tmpsiz])					\
-	map(tofrom: rr[0:tmpsiz])					\
-	map(tofrom: ur[0:tmpsiz])					\
-	map(tofrom: cl[0:tmpsiz])					\
-	map(tofrom: pr[0:tmpsiz])					\
-	map(tofrom: cr[0:tmpsiz])					\
-	map(tofrom: goon[0:tmpsiz]) collapse(2)
+	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
+	map(qright[0:Hnvar][0:Hstep][0:narray])			\
+	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
+	map(sgnm[0:Hstep][0:narray])				\
+	map(pstar[0:tmpsiz])					\
+	map(rl[0:tmpsiz])					\
+	map(ul[0:tmpsiz])					\
+	map(pl[0:tmpsiz])					\
+	map(rr[0:tmpsiz])					\
+	map(ur[0:tmpsiz])					\
+	map(cl[0:tmpsiz])					\
+	map(pr[0:tmpsiz])					\
+	map(cr[0:tmpsiz])					\
+	map(goon[0:tmpsiz]) collapse(2)
 #else
 #pragma omp parallel for private(s, i, iter),				\
 	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
@@ -178,20 +183,20 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	private(s, i),							\
 	shared(qgdnv, sgnm, qleft, qright, pstar)			\
 	shared(rl, ul, pl, rr, ur, cl, pr, cr, goon)			\
-	map(tofrom: qleft[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qright[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(tofrom: sgnm[0:Hstep][0:narray])				\
-	map(tofrom: pstar[0:tmpsiz])					\
-	map(tofrom: rl[0:tmpsiz])					\
-	map(tofrom: ul[0:tmpsiz])					\
-	map(tofrom: pl[0:tmpsiz])					\
-	map(tofrom: rr[0:tmpsiz])					\
-	map(tofrom: ur[0:tmpsiz])					\
-	map(tofrom: cl[0:tmpsiz])					\
-	map(tofrom: pr[0:tmpsiz])					\
-	map(tofrom: cr[0:tmpsiz])					\
-	map(tofrom: goon[0:tmpsiz]) collapse(2)	//
+	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
+	map(qright[0:Hnvar][0:Hstep][0:narray])			\
+	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
+	map(sgnm[0:Hstep][0:narray])				\
+	map(pstar[0:tmpsiz])					\
+	map(rl[0:tmpsiz])					\
+	map(ul[0:tmpsiz])					\
+	map(pl[0:tmpsiz])					\
+	map(rr[0:tmpsiz])					\
+	map(ur[0:tmpsiz])					\
+	map(cl[0:tmpsiz])					\
+	map(pr[0:tmpsiz])					\
+	map(cr[0:tmpsiz])					\
+	map(goon[0:tmpsiz]) collapse(2)	//
 
 #else
 #pragma omp parallel for private(s, i),					\
@@ -307,6 +312,8 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	    }
 	}
     }
+	    end = cclock();
+	    functim[TIM_RIEMAN] += ccelaps(start, end);
 }				// riemann_vec
 
 //EOF

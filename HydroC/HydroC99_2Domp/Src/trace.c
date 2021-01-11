@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "trace.h"
 #include "perfcnt.h"
+#include "cclock.h"
 
 void
 trace(const real_t dtdx,
@@ -23,8 +24,10 @@ trace(const real_t dtdx,
     int ijmin, ijmax;
     int i, IN, s;
     real_t zerol = 0.0, zeror = 0.0, project = 0.;
+    struct timespec start, end;
 
     WHERE("trace");
+    start = cclock();
     ijmin = 0;
     ijmax = n;
 
@@ -48,7 +51,7 @@ trace(const real_t dtdx,
     }
 #ifdef TARGETON
     // 
- #pragma omp target \
+#pragma omp target \
  	map(c[0:Hstep][0:Hnxyt]) \
  	map(q[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])		\
@@ -165,6 +168,8 @@ trace(const real_t dtdx,
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_TRACE] += ccelaps(start, end);
 }				// trace
 
 //EOF

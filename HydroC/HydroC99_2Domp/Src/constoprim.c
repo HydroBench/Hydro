@@ -7,6 +7,7 @@
 #include "constoprim.h"
 #include "perfcnt.h"
 #include "utils.h"
+#include "cclock.h"
 
 void
 constoprim(const int n,
@@ -19,8 +20,10 @@ constoprim(const int n,
 {
     int ijmin, ijmax, IN, i, s;
     real_t eken;
+    struct timespec start, end;
     // const int nxyt = Hnxyt;
     WHERE("constoprim");
+    start = cclock();
     ijmin = 0;
     ijmax = n;
 
@@ -68,6 +71,8 @@ constoprim(const int n,
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_CONPRI] += ccelaps(start, end);
 }				// constoprim
 
 #undef IHVW

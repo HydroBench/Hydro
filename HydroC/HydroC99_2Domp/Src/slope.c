@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "slope.h"
 #include "perfcnt.h"
+#include "cclock.h"
 
 #define DABS(x) (real_t) fabs((x))
 
@@ -22,11 +23,13 @@ slope(const int n,
       const int slices, const int Hstep, real_t q[Hnvar][Hstep][Hnxyt],
       real_t dq[Hnvar][Hstep][Hnxyt])
 {
+    struct timespec start, end;
     int nbv, i, ijmin, ijmax, s;
     // long ihvwin, ihvwimn, ihvwipn;
     // #define IHVW(i, v) ((i) + (v) * Hnxyt)
 
     WHERE("slope");
+    start = cclock();
     ijmin = 0;
     ijmax = n;
 #ifdef TARGETON
@@ -63,6 +66,8 @@ slope(const int n,
 	int nops = Hnvar * slices * ((ijmax - 1) - (ijmin + 1));
 	FLOPS(8 * nops, 1 * nops, 6 * nops, 0 * nops);
     }
+    end = cclock();
+    functim[TIM_SLOPE] += ccelaps(start, end);
 }				// slope
 
 #ifdef TARGET

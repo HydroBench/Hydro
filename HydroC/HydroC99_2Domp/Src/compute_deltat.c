@@ -30,12 +30,11 @@ ComputeQEforRow(const int j,
 
 #define IHV(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
 
-#ifdef TARGETONoff // ici ça merde sans le off !!!
+#ifdef TARGETON			// ici ça merde sans le off !!!
 #pragma omp target				\
-	map(tofrom: uold[0: Hnvar *Hnxt * Hnyt])\
-	map(tofrom: e[Hstep][Hnxyt])\
-	map(tofrom: q[Hnvar][Hstep][Hnxyt])\
-	map(tofrom: Hsmallr, slices, Hnx, Hnxt, Hnyt, j)
+	map(uold[0: Hnvar *Hnxt * Hnyt])\
+	map(e[0:Hstep][0:Hnxyt])	\
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
 	default(none)	\
 	shared(q, e, uold, Hsmallr, slices, Hnx, Hnxt, Hnyt, j)		  \
@@ -89,17 +88,15 @@ courantOnXY(real_t * cournox,
 #ifdef TARGETON
 #pragma omp target \
 	map(tofrom: tmp1, tmp2)\
-	map(tofrom: c[0:Hstep][0:Hnxyt])\
-	map(tofrom: q[0:Hnvar][0:Hstep][0:Hnxyt])
-    
+	map(c[0:Hstep][0:Hnxyt])\
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt])
+
 #pragma omp teams distribute parallel for \
-	shared(tmpm1, tmpm2) \
 	private(s,i) \
 	reduction(max:tmp1, tmp2)\
 	collapse(2)
 #else
 #pragma omp parallel for \
-	shared(tmpm1, tmpm2) \
 	private(s,i) \
 	reduction(max:tmp1, tmp2)\
 	collapse(2)
@@ -167,27 +164,14 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
 	if (jend >= Hmax)
 	    jend = Hmax;
 	slices = jend - j;	// numbre of slices to compute
-	ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar, slices,
-			Hstep, Hv->uold, q, e);
-#ifdef TARGETONoff
-	fprintf(stderr, "avant le map\n");
-#pragma omp target data				\
-	map(tofrom: q[0:H.nvar][0:Hstep][0:H.nxyt])				\
-	map(tofrom: c[0:Hstep][0:H.nxyt]) \
-	map(tofrom: e[0:Hstep][0:H.nxyt])
-#endif
 	{
-#ifdef TARGETONoff
-	fprintf(stderr, "avant le equation_of_state\n");
-#endif
-	equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma, slices,
-			  Hstep, e, q, c);
+	    ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar,
+			    slices, Hstep, Hv->uold, q, e);
+	    equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma,
+			      slices, Hstep, e, q, c);
+	    courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep,
+			c, q, Hw->tmpm1, Hw->tmpm2);
 	}
-#ifdef TARGETONoff
-	fprintf(stderr, "après le equation_of_state\n");
-#endif
-	courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices, Hstep, c,
-		    q, Hw->tmpm1, Hw->tmpm2);
 	// fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);
     }
 

@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "cmpflx.h"
 #include "perfcnt.h"
+#include "cclock.h"
 
 void
 cmpflx(const int narray,
@@ -21,8 +22,10 @@ cmpflx(const int narray,
 {
     int nface, i, IN;
     real_t entho, ekin, etot;
-    WHERE("cmpflx");
+    struct timespec start, end;
     int s;
+    WHERE("cmpflx");
+    start = cclock();
 
     nface = narray;
     entho = one / (Hgamma - one);
@@ -80,6 +83,8 @@ cmpflx(const int narray,
 	    }
 	}
     }
+    end = cclock();
+    functim[TIM_CMPFLX] += ccelaps(start, end);
 }				// cmpflx
 
 //EOF

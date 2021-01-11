@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "cclock.h"
 #include "parametres.h"
 #include "utils.h"
 #include "qleftright.h"
@@ -23,7 +24,11 @@ qleftright(const int idim,
     // #define IHVW(i,v) ((i) + (v) * Hnxyt)
     int nvar, i, s;
     int bmax;
+    struct timespec start, end;
+
     WHERE("qleftright");
+    start = cclock();
+
     if (idim == 1) {
 	bmax = Hnx + 1;
     } else {
@@ -52,6 +57,9 @@ qleftright(const int idim,
 	    }
 	}
     }
+    end = cclock();
+    // functim[TIM_QLEFTR] += ccelaps(start, cclock());
+    return;
 }
 
 #undef IHVW

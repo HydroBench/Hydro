@@ -113,8 +113,19 @@ rungpu:
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
 	touch lastgpu
 
+rungpuq:
+	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O
+	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL ./hydro -i input.nml
+	touch lastgpu
+
 rungpud: hydro
-	rm -f $(TARGETFUNCS)
+	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make GPU=O QUIET=O
+	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
+
+rungpud5: hydro
+	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
 	make GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
 
@@ -127,6 +138,7 @@ tarball:
 	tar czvf tarball_$(DATEHOUR).tgz Makefile *.h *.c input.nml
 
 runall:
-	make runcpu | tail -7
-	make rungpu | tail -7
+	make runcpu | tail -9
+	-rm *.o
+	make rungpuq | tail -9
 #EOF
