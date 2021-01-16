@@ -1,15 +1,15 @@
-CFLAGS+=-std=c++11
-
-ifneq ($(DBG),O)
-   OPTIM+=-O3
+ifeq ($(CXX),)
+     CXX=icpc
 endif
-OPTIM+=-g
+
+CFLAGS+=-std=c++11
 
 ifeq ($(MPI),O)
    ifneq ($(I_MPI_ROOT),)
       INCS+=-I$(I_MPI_ROOT)/include64
       MPI_LIB=-L$(I_MPI_ROOT)/lib64
-      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      LIBS+=$(MPI_LIB) -lmpi
+      # -Wl,-rpath,$(MPI_LIB)
       DEFS+=-DMPI_ON $(INCS)
    endif
    ifneq ($(OPENMPI_ROOT),)
@@ -17,7 +17,7 @@ ifeq ($(MPI),O)
    	 # version OpenMPI
       INCS+=-I$(MPI_ROOT)/include -DOPENMPI
       MPI_LIB=-L$(MPI_ROOT)/lib
-      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      LIBS+=$(MPI_LIB) -lmpi_cxx -lmpi -Wl,-rpath,$(MPI_LIB)
       DEFS+=-DMPI_ON $(INCS)
    endif
    ifneq ($(WI4MPI_ROOT),)
@@ -31,23 +31,37 @@ ifeq ($(MPI),O)
 endif
 
 ifeq ($(CXX),icpc)
-   OPTIM+=-march=core-avx2 -fma
+   OPTIM+=-xcore-avx2 -fma
    # -DAVX -D__vectorize_avx
-   OPTIM+=-mCG_use_zeroupper=0
-   OPTIM+=-mP1OPT_max_rec_copy_size=128
-   OPTIM+=-qopt-report -qopt-report-phase=vec
+   # OPTIM+=-mCG_use_zeroupper=0
+   # OPTIM+=-mP1OPT_max_rec_copy_size=128
+   # OPTIM+=-qopt-report -qopt-report-phase=vec
    OPTIM+=-diag-disable=10397
 endif
 
+ifeq ($(CXX),icx)
+   OPTIM+=-xcore-avx2 -fma
+   # OPTIM+=-diag-disable=10397
+endif
+
+
 ifeq ($(CXX),g++)
    OPTIM+=-mavx2
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include64
+      MPI_LIB=-L$(I_MPI_ROOT)/lib64
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   else
+	INCS+=-I/usr/lib/x86_64-linux-gnu/openmpi/include/
+   	LIBS+=-L/usr/lib/x86_64-linux-gnu/openmpi/lib/ -lmpi_cxx -lmpi
+   endif
+   DEFS+=-DMPI_ON
 endif
 
 ifeq ($(CXX),clang++)
-     # 
-    OPTIM+=-mavx2 -fsanitize=address -fno-omit-frame-pointer 
-    # -fopenmp 
-    LIBS+=
+    OPTIM+=-mavx2 -fsanitize=address -fno-omit-frame-pointer -fopenmp 
+    LIBS+=-L/usr/lib/x86_64-linux-gnu/ -lrt
 endif
 
 ARCHEXT=avx2

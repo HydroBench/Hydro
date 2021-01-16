@@ -12,7 +12,7 @@
 
 #define TILEUSER 1
 
-#define WITHBCAST 1 // read the input file once and broadcast the values
+#define WITHBCAST 1		// read the input file once and broadcast the values
 
 #ifdef __MIC__
 // #undef TILEUSER
@@ -87,6 +87,10 @@ static const char *Schedule = "schedule(runtime)";
 #define WITH_THREAD_TIMERS 0
 
 #define TILE_PER_THREAD 4
+
+// macros to use in conjunction with armie
+#define __START_TRACE() {asm volatile (".inst 0x2520e020");}
+#define __STOP_TRACE()  {asm volatile (".inst 0x2520e040");}
 
 #endif
 //EOF

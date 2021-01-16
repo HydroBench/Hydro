@@ -128,7 +128,7 @@ void vtkwpvd(int nout, const char *r)
 	char vfname[1024];
 	int i;
 	FILE *vf = NULL;
-	char tmp[10];
+	char tmp[100];
 
 	vf = fopen("Hydro.pvd", "w");
 	fprintf(vf, "<?xml version=\"1.0\"?>\n");

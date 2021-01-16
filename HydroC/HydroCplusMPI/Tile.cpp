@@ -44,7 +44,7 @@ Tile::Tile()
 #ifdef _OPENMP
 	omp_init_lock(&m_lock);
 #endif
-	
+
 }
 
 // template <typename T> 
@@ -183,7 +183,7 @@ void Tile::slope()
 		dq.printFormatted("Tile dq slope");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(SLOPE, elaps);
-} // slope
+}				// slope
 
 void Tile::trace()
 {
@@ -257,7 +257,7 @@ void Tile::trace()
 		pqxpIP.printFormatted("Tile pqxpIP trace");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(TRACE, elaps);
-} // trace
+}				// trace
 
 void Tile::traceonRow(int32_t xmin,
 		      int32_t xmax,
@@ -342,7 +342,7 @@ void Tile::traceonRow(int32_t xmin,
 	}
 }
 
-void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t  pqleftS, Preal_t  pqrightS, Preal_t  pqxmS, Preal_t  pqxpS)
+void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS, Preal_t pqxpS)
 {
 	// #pragma vector aligned // impossible !
 #if TILEUSER == 0
@@ -388,8 +388,7 @@ void Tile::qleftr()
 
 void Tile::compflxOnRow(int32_t xmin,
 			int32_t xmax,
-			real_t entho, Preal_t  qgdnvIDS, Preal_t  qgdnvIUS, Preal_t  qgdnvIVS, 
-			Preal_t  qgdnvIPS, Preal_t  fluxIVS, Preal_t fluxIUS, Preal_t  fluxIPS, Preal_t  fluxIDS)
+			real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS)
 {
 	for (int32_t i = xmin; i < xmax; i++) {
 		// Mass density
@@ -440,7 +439,7 @@ void Tile::compflx()
 		fluxIP.printFormatted("Tile fluxIP compflx");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(COMPFLX, elaps);
-} // compflx
+}				// compflx
 
 template < typename LOOP_BODY > void forall(int32_t begin, int32_t end, LOOP_BODY body)
 {
@@ -472,9 +471,9 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx,
 	       int im = i + m_offx, i2 = i - 2, i1 = i - 1;
 	       uoldIDS[im] = uIDS[i] + (fluxIDS[i2] - fluxIDS[i1]) * dtdx;
 	       uoldIVS[im] = uIVS[i] + (fluxIVS[i2] - fluxIVS[i1]) * dtdx;
-	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx; 
+	       uoldIUS[im] = uIUS[i] + (fluxIUS[i2] - fluxIUS[i1]) * dtdx;
 	       uoldIPS[im] = uIPS[i] + (fluxIPS[i2] - fluxIPS[i1]) * dtdx;
-	   }
+		}
 	);
 #endif
 }
@@ -615,7 +614,7 @@ void Tile::updateconserv()
 		uoldIP.printFormatted("Tile uoldIP updateconserv");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(UPDCVAR, elaps);
-} // updateconserv
+}				// updateconserv
 
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax,
 			      Preal_t uIDS, Preal_t uIUS, Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS)
@@ -710,9 +709,9 @@ void Tile::gatherconserv()
 		uIP.printFormatted("Tile uIP gatherconserv");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(GATHCVAR, elaps);
-} // gatherconserv
+}				// gatherconserv
 
-void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t  qIDS, Preal_t  eS, Preal_t  qIPS, Preal_t  cS)
+void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS, Preal_t cS)
 {
 	if (xmin > 0) {
 #pragma omp simd
@@ -769,7 +768,7 @@ void Tile::eos(tileSpan_t span)
 		m_c->printFormatted("Tile c eos");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(EOS, elaps);
-} // eos
+}				// eos
 
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax,
 				 Preal_t qIDS, Preal_t qIPS, Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS)
@@ -866,13 +865,14 @@ real_t Tile::compute_dt()
 
 	if (m_prt)
 		cerr << "tile dt " << dt << endl;
-	
+
 	elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(COMPDT, elaps);
 	return dt;
-} // compute_dt
+}				// compute_dt
 
-void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, const Preal_t uIDS, const Preal_t uIPS, const Preal_t uIVS, const Preal_t uIUS, Preal_t eS)
+void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS, Preal_t qIUS, const Preal_t uIDS, const Preal_t uIPS, const Preal_t uIVS,
+			  const Preal_t uIUS, Preal_t eS)
 {
 
 #if ALIGNED > 0
@@ -934,10 +934,10 @@ void Tile::constprim()
 		qIP.printFormatted("Tile qIP constprim");
 	if (m_prt)
 		(*m_e).printFormatted("Tile e constprim");
-	
+
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(CONSTPRIM, elaps);
-} // constprim
+}				// constprim
 
 void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp,
 			real_t gamma6, real_t smallpp,
@@ -1331,7 +1331,7 @@ void Tile::riemann()
 		qgdnvIP.printFormatted("tile qgdnvIP riemann");
 	double elaps = dcclock() - start;
 	m_threadTimers[myThread()].add(RIEMANN, elaps);
-} // riemann
+}				// riemann
 
 void Tile::boundary_init()
 {
@@ -1471,10 +1471,25 @@ void Tile::godunov()
 	if (m_order > 1) {
 		slope();
 	}
-	trace();
-	qleftr();
-	riemann();
-	compflx();
+#if ARMIETRACE == 2
+	__START_TRACE()
+#pragma message "ARMIE trace on trace"
+#endif
+	    trace();
+#if ARMIETRACE == 2
+	__STOP_TRACE()
+#endif
+	    qleftr();
+
+#if ARMIETRACE == 1
+	__START_TRACE()
+#pragma message "ARMIE trace on riemann"
+#endif
+	    riemann();
+#if ARMIETRACE == 1
+	__STOP_TRACE()
+#endif
+	    compflx();
 	if (m_prt)
 		uold.printFormatted("Tile uold godunov apres compflx");
 }
@@ -1544,6 +1559,23 @@ void Tile::waitVoisin(Tile * voisin, int step)
 		}
 	}
 	return;
+}
+
+long Tile::getLengthByte()
+{
+	return m_u->getLengthByte() + m_flux->getLengthByte();
+}
+
+void Tile::read(const int f)
+{
+	m_u->read(f);
+	m_flux->read(f);
+}
+
+void Tile::write(const int f)
+{
+	m_u->write(f);
+	m_flux->write(f);
 }
 
 //EOF

@@ -467,10 +467,26 @@ void Domain::pngWriteFile(char *name)
 	imgSizeX = m_globNx / m_shrink;
 	imgSizeY = m_globNy / m_shrink;
 
-#if WITHPNG == 0
+	// Open image file
 	if (m_myPe == 0) {
-		// cerr << "shrink factor " << m_shrink << " " << name << endl;
-		m_fp = fopen(name, "w");
+		char *imPrefix = getenv("HYDROC_IMG_PREFIX");
+		char imgname[1024];
+		strcpy(imgname, name);
+		if (imPrefix == NULL) {
+			m_fp = fopen(name, "w");
+		} else {
+			sprintf(imgname, "%s%s", imPrefix, name);
+			m_fp = fopen(imgname, "w");
+		}
+		if (!m_fp) {
+#ifdef MPI_ON
+			fprintf(stderr, "File %s could not be opened for writing\n", imgname);
+			MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+			abort_("File %s could not be opened for writing", imgname);
+#endif
+		}
+#if WITHPNG == 0
 #define BINARY 1
 #if BINARY == 1
 		fprintf(m_fp, "P6\n");
@@ -484,7 +500,7 @@ void Domain::pngWriteFile(char *name)
 			}
 		}
 		fprintf(m_fp, "#EOF\n");
-#else
+#else				// BINARY != 1
 		fprintf(m_fp, "P3\n");
 		fprintf(m_fp, "%d %d\n", imgSizeX, imgSizeY);
 		fprintf(m_fp, "255\n");
@@ -497,18 +513,13 @@ void Domain::pngWriteFile(char *name)
 			fprintf(m_fp, "\n");
 		}
 		fprintf(m_fp, "#EOF\n");
-#endif
-	}
-#else
-	png_byte color_type = PNG_COLOR_TYPE_RGBA;
-	png_byte bit_depth = 8;
+#endif				// BINARY != 1
+#else				// WITHPNG != 0
+		png_byte color_type = PNG_COLOR_TYPE_RGBA;
+		png_byte bit_depth = 8;
 
-	/* create file */
-	if (m_myPe == 0) {
+		/* create file */
 		// cerr << "shrink factor " << m_shrink << " " << name << endl;
-		m_fp = fopen(name, "w");
-		if (!m_fp)
-			abort_("[write_png_file] File %s could not be opened for writing", name);
 
 		/* initialize stuff */
 		m_png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -532,10 +543,10 @@ void Domain::pngWriteFile(char *name)
 
 		png_write_info(m_png_ptr, m_info_ptr);
 		// if (m_myPe == 0) cerr << "Header of final image written " << m_globNx << " " << m_globNy << endl;
+#endif				// WITHPNG != 0
 	}
 #ifdef MPI_ON
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #endif
 }
 

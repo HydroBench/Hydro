@@ -1,0 +1,40 @@
+This folder contains various scripts for running the Hydro benchmark
+--------------------------------------------------------------------
+
+Guillaume Colin de Verdiere
+July 5th, 2012
+
+Adapt one of the run*.sh files to your need.  
+
+Please pay attention that the produced output can be rather
+bulky. Your probably want to make sure that RUNDIR points to a file
+system with enough space.
+
+To use with FTI
+---------------
+
+download FTI-0.9.2 at https://gforge.inria.fr/projects/fti/
+follow instructions given in FTI for installation and look at the example for configuration file
+change hydro compilation options in make_icc_mpi or make_gcc_mpi
+
+
+To visualize the result of the C versions
+-----------------------------------------
+
+cd to the $RUNDIR directory
+
+start paraview (can be found here http://www.paraview.org/)
+
+Load the Hydro.pvd file.
+Then Apply
+Change mode from Outline to Surface
+Change mode from Solid Color to VarIP
+
+Go to last time step
+press Rescale to Data Range
+
+You should have a pretty picture of your simulation.
+Enjoy.
+
+
+

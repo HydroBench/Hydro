@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+# coding: utf8
+# from __future__ import print_function
+import sys
+clamp=True
+
+def processDiff(fs, fp):
+    """ numerical comparaison
+    """
+    maxerr=0.0
+    entetes = fs.readline().rstrip('\n\r')
+    entetep = fp.readline().rstrip('\n\r')
+    for ls in fs:
+        ds = ls.rstrip('\n\r').split(",")
+        dp = fp.readline().rstrip('\n\r').split(",")
+        # print(ds, dp)
+        if (len(ds) > 1):
+            nx=int(ds[0])
+            v1=(float(ds[1]))
+            # print(nx, v1)
+            v2=(float(dp[1]))
+            if (clamp == True):
+                if (abs(v1) < 1e-32):
+                    v1 = 0.0
+                if (abs(v2) < 1e-32):
+                    v2 = 0.0
+            av = max(abs(v1), abs(v2))
+            if (av == 0):
+                err=0.0
+            else:
+                err=abs(v1 - v2)/av
+                if (err > 0):
+                    print(v1, v2, err, file=sys.stderr);
+            print(nx, err)
+            if (err > maxerr):
+                maxerr = err
+    print(maxerr, file=sys.stderr);
+
+if (len(sys.argv) != 3):
+    print("Usage: cmpDumps f1 f2\n")
+    sys.exit(1)
+
+f1=sys.argv[1]
+f2=sys.argv[2]
+fpar = open(f1, "r");
+fseq = open(f2, "r");
+
+processDiff(fseq, fpar)
+
+fseq.close()
+fpar.close()
+
+
+#EOF

@@ -371,7 +371,7 @@ void Domain::compute()
 	memset(vtkprt, 0, 64);
 
 #ifdef _OPENMP
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << endl;
 		// cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
 		cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << endl;
@@ -379,7 +379,7 @@ void Domain::compute()
 	}
 #endif
 #ifdef MPI_ON
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		if (m_nProc == 1)
 			cout << "Hydro: MPI is present with " << m_nProc << " rank" << endl;
 		else
@@ -387,25 +387,25 @@ void Domain::compute()
 	}
 #endif
 
+	if (hasProtection()) {
+		// restore the state of the computation
+		double start, end;
+		start = dcclock();
+		readProtection();
+		end = dcclock();
+		if (m_myPe == 0) {
+			char txt[256];
+			double elaps = (end - start);
+			convertToHuman(txt, elaps);
+			cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
+			cout.flush();
+		}
+	}
+
 	start = dcclock();
 	vtkprt[0] = '\0';
 
 	if (m_tcur == 0) {
-//              if (m_dtImage > 0) {
-//                      char pngName[256];
-//                      pngProcess();
-// #if WITHPNG > 0
-//                      sprintf(pngName, "%s_%06d.png", "Image", m_npng);
-// #else
-//                      sprintf(pngName, "%s_%06d.ppm", "Image", m_npng);
-// #endif
-//                      pngWriteFile(pngName);  
-//                      pngCloseFile();
-//                      sprintf(vtkprt, "%s   (%05d)", vtkprt, m_npng);
-//                      m_npng++;
-//              }
-		// only for the start of the test case
-
 		computeDt();
 		m_dt /= 2.0;
 		assert(m_dt > 1.e-15);
@@ -425,28 +425,16 @@ void Domain::compute()
 		if (reader)
 			reader->Read(m_fakeRead);
 
-		//
 		// - - - - - - - - - - - - - - - - - - -
-		//
 		{
 			startstep = dcclock();
-// #ifdef MPI_ON
-//                      double t1 =  MPI_Wtime();
-// #endif
 
 			dt = computeTimeStep();
 			endstep = dcclock();
 			elpasstep = endstep - startstep;
-// #ifdef MPI_ON
-//                      double t2 =  MPI_Wtime();
-//                      cerr << (t2 - t1) << " " << elpasstep << endl;
-// #endif
 			elpasStepTot += elpasstep;
 		}
-		//
 		// - - - - - - - - - - - - - - - - - - -
-		//
-		// m_dt = 1.e-3;
 		m_tcur += m_dt;
 		n++;		// iteration of this run
 		m_iter++;	// global iteration of the computation (accross runs)
@@ -454,6 +442,12 @@ void Domain::compute()
 		if (m_nStepMax > 0) {
 			if (m_iter > m_nStepMax)
 				break;
+		}
+
+		// 
+		if (m_iter == m_nDumpline) {
+			dumpLine();
+			sprintf(vtkprt, "%s{dumpline}", vtkprt);
 		}
 
 		int outputVtk = 0;
@@ -470,7 +464,7 @@ void Domain::compute()
 		}
 		if (outputVtk) {
 			vtkOutput(m_nvtk);
-			sprintf(vtkprt, "[%05d]", m_nvtk);
+			sprintf(vtkprt, "%s[%05d]", vtkprt, m_nvtk);
 			m_nvtk++;
 			needSync++;
 		}
@@ -574,7 +568,10 @@ void Domain::compute()
 	if (m_checkPoint) {
 		double start, end;
 		start = dcclock();
-		m_dt = dt;
+		// m_tcur -= m_dt;
+		if ((m_iter % 2) == 0) {
+			m_dt = dt;
+		}
 		writeProtection();
 		end = dcclock();
 		if (m_myPe == 0) {
@@ -603,7 +600,7 @@ void Domain::compute()
 	m_maxrss = myusage.ru_maxrss;
 	m_ixrss = myusage.ru_ixrss;
 
-	if (m_myPe == 0) {
+	if (m_myPe == 0 && m_stats > 0) {
 		char timeHuman[256];
 		long maxMemUsed = getMemUsed();
 		double elaps = (end - start);
@@ -655,14 +652,14 @@ void Domain::compute()
 		m_mainTimer.set(BOUNDINITBW, 0);
 		m_mainTimer.getStats();	// all processes involved
 		// cout << endl;
-		if (m_myPe == 0) {
+		if (m_myPe == 0 && m_stats > 0) {
 #ifdef MPI_ON
 			m_mainTimer.printStats();
 #else
 			m_mainTimer.print();
 #endif
 		}
-		if (m_myPe == 0) {
+		if (m_myPe == 0 && m_stats > 0) {
 			double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
 			double seenParallel = 0;
 			for (int32_t i = 0; i < TILEOMP; ++i) {

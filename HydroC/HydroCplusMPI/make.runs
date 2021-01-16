@@ -29,7 +29,7 @@ runsde: hydroc
 
 lrun: hydroc
 	@rm -rf Dep/* STOP
-	env OMP_NUM_THREADS=32 ./hydroc -i input.nml
+	env OMP_NUM_THREADS=8 ./hydroc -i input.nml
 
 vecmic: hydroc
 	@rm -rf Dep/* STOP
@@ -268,6 +268,17 @@ rinti4200: inti4200
 	echo "224 threads au maximum sur la machine"
 	ssh inti4200 "cd HydroCplusMPI; make CRAY=O"
 	ssh inti4200 "cd HydroCplusMPI; mpirun -n 224 ./hydroc.cray -i input.nml"
+
+ADV_INSTALL_DIR=$(ONEAPI_ROOT)/advisor/latest
+APM=$(ADV_INSTALL_DIR)/perfmodels
+RESULTS=$(PWD)/ADVResults512
+advoffload:
+	rm -rf $(PWD)/ADVResults
+	mkdir -p $(PWD)/ADVResults
+	time env OMP_NUM_THREADS=4 advixe-python $(APM)/run_oa.py $(RESULTS) --config gen9 --out-dir $(PWD)/ADVResults -- ./hydroc -i input.nml 
+	advixe-python $(APM)/analyze.py $(RESULTS)  --enable-cache-simulation --cache-config --config gen9
+	firefox file://$(RESULTS)/report.html &
+
 
 include make.scans
 #EOF

@@ -1,0 +1,74 @@
+This namelist contains various input parameters for HYDRO runs
+# environment variable for hydroc
+# HYDROC_DUMPEXT       	   => text to add to the dumped line (if any)
+# HYDROC_IMG_PREFIX	   => text to prepend to images (if any)
+# HYDROC_MAXTIME 	   => max time in second allocated for the run
+#                              (default = 1800s - 300s of guard)
+
+#################################################################################################
+# Reference result: on a Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz, 16GB RAM
+# make AVX2=O clean hydroc
+# <...>
+# icpc -c  -std=c++11  -DMPI_ON -I/opt/intel/inteloneapi/mpi/2021.1-beta05/include64 -DWITHPNG=1 -I/opt/intel/inteloneapi/mpi/2021.1-beta05/include64 -march=core-avx2 -fma -diag-disable=10397 -O3 -g -qopenmp -ansi-alias  -simd -qopenmp-simd -fma	 Domain.cpp -o Domain.o 
+# <...>
+# env OMP_NUM_THREADS=8 ./hydroc -i inputlong.nml
+# <...>
+# Iter   9999 Time 128.394732    Dt 0.0144012    (0.02028s 5.276Mc/s 0.018GB) 1276.9  
+# Iter  10000 Time 128.409134    Dt 0.0144012    (0.01871s 5.720Mc/s 0.019GB) 1276.8 {dumpline} (00001) 
+# Iter  10001 Time 128.423533    Dt 0.0143993    (0.02011s 5.320Mc/s 0.019GB) 1276.8  
+# End of computations in 146.377 s (00:02:26.37) with 36 tiles using 8 threads and 1 MPI tasks maxMatrix 19.648 MB
+# Total simulation time: 00:02:26.37 in 1 runs
+# Average MC/s: 7.637 min 1.831, max 10.600, sig 1.335
+##################################################################################################
+
+&RUN
+tend=20000		# physical end to of simulation
+#tend=3
+# noutput=1		# VTK output every n interation
+nstepmax=10001		# end computation after n iterations
+nimage = 10000		# dumps an image every n iterations
+# dtoutput=0.1		# VTK output every dt physical time
+# dtimage=10		# plots an image every dt physical time
+# chkpt=1		# create a checkpoint restart file to continue the
+  			#    simulation if time limit has been reached
+stats = 1 		# print run statistics 	      0 = less output
+ndumpline = 10000	# iteration at which dumping a line of values.
+	    		#    useful to validate modifications. -1 to deactivate
+			
+tasked=   0		# activate tasks instead of classical OpenMP loops
+taskeddep=0		# activate task dependancy mechanism (currently broken)
+prt=0			# prints all arrays during computation (very verbose)
+forcesync = 0		# forces sync() after writing files
+forcestop = 0		# forces writing the STOP file marker as if computation
+	    		#  was finished when either nstepmax or tend is reached.
+			#  The STOP file is written at tend, always.
+fakeread = 0		# forces reading a file to stress the file system
+fakereadsize = 0	# number of bytes to read 
+/
+
+&MESH0
+nx=312			# total number of cells in the x dimension
+ny=343			# total number of cells in the y dimension
+tilesize=60		# lengths of the sizes of the square tiles paving the domain
+morton=1		# affects the tiles to threads according to a morton curve
+numa=1			# intialize arrays in a numa aware manner
+
+dx=0.05
+			# type of boundary conditions
+boundary_left=1		# 1 = reflexion
+boundary_right=1	# 2 = absorption	(may be broken)
+boundary_down=1		# !=[1,2] periodic	(may be broken)
+boundary_up=1
+testcase=0		# 0 = centered test case, 1 = corner test case
+			# 2 = SOD test case, 3 = sinusoid (probably broken)
+/
+
+&HYDRO
+courant_factor=0.8
+niter_riemann=10	# unused any more (hard coded in Riemann())
+scheme = muscl		# can be also plmde or collela
+smallr =1e-10
+smallc =1e-10
+slope_type = 1.
+iorder = 2		# numerical scheme order (1 or 2)
+/

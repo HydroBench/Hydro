@@ -1,7 +1,7 @@
 #!/bin/bash
-
+set -x
 if [ "$1" = "" ]; then
-    out="sortie.avi"
+    out="output.avi"
 else
     out=$1
 fi
@@ -12,23 +12,24 @@ siz=`file $un`
 w=`echo $siz | perl -n -e '{ @a=split(" "); printf $a[4] ; }'`
 h=`echo $siz | perl -n -e '{ @a=split(" "); printf "%d", $a[6] ; }'`
 
-maxi=600
+maxi=300
 while [  $w -gt $maxi ] | [ $h -gt $maxi ]; do
     w=$((w - 20))
     h=$((h - 20))
 done
 # echo $w x $h
 
-VOPTS="vcodec=mpeg4:mbd=2:mv0:trell:v4mv:cbp:last_pred=3:predia=2:dia=2:vmax_b_frames=2:vb_strategy=1:precmp=2:cmp=2:subcmp=2:preme=2:qns=2"
+VOPTS="vcodec=mpeg4:mbd=2:trell:v4mv:last_pred=3:predia=2:dia=2:vmax_b_frames=2:vb_strategy=1:precmp=2:cmp=2:subcmp=2:preme=2"
+#  mpv_flags=+mv0:mpv_flags=+cbp_rd:quantizer_noise_shaping=2
 
 if [ "$TERM" = "xterm"  ]; then
-    CHUT=""
+    QUIET=""
 else
-    CHUT="-really-quiet"
+    echo QUIET="-really-quiet"
 fi
-
+mkdir -p /tmp/$USER
 ls | grep '.png' > /tmp/$USER/pnglist.txt
-mencoder mf://@/tmp/$USER/pnglist.txt $CHUT -mf fps=25:type=png -vf scale=$w:$h -ovc lavc -lavcopts $VOPTS -oac copy -o $out
+mencoder mf://@/tmp/$USER/pnglist.txt $QUIET -mf fps=25:type=png -vf scale=$w:$h -ovc lavc -lavcopts $VOPTS -oac copy -o $out
 # mencoder mf://\*.png  -mf fps=25:type=png -vf scale=$w:$h -ovc lavc -lavcopts $VOPTS:vpass=2 -oac copy -o $out
 
 #EOF
