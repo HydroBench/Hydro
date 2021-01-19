@@ -56,7 +56,7 @@ endif
 
 ifeq ($(CXX),icx)
      # OPTIM+=-mavx2 -fopenmp -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
-    OPTIM+=-xcore-avx2 -fopenmp -fiopenmp -fopenmp-targets=spir64 
+    OPTIM+=-xcore-avx2 -fiopenmp -fopenmp-targets=spir64 
     LIBS+=-lstdc++
 endif
 
