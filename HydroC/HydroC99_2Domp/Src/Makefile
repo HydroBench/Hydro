@@ -7,6 +7,9 @@ endif
 ifeq ($(GPU),O)
 CFLAGS_OMP+=-DTARGETON
 endif
+ifeq ($(TRACK),O)
+CFLAGS_OMP+=-DTRACKDATA
+endif
 ifeq ($(CC),icx)
 #
 ifeq ($(GPU),O)
@@ -51,7 +54,7 @@ SRCDIR = .
 #--------------
 SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
 # SRC2 are the files that can be translated to CUDA or OpenCL
-SRC2=cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c 
+SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c 
 SRC+=$(SRC2)
 
 DEPS=$(patsubst %.c,%.d,$(SRC))
@@ -102,32 +105,46 @@ include $(DEPS)
 TARGETFUNCS=*.o
 
 runcpu:
-	sh -c "if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS) lastgpu; fi"
+	@if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS) lastgpu; fi
 	make -j GPU=N
 	env OMP_NUM_THREADS=8 ./hydro -i input.nml
-	touch lastcpu
+	@touch lastcpu
 
 rungpu:
-	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
-	touch lastgpu
+	@touch lastgpu
+
+rungpu0:
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O
+	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=LEVEL0 LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
+	@touch lastgpu
+
+rungpu0d:
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O
+	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=LEVEL0 LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
+	@touch lastgpu
 
 rungpuq:
-	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL ./hydro -i input.nml
-	touch lastgpu
+	@touch lastgpu
 
-rungpud: hydro
-	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
-	make GPU=O QUIET=O
+rungpud: 
+	make clean
+	make -j GPU=O QUIET=O TRACK=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
+	@touch lastgpu
 
-rungpud5: hydro
-	if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
-	make GPU=O QUIET=O
+rungpud5: 
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
+	@touch lastgpu
 
 run8: hydro
 	env OMP_NUM_THREADS=8 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml

@@ -40,6 +40,10 @@ gatherConservativeVars(const int idim,
 
     if (idim == 1) {
 	// Gather conservative variables
+#ifdef TRACKDATA
+	fprintf(stderr, "Moving gatherConservativeVars IN\n");
+#endif
+	
 #ifdef TARGETON
 #pragma omp target				\
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
@@ -65,6 +69,22 @@ gatherConservativeVars(const int idim,
 	}
 
 	if (Hnvar > IP) {
+#ifdef TRACKDATA
+	    fprintf(stderr, "Moving gatherConservativeVars IN\n");
+#endif
+	    
+#ifdef TARGETON
+#pragma omp target				\
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar *Hnxt * Hnyt])
+#pragma omp teams distribute parallel for default(none)\
+	firstprivate(Hnvar, slices, Himin, Himax),	       \
+	private(s, i), shared(u, uold) collapse(3)
+#else
+#pragma omp parallel for default(none)\
+ 	firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt),	\
+ 	private(i, s, ivar), shared(u, uold) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin; i < Himax; i++) {
@@ -94,6 +114,22 @@ gatherConservativeVars(const int idim,
 	}
 
 	if (Hnvar > IP) {
+#ifdef TRACKDATA
+	    fprintf(stderr, "Moving gatherConservativeVars IN\n");
+#endif
+	    
+#ifdef TARGETON
+#pragma omp target				\
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar *Hnxt * Hnyt])
+#pragma omp teams distribute parallel for default(none)\
+	firstprivate(Hnvar, slices, Himin, Himax),	       \
+	private(s, i), shared(u, uold) collapse(3)
+#else
+#pragma omp parallel for default(none)\
+ 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
+ 	private(j, s, ivar), shared(u, uold) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (j = Hjmin; j < Hjmax; j++) {
@@ -103,6 +139,10 @@ gatherConservativeVars(const int idim,
 	    }
 	}
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving gatherConservativeVars OUT\n");
+#endif
+    
     end = cclock();
     functim[TIM_GATCON] += ccelaps(start, end);
 }
@@ -130,6 +170,9 @@ updateConservativeVars(const int idim,
     int i, j, ivar, s;
     struct timespec start, end;
     WHERE("updateConservativeVars");
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving updateConservativeVars IN\n");
+#endif
     start = cclock();
 
 #define IHU(i, j, v)  ((i) + Hnxt * ((j) + Hnyt * (v)))
@@ -138,11 +181,10 @@ updateConservativeVars(const int idim,
 
 	// Update conservative variables
 #ifdef TARGETON
-#pragma message "TARGET on UPDATECONSERVATIVEVARS"
 #pragma omp target				\
-	map(tofrom:u[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(tofrom:flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(tofrom:uold[0:Hnvar * Hnxt * Hnyt])
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar * Hnxt * Hnyt])
 #pragma omp teams distribute parallel for default(none) private(s, i, ivar), shared(u, uold, flux) collapse(2)
 #else
 #pragma omp parallel for private(ivar, s,i), shared(uold) COLLAPSE
@@ -156,14 +198,22 @@ updateConservativeVars(const int idim,
 		}
 	    }
 	}
-	{
-	    int nops =
-		(IP + 1) * slices * ((Himax - ExtraLayer) -
-				     (Himin + ExtraLayer));
-	    FLOPS(3 * nops, 0 * nops, 0 * nops, 0 * nops);
-	}
 
 	if (Hnvar > IP) {
+#ifdef TARGETON
+#pragma omp target				\
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar * Hnxt * Hnyt])
+#pragma omp teams distribute parallel for default(none)\
+	firstprivate(Hnvar, slices, Himin, Himax, dtdx),		\
+	private(s, i, ivar), shared(u, uold, flux) collapse(3)
+#else
+#pragma omp parallel for \
+ 	default(none)\
+ 	firstprivate(rowcol, dtdx, Himin, Himax, Hnvar, slices, Hnxt, Hnyt)	\
+ 	private(ivar, s, i), shared(uold, u, flux) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
@@ -173,6 +223,12 @@ updateConservativeVars(const int idim,
 		    }
 		}
 	    }
+	}
+	{
+	    int nops =
+		(IP + 1) * slices * ((Himax - ExtraLayer) -
+				     (Himin + ExtraLayer));
+	    FLOPS(6 * nops, 0 * nops, 0 * nops, 0 * nops);
 	}
     } else {
 	// Update conservative variables
@@ -211,6 +267,19 @@ updateConservativeVars(const int idim,
 	}
 
 	if (Hnvar > IP) {
+#ifdef TARGETON
+#pragma omp target				\
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(uold[0:Hnvar * Hnxt * Hnyt])
+#pragma omp teams distribute parallel for default(none)\
+	firstprivate(Hnvar, slices, Hjmin, Hjmax, dtdx),		\
+	private(s, j, ivar), shared(u, uold, flux) collapse(3)
+#else
+#pragma omp parallel for default(none)\
+ 	firstprivate(rowcol, Hjmin, Hjmax, dtdx, Hnvar, slices, Hnxt, Hnyt),	\
+ 	private(ivar, s, j), shared(uold, u, flux) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
@@ -224,6 +293,9 @@ updateConservativeVars(const int idim,
     }
     end = cclock();
     functim[TIM_UPDCON] += ccelaps(start, end);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving updateConservativeVars OUT\n");
+#endif
 }
 
 #undef IHU

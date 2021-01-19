@@ -23,6 +23,9 @@ constoprim(const int n,
     struct timespec start, end;
     // const int nxyt = Hnxyt;
     WHERE("constoprim");
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving constoprim IN\n");
+#endif
     start = cclock();
     ijmin = 0;
     ijmax = n;
@@ -38,7 +41,7 @@ constoprim(const int n,
 	shared(u, q, e) \
 	collapse(2)
 #else
-#pragma omp parallel for private(i, s, eken), shared(q,e) COLLAPSE
+// #pragma omp parallel for private(i, s, eken, ijmin, ijmax), shared(u,q,e) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
 	for (i = ijmin; i < ijmax; i++) {
@@ -63,6 +66,22 @@ constoprim(const int n,
     }
 
     if (Hnvar > IP) {
+#ifdef TARGETON
+#pragma omp target				\
+	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(e[0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for \
+	default(none) \
+	firstprivate(Hnvar, slices, ijmin, ijmax),\
+	private(s, i), \
+	shared(u, q, e) \
+	collapse(3)
+#else
+#pragma omp parallel for default(none)\
+ 	firstprivate(Hnvar, slices, ijmin, ijmax),\
+ 	private(i, s, IN), shared(u,q,e) collapse(3)
+#endif
 	for (IN = IP + 1; IN < Hnvar; IN++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = ijmin; i < ijmax; i++) {
@@ -71,6 +90,9 @@ constoprim(const int n,
 	    }
 	}
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving constoprim OUT\n");
+#endif
     end = cclock();
     functim[TIM_CONPRI] += ccelaps(start, end);
 }				// constoprim

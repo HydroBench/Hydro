@@ -27,6 +27,9 @@ trace(const real_t dtdx,
     struct timespec start, end;
 
     WHERE("trace");
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving trace IN\n");
+#endif
     start = cclock();
     ijmin = 0;
     ijmax = n;
@@ -56,8 +59,7 @@ trace(const real_t dtdx,
  	map(q[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])		\
- 	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])		\
- 	map(dtdx, slices, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project)
+ 	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])
 
 #pragma omp teams distribute parallel for default(none), private(s,i), 	\
 	firstprivate(dtdx, slices, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
@@ -137,6 +139,24 @@ trace(const real_t dtdx,
     }
 
     if (Hnvar > IP) {
+#ifdef TARGETON
+	// 
+#pragma omp target \
+ 	map(c[0:Hstep][0:Hnxyt]) \
+ 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])		\
+ 	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])		\
+ 	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])		\
+ 	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])
+
+#pragma omp teams distribute parallel for default(none), private(s,i), 	\
+	firstprivate(dtdx, slices, Hnvar, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
+	shared(qxp, qxm, c, q, dq) collapse(3)
+#else
+#pragma omp parallel for default(none),					\
+	private(s,i),							\
+	firstprivate(dtdx, slices, Hnvar, ijmin, ijmax,zeror,zerol, Hnxyt, Hstep, project) \
+	shared(qxp, qxm, c, q, dq) collapse(3)
+#endif
 	for (IN = IP + 1; IN < Hnvar; IN++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = ijmin + 1; i < ijmax - 1; i++) {
@@ -170,6 +190,9 @@ trace(const real_t dtdx,
     }
     end = cclock();
     functim[TIM_TRACE] += ccelaps(start, end);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving trace OUT\n");
+#endif
 }				// trace
 
 //EOF

@@ -33,15 +33,18 @@ equation_of_state(int imin,
     smallp = Square(Hsmallc) / Hgamma;
 
     // printf("EOS: %d %d %d %d %g %g %d %d\n", imin, imax, Hnxyt, Hnvar, Hsmallc, Hgamma, slices, Hstep);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving equation_of_state IN\n");
+#endif
+    
 #ifdef TARGETON
-#pragma omp target			\
+#pragma omp target teams distribute parallel for default(none), \
+	firstprivate(slices, Hgamma, smallp, imin, imax) \
+	private(s,k), \
+	shared(c,q, eint) collapse(2)\
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(c[0:Hstep][0:Hnxyt]) \
 	map(eint[0:Hstep][0:Hnxyt])
-#pragma omp teams distribute parallel for default(none), \
-	firstprivate(slices, Hgamma, smallp, imin, imax) \
-	private(s,k), \
-	shared(c,q, eint) collapse(2)
 #else
 #pragma omp parallel for default(none) firstprivate(slices, Hgamma, smallp, imin, imax) private(s,k), shared(c,q, eint) COLLAPSE
 #endif
@@ -60,6 +63,10 @@ equation_of_state(int imin,
 	FLOPS(1, 1, 0, 0);
 	FLOPS(5 * nops, 2 * nops, 1 * nops, 0 * nops);
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving equation_of_state OUT\n");
+#endif
+    
     end = cclock();
     functim[TIM_EOS] += ccelaps(start, end);
 }				// equation_of_state

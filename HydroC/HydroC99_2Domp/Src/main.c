@@ -140,6 +140,7 @@ int main(int argc, char **argv)
     char outnum[80];
     int time_output = 0;
     long flops = 0;
+    char dtTxt = ' ';
 
     // real_t output_time = 0.0;
     real_t next_output_time = 0;
@@ -221,10 +222,12 @@ int main(int argc, char **argv)
 
 #ifdef TARGETON
     real_t(*e)[H.nxyt];
+    real_t(*edt)[H.nxyt];
     real_t(*flux)[H.nxystep][H.nxyt];
     real_t(*qleft)[H.nxystep][H.nxyt];
     real_t(*qright)[H.nxystep][H.nxyt];
     real_t(*c)[H.nxyt];
+    real_t(*cdt)[H.nxyt];
     real_t *uold;
     int (*sgnm)[H.nxyt];
     real_t(*qgdnv)[H.nxystep][H.nxyt];
@@ -232,54 +235,74 @@ int main(int argc, char **argv)
     real_t(*qxm)[H.nxystep][H.nxyt];
     real_t(*qxp)[H.nxystep][H.nxyt];
     real_t(*q)[H.nxystep][H.nxyt];
-    real_t(*dq)[H.nxystep][H.nxyt];
+    real_t(*qdt)[H.nxystep][H.nxyt];
+     real_t(*dq)[H.nxystep][H.nxyt];
 
     uold = Hv.uold;
     qgdnv = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.qgdnv;
     flux = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.flux;
     c = (real_t(*)[H.nxyt]) Hw_godunov.c;
+    cdt = (real_t(*)[H.nxyt]) Hw_deltat.c;
     e = (real_t(*)[H.nxyt]) Hw_godunov.e;
+    edt = (real_t(*)[H.nxyt]) Hw_deltat.e;
     qleft = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.qleft;
     qright = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.qright;
     sgnm = (int (*)[H.nxyt])Hw_godunov.sgnm;
     q = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.q;
+    qdt = (real_t(*)[H.nxystep][H.nxyt]) Hvw_deltat.q;
     dq = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.dq;
     u = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.u;
     qxm = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.qxm;
     qxp = (real_t(*)[H.nxystep][H.nxyt]) Hvw_godunov.qxp;
 
-#pragma omp target data				\
-	map(tofrom:uold)			\
-	map(alloc:u)				\
-	map(alloc:q)				\
-	map(alloc: c)				\
-	map(alloc: e)				\
-	map(alloc: dq)				\
-	map(alloc:qxm)				\
-	map(alloc:qxp)				\
-	map(alloc:qleft)			\
-	map(alloc:qright)			\
-	map(alloc: qgdnv)			\
-	map(alloc: sgnm)			\
-	map(alloc: Hw_godunov.pstar)		\
-	map(alloc: Hw_godunov.rl)		\
-	map(alloc: Hw_godunov.ul)		\
-	map(alloc: Hw_godunov.pl)		\
-	map(alloc: Hw_godunov.rr)		\
-	map(alloc: Hw_godunov.ur)		\
-	map(alloc: Hw_godunov.cl)		\
-	map(alloc: Hw_godunov.pr)		\
-	map(alloc: Hw_godunov.cr)		\
-	map(alloc: Hw_godunov.goon)		\
-	map(alloc:flux)
+    int Hnvar = H.nvar;
+    int Hstep = H.nxystep;
+    int Hnxt = H.nxt;
+    int Hnyt = H.nyt;
+    int Hnxyt = H.nxyt;
+    int narray = H.nxyt;
+    int slices = H.nxystep;
+    long tmpsiz = slices * narray;
+    fprintf(stderr, "GCdV: map alloc here %s_%d\n", __FILE__, __LINE__);
+#pragma omp target data	\
+	map(tofrom: uold[0:Hnvar * Hnxt * Hnyt])	\
+	map(tofrom:     u[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(tofrom:     q[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:     dq[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:    qxm[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:    qxp[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:  qleft[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc: qright[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:  qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:   flux[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(tofrom:    c[0:Hstep][0:Hnxyt])\
+	map(tofrom:    e[0:Hstep][0:Hnxyt])\
+	map(tofrom: sgnm[0:Hstep][0:Hnxyt])\
+	map(alloc: Hw_godunov.rl[0:tmpsiz])\
+	map(alloc: Hw_godunov.ul[0:tmpsiz])\
+	map(alloc: Hw_godunov.pl[0:tmpsiz])\
+	map(alloc: Hw_godunov.rr[0:tmpsiz])\
+	map(alloc: Hw_godunov.ur[0:tmpsiz])\
+	map(alloc: Hw_godunov.cl[0:tmpsiz])\
+	map(alloc: Hw_godunov.pr[0:tmpsiz])\
+	map(alloc: Hw_godunov.cr[0:tmpsiz])\
+	map(alloc: Hw_godunov.pstar[0:tmpsiz])\
+	map(alloc:  Hw_godunov.goon[0:tmpsiz])\
+	map(tofrom:qdt[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc: cdt[0:Hstep][0:Hnxyt])\
+	map(alloc: edt[0:Hstep][0:Hnxyt])
 #endif
     {
 // make sure that our data is uploaded to the GPU    
 #ifdef TARGETON
-#pragma omp target update from ( uold)
+#ifdef TRACKDATA
+	fprintf(stderr, "GCdV: update to (uold) %s_%d\n", __FILE__, __LINE__);
+#endif
+#pragma omp target update to (uold)
 #endif
 
 	while ((H.t < H.tend) && (H.nstep < H.nstepmax)) {
+		dtTxt = ' ';
 	    //system("top -b -n1");
 	    // reset perf counter for this iteration
 	    flopsAri = flopsSqr = flopsMin = flopsTra = 0;
@@ -290,6 +313,7 @@ int main(int argc, char **argv)
 		// if (H.mype == 0) fprintf(stdout, "Hydro computes deltat.\n");
 		start = cclock();
 		{
+			dtTxt = 'D';
 		    compute_deltat(&dt, H, &Hw_deltat, &Hv, &Hvw_deltat);
 		}
 		end = cclock();
@@ -385,8 +409,8 @@ int main(int argc, char **argv)
 		}
 	    }
 	    if (H.mype == 0) {
-		fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s\n",
-			H.nstep, H.t, dt, cellPerCycle, outnum);
+		fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s %c\n",
+			H.nstep, H.t, dt, cellPerCycle, outnum, dtTxt);
 		fflush(stdout);
 		if (H.nstep > 5) {
 		    mcsavg += cellPerCycle;

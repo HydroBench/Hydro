@@ -52,6 +52,10 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 
     WHERE("hydro_godunov");
 
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving hydro_godunov IN\n");
+#endif
+
     uold = Hv->uold;
     qgdnv = (real_t(*)[H.nxystep][H.nxyt]) Hvw->qgdnv;
     flux = (real_t(*)[H.nxystep][H.nxyt]) Hvw->flux;
@@ -78,8 +82,14 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 
 	// Update boundary conditions
 
+#ifdef TRACKDATA
+	fprintf(stderr, "Moving from (uold)\n");
+#endif
 #pragma omp target update from ( uold)
 	make_boundary(idim, H, Hv);
+#ifdef TRACKDATA
+	fprintf(stderr, "Moving to (uold)\n");
+#endif
 #pragma omp target update to( uold)
 
 	if (idim == 1) {
@@ -138,6 +148,10 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	}			// for j
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving hydro_godunov OUT\n");
+#endif
+
 }				// hydro_godunov
 
 // EOF

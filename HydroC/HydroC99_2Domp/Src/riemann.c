@@ -40,7 +40,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     struct timespec start, end;
 
     WHERE("riemann");
-	    start = cclock();
+    start = cclock();
 
     FLOPS(4, 2, 0, 0);
     // __declspec(align(256)) thevariable
@@ -63,13 +63,16 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     long tmpsiz = slices * narray;
 
     // Pressure, density and velocity
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving riemann IN\n");
+#endif
+
 #ifdef WITHTARGET
-    // fprintf(stderr, "riemann IN\n");
 #pragma omp target \
 	map(qleft[0:Hnvar][0:Hstep][0:Hnxyt])			\
 	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])			\
 	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])			\
-	map(sgnm[0:Hstep][0:Hnxyt])				\
+	map(alloc: sgnm[0:Hstep][0:Hnxyt])			\
 	map(pstar[0:tmpsiz])					\
 	map(rl[0:tmpsiz])					\
 	map(ul[0:tmpsiz])					\
@@ -118,12 +121,8 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #ifdef WITHTARGET
     // fprintf(stderr, "riemann between loop 1 and 2\n");
 #pragma omp target teams distribute parallel for default(none)		\
-	private(s, i, iter),							\
-	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
-	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
-	map(qright[0:Hnvar][0:Hstep][0:narray])			\
-	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(sgnm[0:Hstep][0:narray])				\
+	private(s, i, iter),\
+	shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
 	map(pstar[0:tmpsiz])					\
 	map(rl[0:tmpsiz])					\
 	map(ul[0:tmpsiz])					\
@@ -138,7 +137,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp parallel for private(s, i, iter),				\
 	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
 	default(none),							\
-	shared(qgdnv, sgnm, qleft, qright, pstar, ul, rl, pl, rr, ur, pr, cl, cr, goon)
+	shared(pstar, ul, rl, pl, rr, ur, pr, cl, cr, goon)
 #endif
 
     for (s = 0; s < slices; s++) {
@@ -186,7 +185,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
 	map(qright[0:Hnvar][0:Hstep][0:narray])			\
 	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(sgnm[0:Hstep][0:narray])				\
+	map(sgnm[0:Hstep][0:Hnxyt])			\
 	map(pstar[0:tmpsiz])					\
 	map(rl[0:tmpsiz])					\
 	map(ul[0:tmpsiz])					\
@@ -295,13 +294,27 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     }
     int nops = slices * narray;
     FLOPS(57 * nops, 17 * nops, 14 * nops, 0 * nops);
-#ifdef WITHTARGET
-    // fprintf(stderr, "riemann OUT\n");
-#endif
 
     // other passive variables
     if (Hnvar > IP) {
 	int invar;
+#ifdef WITHTARGET
+#pragma omp target teams distribute parallel for default(none)		\
+	private(s, i),							\
+	firstprivate(slices, Hnvar, narray),			\
+	shared(qgdnv, sgnm, qleft, qright)			\
+	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
+	map(qright[0:Hnvar][0:Hstep][0:narray])			\
+	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
+	map(sgnm[0:Hstep][0:Hnxyt])			\
+	collapse(3)		//
+
+#else
+#pragma omp parallel for private(s, i, invar),	\
+ 	default(none),\
+ 	firstprivate(slices, Hnvar, narray),			\
+ 	shared(qgdnv, sgnm, qleft, qright) collapse(3)
+#endif
 	for (invar = IP + 1; invar < Hnvar; invar++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = 0; i < narray; i++) {
@@ -312,8 +325,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	    }
 	}
     }
-	    end = cclock();
-	    functim[TIM_RIEMAN] += ccelaps(start, end);
+    end = cclock();
+    functim[TIM_RIEMAN] += ccelaps(start, end);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving riemann OUT\n");
+#endif
 }				// riemann_vec
 
 //EOF

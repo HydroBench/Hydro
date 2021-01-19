@@ -33,8 +33,11 @@ cmpflx(const int narray,
 
     // Compute fluxes
 
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving cmpflx IN\n");
+#endif
+
 #ifdef TARGETON
-#pragma message "TARGET on CMPFLX"
 #pragma omp target				\
 	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
@@ -75,14 +78,29 @@ cmpflx(const int narray,
 
     // Other advected quantities
     if (Hnvar > IP) {
-	for (s = 0; s < slices; s++) {
-	    for (IN = IP + 1; IN < Hnvar; IN++) {
+#ifdef TARGETON
+#pragma omp target				\
+	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])	\
+	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
+#pragma omp teams distribute parallel for \
+	default(none) private(s, i), \
+	shared(flux, qgdnv) \
+	collapse(3)
+#else
+#pragma omp parallel for private(s, i), shared(flux) collapse(3)
+#endif
+	for (IN = IP + 1; IN < Hnvar; IN++) {
+	    for (s = 0; s < slices; s++) {
 		for (i = 0; i < nface; i++) {
 		    flux[IN][s][i] = flux[IN][s][i] * qgdnv[IN][s][i];
 		}
 	    }
 	}
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving cmpflx OUT\n");
+#endif
+
     end = cclock();
     functim[TIM_CMPFLX] += ccelaps(start, end);
 }				// cmpflx

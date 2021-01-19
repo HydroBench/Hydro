@@ -27,6 +27,9 @@ qleftright(const int idim,
     struct timespec start, end;
 
     WHERE("qleftright");
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving qleftright IN\n");
+#endif
     start = cclock();
 
     if (idim == 1) {
@@ -58,7 +61,10 @@ qleftright(const int idim,
 	}
     }
     end = cclock();
-    // functim[TIM_QLEFTR] += ccelaps(start, cclock());
+    // functim[TIM_QLEFTR] += ccelaps(start, end);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving qleftright OUT\n");
+#endif
     return;
 }
 
