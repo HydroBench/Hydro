@@ -154,15 +154,15 @@ int main(int argc, char **argv)
     double mcsavg = 0, mcsmin = FLT_MAX, mcsmax = 0, mcssig = 0;
     long nmcsavg = 0;
 
-    // array of timers to profile the code
-    memset(functim, 0, TIM_END * sizeof(functim[0]));
-
 #ifdef MPI
     MPI_Init(&argc, &argv);
 #endif
 
     process_args(argc, argv, &H);
     hydro_init(&H, &Hv);
+
+    // array of timers to profile the code
+    memset(functim, 0, TIM_END * sizeof(functim[0]));
 
     if (H.mype == 0) {
 	int rc = 0;
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
     int narray = H.nxyt;
     int slices = H.nxystep;
     long tmpsiz = slices * narray;
-    fprintf(stderr, "GCdV: map alloc here %s_%d\n", __FILE__, __LINE__);
+    // fprintf(stderr, "GCdV: map alloc here %s_%d\n", __FILE__, __LINE__);
 #pragma omp target data	\
 	map(tofrom: uold[0:Hnvar * Hnxt * Hnyt])	\
 	map(tofrom:     u[0:Hnvar][0:Hstep][0:Hnxyt])\
@@ -318,12 +318,6 @@ int main(int argc, char **argv)
 		}
 		end = cclock();
 		functim[TIM_COMPDT] += ccelaps(start, end);
-		if (H.nstep == 0) {
-		    dt = dt / 2.0;
-		    if (H.mype == 0)
-			fprintf(stdout, "Hydro computes initial deltat: %le\n",
-				dt);
-		}
 #ifdef MPI
 		if (H.nproc > 1) {
 		    real_t dtmin;
@@ -338,6 +332,12 @@ int main(int argc, char **argv)
 		    dt = dtmin;
 		}
 #endif
+		if (H.nstep == 0) {
+		    dt = dt / 2.0;
+		    if (H.mype == 0)
+			fprintf(stdout, "Hydro computes initial deltat: %le\n",
+				dt);
+		}
 	    }
 	    // dt = 1.e-3;
 	    // if (H.mype == 1) fprintf(stdout, "Hydro starts godunov.\n");
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
 	    }
 	    end_iter = dcclock();
 	    cellPerCycle =
-		(double)(H.globnx * H.globny) / (end_iter -
+		(real_t)(H.globnx * H.globny) / (end_iter -
 						 start_iter) / 1000000.0L;
 	    avgCellPerCycle += cellPerCycle;
 	    nbCycle++;
@@ -386,8 +386,8 @@ int main(int argc, char **argv)
 
 		if (flops > 0) {
 		    if (iter_time > 1.e-9) {
-			double mflops =
-			    (double)flops / (double)1.e+6 / iter_time;
+			real_t mflops =
+			    (double)flops / (real_t)1.e+6 / iter_time;
 			MflopsSUM += mflops;
 			sprintf(outnum, "%s {%.2f Mflops %ld Ops} (%.3fs)",
 				outnum, mflops, flops, iter_time);

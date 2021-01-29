@@ -85,12 +85,12 @@ hydro_godunov(int idimStart, real_t dt, const hydroparam_t H, hydrovar_t * Hv,
 #ifdef TRACKDATA
 	fprintf(stderr, "Moving from (uold)\n");
 #endif
-#pragma omp target update from ( uold)
+#pragma omp target update from ( uold[0:H.nvar * H.nxt * H.nyt])
 	make_boundary(idim, H, Hv);
 #ifdef TRACKDATA
 	fprintf(stderr, "Moving to (uold)\n");
 #endif
-#pragma omp target update to( uold)
+#pragma omp target update to( uold[0:H.nvar * H.nxt * H.nyt])
 
 	if (idim == 1) {
 	    Hmin = H.jmin + ExtraLayer;
