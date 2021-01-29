@@ -33,17 +33,19 @@ courantOnXY(real_t * cournox,
 	map(c[0:Hstep][0:Hnxyt])		\
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])
 #define TD teams distribute
+#define MT num_teams(24) num_threads(16)
 #else
 #define TD
+#define MT
 #endif
 #pragma omp TD parallel for \
     default(none)			 \
     firstprivate(slices, Hnx)		 \
     private(s,i)			 \
     shared(q,c)			 \
-    reduction(max:tmp1, tmp2)
+    reduction(max:tmp1, tmp2) MT collapse(2)
     for (s = 0; s < slices; s++) {
-#pragma omp simd reduction(max:tmp1, tmp2)
+// #pragma omp simd reduction(max:tmp1, tmp2)
 	for (i = 0; i < Hnx; i++) {
 	    tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
 	    tmp2 = MAX(tmp2, c[s][i] + DABS(q[IV][s][i]));

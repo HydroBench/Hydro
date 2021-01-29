@@ -38,7 +38,7 @@ ComputeQEforRow(const int j,
 #pragma omp teams distribute parallel for \
 	default(none)	\
 	shared(q, e, uold, Hsmallr, slices, Hnx, Hnxt, Hnyt, j)		  \
-	private(s, i)
+    private(s, i) num_teams(24) num_threads(16)
 #else
 #pragma omp parallel for \
 	default(none)	\
