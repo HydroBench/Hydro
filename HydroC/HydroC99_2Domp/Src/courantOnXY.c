@@ -23,30 +23,25 @@ courantOnXY(real_t * cournox,
     int s, i;
     // real_t maxValC = zero;
     real_t tmp1 = *cournox, tmp2 = *cournoy;
-
 #ifdef TARGETON
 #ifdef TRACKDATA
     fprintf(stderr, "Moving courantOnXY IN\n");
 #endif
-    
+
 #pragma omp target \
-	map( tmp1, tmp2)\
+	map(tmp1, tmp2)\
 	map(c[0:Hstep][0:Hnxyt])		\
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])
-
-#pragma omp teams distribute parallel for \
-	default(none) \
-	private(s,i) \
-	shared(q,c)\
-	reduction(max:tmp1, tmp2)
+#define TD teams distribute
 #else
-#pragma omp parallel for \
-	default(none) \
-	firstprivate(slices, Hnx)	 \
-	private(s,i)		 \
-	shared(q,c)		 \
-	reduction(max:tmp1, tmp2)
+#define TD
 #endif
+#pragma omp TD parallel for \
+    default(none)			 \
+    firstprivate(slices, Hnx)		 \
+    private(s,i)			 \
+    shared(q,c)			 \
+    reduction(max:tmp1, tmp2)
     for (s = 0; s < slices; s++) {
 #pragma omp simd reduction(max:tmp1, tmp2)
 	for (i = 0; i < Hnx; i++) {
@@ -59,7 +54,6 @@ courantOnXY(real_t * cournox,
 #ifdef TRACKDATA
     fprintf(stderr, "Moving courantOnXY OUT\n");
 #endif
-    
     {
 	int nops = (slices) * Hnx;
 	FLOPS(2 * nops, 0 * nops, 2 * nops, 0 * nops);

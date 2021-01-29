@@ -44,9 +44,9 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
     real_t(*q)[H.nxystep][H.nxyt];
     WHERE("compute_deltat");
 #ifdef TRACKDATA
-	fprintf(stderr, "Moving compute_deltat IN\n");
+    fprintf(stderr, "Moving compute_deltat IN\n");
 #endif
-	
+
     //   compute time step on grid interior
     cournox = zero;
     cournoy = zero;
@@ -58,34 +58,25 @@ compute_deltat(real_t * dt, const hydroparam_t H, hydrowork_t * Hw,
     Hstep = H.nxystep;
     Hmin = H.jmin + ExtraLayer;
     Hmax = H.jmax - ExtraLayer;
-// #ifdef TARGETON
-// #pragma omp target data	\
-// 	map(tofrom: Hv->uold) \
-// 	map(tofrom: q)	\
-// 	map(tofrom: c)\
-// 	map(tofrom: e)
-// #endif
-    {
-	for (j = Hmin; j < Hmax; j += Hstep) {
-	    jend = j + Hstep;
-	    if (jend >= Hmax)
-		jend = Hmax;
-	    slices = jend - j;	// numbre of slices to compute
-	    {
-		ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar,
-				slices, Hstep, Hv->uold, q, e);
-		equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma,
-				  slices, Hstep, e, q, c);
-		courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices,
-			    Hstep, c, q, Hw->tmpm1, Hw->tmpm2);
-	    }
-	    // fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);
+    for (j = Hmin; j < Hmax; j += Hstep) {
+	jend = j + Hstep;
+	if (jend >= Hmax)
+	    jend = Hmax;
+	slices = jend - j;	// numbre of slices to compute
+	{
+	    ComputeQEforRow(j, H.smallr, H.nx, H.nxt, H.nyt, H.nxyt, H.nvar,
+			    slices, Hstep, Hv->uold, q, e);
+	    equation_of_state(0, H.nx, H.nxyt, H.nvar, H.smallc, H.gamma,
+			      slices, Hstep, e, q, c);
+	    courantOnXY(&cournox, &cournoy, H.nx, H.nxyt, H.nvar, slices,
+			Hstep, c, q, Hw->tmpm1, Hw->tmpm2);
 	}
+	// fprintf(stdout, "[%2d]\t%g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor);
     }
 #ifdef TRACKDATA
     fprintf(stderr, "Moving compute_deltat OUT\n");
 #endif
-    
+
     *dt = H.courant_factor * H.dx / MAX(cournox, MAX(cournoy, H.smallc));
     FLOPS(1, 1, 2, 0);
     // fprintf(stdout, "[%2d]\t%g %g %g %g %g %g\n", H.mype, cournox, cournoy, H.smallc, H.courant_factor, H.dx, *dt);

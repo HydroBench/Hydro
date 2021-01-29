@@ -17,7 +17,7 @@ CFLAGS_OMP+= -fiopenmp -fopenmp-targets=spir64
 else
 CFLAGS_OMP+= -fiopenmp
 endif
-CFLAGS_OMP+= -qopenmp-simd -pg -O3 -mavx2 -fno-color-diagnostics -fvectorize
+CFLAGS_OMP+= -qopenmp-simd -O3 -mavx2 -fno-color-diagnostics -fvectorize
 endif
 ifeq ($(CC),icc)
 CFLAGS_OMP+= -fopenmp -qopenmp-simd -O3 -mavx2
@@ -53,8 +53,8 @@ SRCDIR = .
 # Sources files
 #--------------
 SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
-# SRC2 are the files that can be translated to CUDA or OpenCL
-SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c 
+# SRC2 are the files that can be offloaded
+SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c
 SRC+=$(SRC2)
 
 DEPS=$(patsubst %.c,%.d,$(SRC))

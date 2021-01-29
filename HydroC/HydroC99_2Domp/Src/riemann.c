@@ -143,7 +143,8 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     for (s = 0; s < slices; s++) {
 	// solve the riemann problem on the interfaces of this slice
 	for (i = 0; i < narray; i++) {
-	    // Warning: this loop is not collapsable since it iterates until convergence on the boubaries off cells
+	    // Warning: this loop is not collapsable since it iterates
+	    // until convergence on the boundaries of cells
 	    for (iter = 0; iter < Hniter_riemann; iter++) {
 		int ii = i + s * narray;
 		if (goon[ii]) {

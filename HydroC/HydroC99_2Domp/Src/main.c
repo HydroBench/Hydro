@@ -268,6 +268,9 @@ int main(int argc, char **argv)
 	map(tofrom: uold[0:Hnvar * Hnxt * Hnyt])	\
 	map(tofrom:     u[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(tofrom:     q[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(tofrom:    c[0:Hstep][0:Hnxyt])\
+	map(tofrom:    e[0:Hstep][0:Hnxyt])\
+	map(tofrom: sgnm[0:Hstep][0:Hnxyt])\
 	map(alloc:     dq[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(alloc:    qxm[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(alloc:    qxp[0:Hnvar][0:Hstep][0:Hnxyt])\
@@ -275,9 +278,6 @@ int main(int argc, char **argv)
 	map(alloc: qright[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(alloc:  qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(alloc:   flux[0:Hnvar][0:Hstep][0:Hnxyt])\
-	map(tofrom:    c[0:Hstep][0:Hnxyt])\
-	map(tofrom:    e[0:Hstep][0:Hnxyt])\
-	map(tofrom: sgnm[0:Hstep][0:Hnxyt])\
 	map(alloc: Hw_godunov.rl[0:tmpsiz])\
 	map(alloc: Hw_godunov.ul[0:tmpsiz])\
 	map(alloc: Hw_godunov.pl[0:tmpsiz])\
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 	map(alloc: Hw_godunov.cr[0:tmpsiz])\
 	map(alloc: Hw_godunov.pstar[0:tmpsiz])\
 	map(alloc:  Hw_godunov.goon[0:tmpsiz])\
-	map(tofrom:qdt[0:Hnvar][0:Hstep][0:Hnxyt])\
+	map(alloc:qdt[0:Hnvar][0:Hstep][0:Hnxyt])\
 	map(alloc: cdt[0:Hstep][0:Hnxyt])\
 	map(alloc: edt[0:Hstep][0:Hnxyt])
 #endif
