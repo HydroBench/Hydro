@@ -438,7 +438,7 @@ int main(int argc, char **argv)
 		elaps, (float)(MflopsSUM / nbFLOPS));
 	// fprintf(stdout, "       ");
 	mcsavg = mcsavg / nmcsavg;
-	mcssig = sqrt((mcssig / nmcsavg) - (mcsavg * mcsavg));
+	mcssig = SQRT((mcssig / nmcsavg) - (mcsavg * mcsavg));
 	fprintf(stdout, "Average MC/s: %lf min %lf, max %lf sig %lf\n", mcsavg,
 		mcsmin, mcsmax, mcssig);
     }
@@ -486,10 +486,6 @@ int main(int argc, char **argv)
 	}
     }
 #endif
-    if (H.mype == 0) {
-	fprintf(stdout, "Average MC/s: %.3lf\n",
-		(double)(avgCellPerCycle / nbCycle));
-    }
 #ifdef MPI
     MPI_Finalize();
 #endif

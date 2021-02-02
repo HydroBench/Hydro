@@ -9,8 +9,6 @@
 #include "perfcnt.h"
 #include "courantOnXY.h"
 
-#define DABS(x) (real_t) fabs((x))
-
 void
 courantOnXY(real_t * cournox,
 	    real_t * cournoy,
@@ -47,8 +45,8 @@ courantOnXY(real_t * cournox,
     for (s = 0; s < slices; s++) {
 // #pragma omp simd reduction(max:tmp1, tmp2)
 	for (i = 0; i < Hnx; i++) {
-	    tmp1 = MAX(tmp1, c[s][i] + DABS(q[IU][s][i]));
-	    tmp2 = MAX(tmp2, c[s][i] + DABS(q[IV][s][i]));
+	    tmp1 = MAX(tmp1, c[s][i] + FABS(q[IU][s][i]));
+	    tmp2 = MAX(tmp2, c[s][i] + FABS(q[IV][s][i]));
 	}
     }
     *cournox = tmp1;

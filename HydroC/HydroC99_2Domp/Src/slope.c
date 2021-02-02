@@ -9,8 +9,6 @@
 #include "perfcnt.h"
 #include "cclock.h"
 
-#define DABS(x) (real_t) fabs((x))
-
 void
 slope(const int n,
       const int Hnvar,
@@ -50,10 +48,10 @@ slope(const int n,
 		dlft = Hslope_type * (q[nbv][s][i] - q[nbv][s][i - 1]);
 		drgt = Hslope_type * (q[nbv][s][i + 1] - q[nbv][s][i]);
 		dcen = half * (dlft + drgt) / Hslope_type;
-		dsgn = (dcen > zero) ? (real_t) 1.0 : (real_t) - 1.0;	// sign(one, dcen);
+		dsgn = (dcen > zero) ? one : -one;	// sign(one, dcen);
 		llftrgt = ((dlft * drgt) <= zero);
-		t1 = fmin(fabs(dlft), fabs(drgt));
-		dq[nbv][s][i] = dsgn * fmin((1 - llftrgt) * t1, fabs(dcen));
+		t1 = FMIN(FABS(dlft), FABS(drgt));
+		dq[nbv][s][i] = dsgn * FMIN((real_t) (1 - llftrgt) * t1, FABS(dcen));
 	    }
 	}
     }

@@ -9,7 +9,7 @@
 #include "riemann.h"
 #include "cclock.h"
 
-#define PRECISION 1e-6
+#define PRECISION (real_t) 1e-6
 
 void Dmemset(size_t nbr, real_t t[nbr], real_t motif)
 {
@@ -19,11 +19,9 @@ void Dmemset(size_t nbr, real_t t[nbr], real_t motif)
     }
 }
 
-#define DABS(x) (real_t) fabs((x))
 #define Fmax(a,b) (((a) > (b)) ? (a): (b))
 #define Fabs(a) (((a) > 0) ? (a): -(a))
 
-#define MYSQRT sqrt
 #ifdef TARGETON
 #define WITHTARGET
 #endif
@@ -97,22 +95,22 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	// Precompute values for this slice
 	for (i = 0; i < narray; i++) {
 	    int ii = i + s * narray;
-	    rl[ii] = fmax(qleft[ID][s][i], Hsmallr);
+	    rl[ii] = FMAX(qleft[ID][s][i], Hsmallr);
 	    ul[ii] = qleft[IU][s][i];
-	    pl[ii] = fmax(qleft[IP][s][i], (real_t) (rl[ii] * smallp));
-	    rr[ii] = fmax(qright[ID][s][i], Hsmallr);
+	    pl[ii] = FMAX(qleft[IP][s][i], (real_t) (rl[ii] * smallp));
+	    rr[ii] = FMAX(qright[ID][s][i], Hsmallr);
 	    ur[ii] = qright[IU][s][i];
-	    pr[ii] = fmax(qright[IP][s][i], (real_t) (rr[ii] * smallp));
+	    pr[ii] = FMAX(qright[IP][s][i], (real_t) (rr[ii] * smallp));
 
 	    // Lagrangian sound speed
 	    cl[ii] = Hgamma * pl[ii] * rl[ii];
 	    cr[ii] = Hgamma * pr[ii] * rr[ii];
 	    // First guess
 
-	    real_t wl_i = MYSQRT(cl[ii]);
-	    real_t wr_i = MYSQRT(cr[ii]);
+	    real_t wl_i = (real_t) SQRT(cl[ii]);
+	    real_t wr_i = (real_t) SQRT(cr[ii]);
 	    pstar[ii] =
-		fmax(((wr_i * pl[ii] + wl_i * pr[ii]) +
+		FMAX(((wr_i * pl[ii] + wl_i * pr[ii]) +
 		      wl_i * wr_i * (ul[ii] - ur[ii])) / (wl_i + wr_i), 0.0);
 	    goon[ii] = 1;
 	}
@@ -151,10 +149,10 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 		    real_t pst = pstar[ii];
 		    // Newton-Raphson iterations to find pstar at the required accuracy
 		    real_t wwl =
-			MYSQRT(cl[ii] *
+			(real_t) SQRT(cl[ii] *
 			       (one + gamma6 * (pst - pl[ii]) / pl[ii]));
 		    real_t wwr =
-			MYSQRT(cr[ii] *
+			(real_t) SQRT(cr[ii] *
 			       (one + gamma6 * (pst - pr[ii]) / pr[ii]));
 		    real_t swwl = Square(wwl);
 		    real_t ql = two * wwl * swwl / (swwl + cl[ii]);
@@ -168,7 +166,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 		    pst += delp_i;
 		    // Convergence indicator
 		    real_t tmp2 = delp_i / (pst + smallpp);
-		    real_t uo_i = Fabs(tmp2);
+		    real_t uo_i = FABS(tmp2);
 		    goon[ii] = uo_i > PRECISION;
 		    // FLOPS(29, 10, 2, 0);
 		    pstar[ii] = pst;
@@ -207,13 +205,13 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < narray; i++) {
 	    int ii = i + s * narray;
-	    real_t wl_i = MYSQRT(cl[ii]);
-	    real_t wr_i = MYSQRT(cr[ii]);
+	    real_t wl_i = SQRT(cl[ii]);
+	    real_t wr_i = SQRT(cr[ii]);
 
 	    wr_i =
-		MYSQRT(cr[ii] * (one + gamma6 * (pstar[ii] - pr[ii]) / pr[ii]));
+		SQRT(cr[ii] * (one + gamma6 * (pstar[ii] - pr[ii]) / pr[ii]));
 	    wl_i =
-		MYSQRT(cl[ii] * (one + gamma6 * (pstar[ii] - pl[ii]) / pl[ii]));
+		SQRT(cl[ii] * (one + gamma6 * (pstar[ii] - pl[ii]) / pl[ii]));
 
 	    real_t ustar_i =
 		half * (ul[ii] + (pl[ii] - pstar[ii]) / wl_i + ur[ii] -
@@ -237,15 +235,15 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 		wo_i = wr_i;
 	    }
 
-	    real_t co_i = MYSQRT(fabs(Hgamma * po_i / ro_i));
-	    co_i = fmax(Hsmallc, co_i);
+	    real_t co_i = SQRT(FABS(Hgamma * po_i / ro_i));
+	    co_i = FMAX(Hsmallc, co_i);
 
 	    real_t rstar_i =
 		ro_i / (one + ro_i * (po_i - pstar[ii]) / Square(wo_i));
-	    rstar_i = fmax(rstar_i, Hsmallr);
+	    rstar_i = FMAX(rstar_i, Hsmallr);
 
-	    real_t cstar_i = MYSQRT(fabs(Hgamma * pstar[ii] / rstar_i));
-	    cstar_i = fmax(Hsmallc, cstar_i);
+	    real_t cstar_i = SQRT(FABS(Hgamma * pstar[ii] / rstar_i));
+	    cstar_i = FMAX(Hsmallc, cstar_i);
 
 	    real_t spout_i = co_i - sgnm[s][i] * uo_i;
 	    real_t spin_i = cstar_i - sgnm[s][i] * ustar_i;
@@ -256,11 +254,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 		spout_i = ushock_i;
 	    }
 
-	    real_t scr_i = fmax((real_t) (spout_i - spin_i),
-				(real_t) (Hsmallc + fabs(spout_i + spin_i)));
+	    real_t scr_i = FMAX((real_t) (spout_i - spin_i),
+				(real_t) (Hsmallc + FABS(spout_i + spin_i)));
 
 	    real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
-	    frac_i = fmax(zero, (real_t) (fmin(one, frac_i)));
+	    frac_i = FMAX(zero, (real_t) (FMIN(one, frac_i)));
 
 	    int addSpout = spout_i < zero;
 	    int addSpin = spin_i > zero;

@@ -55,7 +55,7 @@ equation_of_state(int imin,
 	    base = MAX(base, (real_t) (rhok * smallp));
 
 	    q[IP][s][k] = base;
-	    c[s][k] = sqrt(Hgamma * base / rhok);
+	    c[s][k] = (real_t) SQRT(Hgamma * base / rhok);
 	}
     }
     {

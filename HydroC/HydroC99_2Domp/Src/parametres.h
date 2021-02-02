@@ -4,8 +4,16 @@ extern unsigned long flops;
 
 #ifndef PREC_SP
 typedef double real_t;
+#define FABS fabs
+#define SQRT sqrt
+#define FMAX fmax
+#define FMIN fmin
 #else
 typedef float real_t;
+#define FABS fabsf
+#define SQRT sqrtf
+#define FMAX fmaxf
+#define FMIN fminf
 #endif
 
 typedef enum {
@@ -111,11 +119,11 @@ typedef struct _hydrowork {
 #define two    ((real_t) 2.0)
 #define three  ((real_t) 3.0)
 #define hundred  ((real_t) 100.0)
-#define two3rd ((real_t) 2.0 / (real_t) 3.0)
-#define half   ((real_t) 1.0 / (real_t) 2.0)
-#define third  ((real_t) 1.0 / (real_t) 3.0)
-#define forth  ((real_t) 1.0 / (real_t) 4.0)
-#define sixth  ((real_t) 1.0 / (real_t) 6.0)
+#define two3rd (real_t)((real_t) 2.0 / (real_t) 3.0)
+#define half   (real_t)((real_t) 1.0 / (real_t) 2.0)
+#define third  (real_t)((real_t) 1.0 / (real_t) 3.0)
+#define forth  (real_t)((real_t) 1.0 / (real_t) 4.0)
+#define sixth  (real_t)((real_t) 1.0 / (real_t) 6.0)
 #define ID     (0)
 #define IU     (1)
 #define IV     (2)
