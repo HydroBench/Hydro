@@ -11,7 +11,8 @@ ifeq ($(TRACK),O)
 CFLAGS_OMP+=-DTRACKDATA
 endif
 ifeq ($(CC),icx)
-#
+CFLAGS_MPI=-D MPI -I/usr/lib/x86_64-linux-gnu/openmpi/include
+LDFLAGS_MPI=-L/usr/lib/x86_64-linux-gnu/openmpi/libXS/lib64 -lmpi -lpthread
 ifeq ($(GPU),O)
 CFLAGS_OMP+= -fiopenmp -fopenmp-targets=spir64
 else
@@ -31,6 +32,10 @@ CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
 endif
 ifeq ($(CC),/usr/bin/clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
+endif
+
+ifeq ($(SP),O)
+CFLAGS +=-DPREC_SP
 endif
 
 CFLAGS += $(CFLAGS_MPI) $(DEF)
@@ -71,10 +76,10 @@ hydro:  $(OBJ)
 	$(CC) --version
 
 clean:
-	rm -f *.o *~ hydro *.d
+	rm -f *.o *~ hydro
 
 cleanall:
-	rm -f *.o *~ hydro
+	rm -f *.o *~ hydro *.d
 
 listing:
 	#a2ps --medium=A4dj -C -1 -R -l90 --toc -E --prologue=color --file-align=fill -o listing.ps Makefile $(HEADER) $(SRC)
@@ -113,6 +118,12 @@ runcpu:
 rungpu:
 	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
 	make -j GPU=O QUIET=O
+	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
+	@touch lastgpu
+
+rungpusp:
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O SP=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
 	@touch lastgpu
 
@@ -155,7 +166,8 @@ tarball:
 	tar czvf tarball_$(DATEHOUR).tgz Makefile *.h *.c input.nml
 
 runall:
-	make runcpu | tail -9
-	-rm *.o
-	make rungpuq | tail -9
+	make clean runcpu SP=N | tail -9
+	make clean rungpuq SP=N | tail -9
+	make clean runcpu SP=O | tail -9
+	make clean rungpuq SP=O | tail -9
 #EOF
