@@ -114,84 +114,157 @@ print_bufferh(FILE * fic, const int ymin, const hydroparam_t H, hydrovar_t * Hv,
     return p;
 }
 
-void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
+void mpileftright(int idim, const hydroparam_t H, hydrovar_t * Hv,
+		  real_t * sendbufru, real_t * sendbufld, real_t * recvbufru,
+		  real_t * recvbufld)
 {
-
-    // - - - - - - - - - - - - - - - - - - -
-    // Cette portion de code est à vérifier
-    // détail. J'ai des doutes sur la conversion
-    // des index depuis fortran.
-    // - - - - - - - - - - - - - - - - - - -
     int i, ivar, i0, j, j0, err, size;
     real_t sign;
-    real_t sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
-    real_t sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
-    //   real_t *sendbufru, *sendbufld;
-    real_t recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
-    real_t recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
-    //   real_t *recvbufru, *recvbufld;
+    int reqcnt = 0;
+
 #ifdef MPI
     MPI_Request requests[4];
     MPI_Status status[4];
     MPI_Datatype mpiFormat = MPI_DOUBLE;
-#endif
-    int reqcnt = 0;
-    struct timespec start, end;
 
+    if (sizeof(real_t) == sizeof(float))
+	mpiFormat = MPI_FLOAT;
+
+    i = ExtraLayer;
+    size = pack_arrayv(i, H, Hv, sendbufld);
+    i = H.nx;
+    size = pack_arrayv(i, H, Hv, sendbufru);
+    if (H.box[RIGHT_BOX] != -1) {
+	MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+	MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[RIGHT_BOX] != -1) {
+	MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[LEFT_BOX] != -1) {
+	MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    err = MPI_Waitall(reqcnt, requests, status);
+    assert(err == MPI_SUCCESS);
+
+    if (H.box[RIGHT_BOX] != -1) {
+	{
+	    i = H.nx + ExtraLayer;
+	    size = unpack_arrayv(i, H, Hv, recvbufru);
+	}
+    }
+
+    if (H.box[LEFT_BOX] != -1) {
+	{
+	    i = 0;
+	    size = unpack_arrayv(i, H, Hv, recvbufld);
+	}
+    }
+#endif
+}
+
+void mpiupdown(int idim, const hydroparam_t H, hydrovar_t * Hv,
+	       real_t * sendbufru, real_t * sendbufld, real_t * recvbufru,
+	       real_t * recvbufld)
+{
+    int i, ivar, i0, j, j0, err, size;
+    real_t sign;
+    int reqcnt = 0;
+
+#ifdef MPI
+    MPI_Request requests[4];
+    MPI_Status status[4];
+    MPI_Datatype mpiFormat = MPI_DOUBLE;
+
+    if (sizeof(real_t) == sizeof(float))
+	mpiFormat = MPI_FLOAT;
+
+    j = ExtraLayer;
+    size = pack_arrayh(j, H, Hv, sendbufld);
+    // fprintf(stderr, "%d prep %d\n", H.mype, j);
+    j = H.ny;
+    size = pack_arrayh(j, H, Hv, sendbufru);
+    // fprintf(stderr, "%d prep %d (s=%d)\n", H.mype, j, size);
+    if (H.box[DOWN_BOX] != -1) {
+	MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+	MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[DOWN_BOX] != -1) {
+	MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    if (H.box[UP_BOX] != -1) {
+	MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123,
+		  MPI_COMM_WORLD, &requests[reqcnt]);
+	reqcnt++;
+    }
+    err = MPI_Waitall(reqcnt, requests, status);
+    assert(err == MPI_SUCCESS);
+
+    if (H.box[DOWN_BOX] != -1) {
+	    j = 0;
+	    unpack_arrayh(j, H, Hv, recvbufld);
+    }
+    if (H.box[UP_BOX] != -1) {
+	    j = H.ny + ExtraLayer;
+	    unpack_arrayh(j, H, Hv, recvbufru);
+    }
+#endif
+}
+
+void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
+{
+    int i, ivar, i0, j, j0, err, size;
+    real_t sign;
+#ifdef MPI
+    //   real_t sendbufld[ExtraLayerTot * H.nxyt * H.nvar];
+    //   real_t sendbufru[ExtraLayerTot * H.nxyt * H.nvar];
+    //   real_t recvbufru[ExtraLayerTot * H.nxyt * H.nvar];
+    //   real_t recvbufld[ExtraLayerTot * H.nxyt * H.nvar];
+    static real_t *sendbufru = 0, *sendbufld = 0, *recvbufru = 0, *recvbufld =
+	0;
+#endif
+    struct timespec start, end;
     static FILE *fic = NULL;
 
     WHERE("make_boundary");
+#ifdef MPI
+    if (sendbufru == 0) {
+	sendbufru =
+	    (real_t *) malloc(sizeof(sendbufru[0]) * ExtraLayerTot * H.nxyt *
+			      H.nvar);
+	sendbufld =
+	    (real_t *) malloc(sizeof(sendbufld[0]) * ExtraLayerTot * H.nxyt *
+			      H.nvar);
+	recvbufru =
+	    (real_t *) malloc(sizeof(recvbufru[0]) * ExtraLayerTot * H.nxyt *
+			      H.nvar);
+	recvbufld =
+	    (real_t *) malloc(sizeof(recvbufld[0]) * ExtraLayerTot * H.nxyt *
+			      H.nvar);
+    }
+#endif
     start = cclock();
 
-#ifdef MPI
-    if (sizeof(real_t) == sizeof(float))
-	mpiFormat = MPI_FLOAT;
-#endif
-
     if (idim == 1) {
-#ifdef MPI
-	i = ExtraLayer;
-	size = pack_arrayv(i, H, Hv, sendbufld);
-	i = H.nx;
-	size = pack_arrayv(i, H, Hv, sendbufru);
-	if (H.box[RIGHT_BOX] != -1) {
-	    MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[LEFT_BOX] != -1) {
-	    MPI_Isend(sendbufld, size, mpiFormat, H.box[LEFT_BOX], 246,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[RIGHT_BOX] != -1) {
-	    MPI_Irecv(recvbufru, size, mpiFormat, H.box[RIGHT_BOX], 246,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[LEFT_BOX] != -1) {
-	    MPI_Irecv(recvbufld, size, mpiFormat, H.box[LEFT_BOX], 123,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	err = MPI_Waitall(reqcnt, requests, status);
-	assert(err == MPI_SUCCESS);
-
-	if (H.box[RIGHT_BOX] != -1) {
-	    {
-		i = H.nx + ExtraLayer;
-		size = unpack_arrayv(i, H, Hv, recvbufru);
-	    }
-	}
-
-	if (H.box[LEFT_BOX] != -1) {
-	    {
-		i = 0;
-		size = unpack_arrayv(i, H, Hv, recvbufld);
-	    }
-	}
-#endif
-
+	mpileftright(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 	if (H.boundary_left > 0) {
 	    // Left boundary
 	    for (ivar = 0; ivar < H.nvar; ivar++) {
@@ -251,80 +324,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 	    }
 	}
     } else {
-#ifdef MPI
-	{
-	    if (fic) {
-		fprintf(fic, "- = - = - = - Avant\n");
-		printuoldf(fic, H, Hv);
-	    }
-	}
-	j = ExtraLayer;
-	size = pack_arrayh(j, H, Hv, sendbufld);
-	// fprintf(stderr, "%d prep %d\n", H.mype, j);
-	if (fic) {
-	    fprintf(fic, "%d prep %d\n", H.mype, j);
-	    print_bufferh(fic, j, H, Hv, sendbufld);
-	}
-	j = H.ny;
-	size = pack_arrayh(j, H, Hv, sendbufru);
-	// fprintf(stderr, "%d prep %d (s=%d)\n", H.mype, j, size);
-	if (fic) {
-	    fprintf(fic, "%d prep %d\n", H.mype, j);
-	    print_bufferh(fic, j, H, Hv, sendbufru);
-	}
-	if (H.box[DOWN_BOX] != -1) {
-	    MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[UP_BOX] != -1) {
-	    MPI_Isend(sendbufru, size, mpiFormat, H.box[UP_BOX], 246,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[DOWN_BOX] != -1) {
-	    MPI_Irecv(recvbufld, size, mpiFormat, H.box[DOWN_BOX], 246,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	if (H.box[UP_BOX] != -1) {
-	    MPI_Irecv(recvbufru, size, mpiFormat, H.box[UP_BOX], 123,
-		      MPI_COMM_WORLD, &requests[reqcnt]);
-	    reqcnt++;
-	}
-	err = MPI_Waitall(reqcnt, requests, status);
-	assert(err == MPI_SUCCESS);
-
-	if (H.box[DOWN_BOX] != -1) {
-	    {
-		j = 0;
-		unpack_arrayh(j, H, Hv, recvbufld);
-		if (fic) {
-		    fprintf(fic, "%d down %d\n", H.mype, j);
-		    print_bufferh(fic, j, H, Hv, recvbufld);
-		}
-		// fprintf(stderr, "%d down %d\n", H.mype, j);
-	    }
-	}
-	if (H.box[UP_BOX] != -1) {
-	    {
-		j = H.ny + ExtraLayer;
-		unpack_arrayh(j, H, Hv, recvbufru);
-		if (fic) {
-		    fprintf(fic, "%d up %d\n", H.mype, j);
-		    print_bufferh(fic, j, H, Hv, recvbufru);
-		}
-		// fprintf(stderr, "%d up %d\n", H.mype, j);
-	    }
-	}
-	// if (H.mype == 0) 
-	{
-	    if (fic) {
-		fprintf(fic, "- = - = - = - Apres\n");
-		printuoldf(fic, H, Hv);
-	    }
-	}
-#endif
+	mpiupdown(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 	// Lower boundary
 	if (H.boundary_down > 0) {
 	    j0 = 0;
