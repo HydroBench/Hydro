@@ -1,5 +1,6 @@
-CC=icx
-MPI=O	#defaut behavior
+CC:=icx
+MPI:=O
+#defaut behavior
 
 ifeq ($(MPI),O)
 CFLAGS_MPI+=-D MPI
