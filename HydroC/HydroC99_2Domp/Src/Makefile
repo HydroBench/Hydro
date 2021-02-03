@@ -1,35 +1,53 @@
 CC=icx
+MPI=O	#defaut behavior
+
+ifeq ($(MPI),O)
+CFLAGS_MPI+=-D MPI
+endif
+
 ifeq ($(QUIET),O)
 CFLAGS_OMP+= -W"no-\#pragma-messages" 
 endif
+
 # OpenMP options
 #---------------
 ifeq ($(GPU),O)
 CFLAGS_OMP+=-DTARGETON
 endif
+
 ifeq ($(TRACK),O)
 CFLAGS_OMP+=-DTRACKDATA
 endif
+
 ifeq ($(CC),icx)
-CFLAGS_MPI=-D MPI -I/usr/lib/x86_64-linux-gnu/openmpi/include
-LDFLAGS_MPI=-L/usr/lib/x86_64-linux-gnu/openmpi/libXS/lib64 -lmpi -lpthread
+ifeq ($(MPI),O)
+override CC=mpiicc -cc=icx
+endif
 ifeq ($(GPU),O)
 CFLAGS_OMP+= -fiopenmp -fopenmp-targets=spir64
 else
 CFLAGS_OMP+= -fiopenmp
 endif
-CFLAGS_OMP+= -qopenmp-simd -O3 -mavx2 -fno-color-diagnostics -fvectorize
+CFLAGS_OMP+= -qopenmp-simd -O3 -mavx2 -fvectorize
+# -fno-color-diagnostics 
 endif
+
 ifeq ($(CC),icc)
 CFLAGS_OMP+= -fopenmp -qopenmp-simd -O3 -mavx2
+ifeq ($(MPI),O)
+override CC=mpiicc
 endif
+endif
+
 ifeq ($(CC),gcc)
 # CFLAGS_OMP=-fopenmp -fopenmp-simd -O3 -mavx2 -DTARGET=1 -foffload=-mavx2 -flto
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -flto
 endif
+
 ifeq ($(CC),clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
 endif
+
 ifeq ($(CC),/usr/bin/clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
 endif
@@ -42,10 +60,10 @@ CFLAGS += $(CFLAGS_MPI) $(DEF)
 CFLAGS += $(CFLAGS_OMP) -g 
 CFLAGS += $(CFLAGS_FTI)
 # CFLAGS += -vec-report3
-LDFLAGS += $(LDFLAGS_MPI)
-LDFLAGS += $(LDFLAGS_OMP)
-LDFLAGS += $(LDFLAGS_FTI)
-LDFLAGS += -lrt
+LDFLAGS +=$(LDFLAGS_MPI)
+LDFLAGS +=$(LDFLAGS_OMP)
+LDFLAGS +=$(LDFLAGS_FTI)
+LDFLAGS +=-lrt -lm
 
 # Sources directories
 #--------------------
@@ -57,7 +75,7 @@ SRCDIR = .
 
 # Sources files
 #--------------
-SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
+SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c mpibounds.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
 # SRC2 are the files that can be offloaded
 SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c
 SRC+=$(SRC2)
@@ -72,8 +90,8 @@ CFLAGS += -DPREC_SP=1
 endif
 
 hydro:  $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o hydro $(LDFLAGS) -lm
-	$(CC) --version
+	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o hydro 
+	# ldd hydro | grep libmpi
 
 clean:
 	rm -f *.o *~ hydro
@@ -147,7 +165,7 @@ rungpuq:
 
 rungpud: 
 	make clean
-	make -j GPU=O QUIET=O TRACK=O
+	make -j GPU=O QUIET=O TRACK=N
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
 	@touch lastgpu
 
@@ -159,6 +177,12 @@ rungpud5:
 
 run8: hydro
 	env OMP_NUM_THREADS=8 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
+
+runpargpu:
+	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	make -j GPU=O QUIET=O MPI=O hydro
+	# env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 /usr/bin/mpirun -np 2 --oversubscribe ./hydro -i input.nml
+	env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 mpirun -n 2 ./hydro -i input.nml
 
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 tarball:
