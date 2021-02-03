@@ -19,7 +19,6 @@ constoprim(const int n,
 	   real_t e[Hstep][Hnxyt])
 {
     int ijmin, ijmax, IN, i, s;
-    real_t eken;
     struct timespec start, end;
     // const int nxyt = Hnxyt;
     WHERE("constoprim");
@@ -36,15 +35,19 @@ constoprim(const int n,
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(e[0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
-	default(none) \
-	private(s, i), \
-	shared(u, q, e) \
-	collapse(2)
+    default(none)				\
+    firstprivate(ijmin, ijmax)			\
+    private(s, i),				\
+    shared(u, q, e) collapse(2)
 #else
-// #pragma omp parallel for private(i, s, eken, ijmin, ijmax), shared(u,q,e) collapse(2)
+#pragma omp parallel for \
+    private(i, s)\
+    firstprivate(ijmin, ijmax) \
+    shared(u,q,e) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
 	for (i = ijmin; i < ijmax; i++) {
+	    real_t eken;
 	    real_t qid = MAX(u[ID][s][i], Hsmallr);
 	    q[ID][s][i] = qid;
 

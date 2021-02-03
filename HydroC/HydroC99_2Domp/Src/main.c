@@ -473,13 +473,13 @@ int main(int argc, char **argv)
 	    int sizeFmt = sizeLabel(timMAX, TIM_END);
 	    printTimingsLabel(TIM_END, sizeFmt);
 	    fprintf(stdout, "\n");
-	    fprintf(stdout, "MIN ");
+	    fprintf(stdout, "MIN    ");
 	    printTimings(timMIN, TIM_END, sizeFmt);
 	    fprintf(stdout, "\n");
-	    fprintf(stdout, "MAX ");
+	    fprintf(stdout, "MAX    ");
 	    printTimings(timMAX, TIM_END, sizeFmt);
 	    fprintf(stdout, "\n");
-	    fprintf(stdout, "AVG ");
+	    fprintf(stdout, "AVG    ");
 	    avgTimings(timSUM, TIM_END, H.nproc);
 	    printTimings(timSUM, TIM_END, sizeFmt);
 	    fprintf(stdout, "\n");

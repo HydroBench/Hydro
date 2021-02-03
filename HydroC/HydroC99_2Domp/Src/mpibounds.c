@@ -37,7 +37,13 @@ pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	    real_t * buffer)
 {
     int ivar, i, j;
+    long lgr = ExtraLayer * H.nvar * H.nyt;
+#ifdef TARGETON
+#pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt]) map(tofrom: buffer[0:lgr])
+#pragma omp teams distribute parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
+#else
 #pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
+#endif
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = 0; j < H.nyt; j++) {
 	    for (i = xmin; i < xmin + ExtraLayer; i++) {
@@ -47,7 +53,7 @@ pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	}
     }
-    return ExtraLayer * H.nvar * H.nyt;
+    return lgr;
 }				// pack_arrayv
 
 int
@@ -55,7 +61,14 @@ unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	      real_t * buffer)
 {
     int ivar, i, j;
+    long lgr = ExtraLayer * H.nvar * H.nyt;
+
+#ifdef TARGETON
+#pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt]) map(tofrom: buffer[0:lgr])
+#pragma omp teams distribute parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
+#else
 #pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
+#endif
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = 0; j < H.nyt; j++) {
 	    for (i = xmin; i < xmin + ExtraLayer; i++) {
@@ -65,7 +78,7 @@ unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	}
     }
-    return ExtraLayer * H.nvar * H.nyt;
+    return lgr;
 }				// unpack_arrayv
 
 int
@@ -73,7 +86,13 @@ pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	    real_t * buffer)
 {
     int ivar, i, j;
+    long lgr = ExtraLayer * H.nvar * H.nxt;
+#ifdef TARGETON
+#pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt]) map(tofrom: buffer[0:lgr])
+#pragma omp teams distribute parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
+#else
 #pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
+#endif
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = ymin; j < ymin + ExtraLayer; j++) {
 	    for (i = 0; i < H.nxt; i++) {
@@ -83,15 +102,21 @@ pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	}
     }
-    return ExtraLayer * H.nvar * H.nxt;
+    return lgr;
 }
 
 int
 unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	      real_t * buffer)
 {
+    long lgr = ExtraLayer * H.nvar * H.nxt;
     int ivar, i, j;
+#ifdef TARGETON
+#pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt]) map(tofrom: buffer[0:lgr])
+#pragma omp teams distribute parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
+#else
 #pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
+#endif
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = ymin; j < ymin + ExtraLayer; j++) {
 	    for (i = 0; i < H.nxt; i++) {
@@ -101,7 +126,7 @@ unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	    }
 	}
     }
-    return ExtraLayer * H.nvar * H.nxt;
+    return lgr;
 }
 
 #define VALPERLINE 11
@@ -201,10 +226,18 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t * Hv,
 
     j = ExtraLayer;
     size = pack_arrayh(j, H, Hv, sendbufld);
-    // fprintf(stderr, "%d prep %d\n", H.mype, j);
+#ifdef TARGETON
+    // get the buffer from the GPU
+#pragma omp target update from (sendbufld [0:size])
+#endif
+    
     j = H.ny;
     size = pack_arrayh(j, H, Hv, sendbufru);
-    // fprintf(stderr, "%d prep %d (s=%d)\n", H.mype, j, size);
+#ifdef TARGETON
+    // get the buffer from the GPU
+#pragma omp target update from (sendbufru [0:size])
+#endif
+    
     if (H.box[DOWN_BOX] != -1) {
 	MPI_Isend(sendbufld, size, mpiFormat, H.box[DOWN_BOX], 123,
 		  MPI_COMM_WORLD, &requests[reqcnt]);
@@ -229,10 +262,18 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t * Hv,
     assert(err == MPI_SUCCESS);
 
     if (H.box[DOWN_BOX] != -1) {
+#ifdef TARGETON
+    // put the buffer on the GPU
+#pragma omp target update to (recvbufld [0:size])
+#endif
 	j = 0;
 	unpack_arrayh(j, H, Hv, recvbufld);
     }
     if (H.box[UP_BOX] != -1) {
+#ifdef TARGETON
+    // put the buffer on the GPU
+#pragma omp target update to (recvbufru [0:size])
+#endif
 	j = H.ny + ExtraLayer;
 	unpack_arrayh(j, H, Hv, recvbufru);
     }
