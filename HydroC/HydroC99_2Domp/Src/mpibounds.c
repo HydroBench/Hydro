@@ -36,65 +36,72 @@ int
 pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	    real_t * buffer)
 {
-    int ivar, i, j, p = 0;
+    int ivar, i, j;
+#pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = 0; j < H.nyt; j++) {
-	    // #warning "GATHER to vectorize ?"
 	    for (i = xmin; i < xmin + ExtraLayer; i++) {
-		buffer[p++] = Hv->uold[IHv(i, j, ivar)];
+		long p =
+		    (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * H.nyt);
+		buffer[p] = Hv->uold[IHv(i, j, ivar)];
 	    }
 	}
     }
-    return p;
-}
+    return ExtraLayer * H.nvar * H.nyt;
+}				// pack_arrayv
 
 int
 unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t * Hv,
 	      real_t * buffer)
 {
-    int ivar, i, j, p = 0;
+    int ivar, i, j;
+#pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, xmin) collapse(3)
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = 0; j < H.nyt; j++) {
-	    // #warning "SCATTER to vectorize ?"
 	    for (i = xmin; i < xmin + ExtraLayer; i++) {
-		Hv->uold[IHv(i, j, ivar)] = buffer[p++];
+		long p =
+		    (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * H.nyt);
+		Hv->uold[IHv(i, j, ivar)] = buffer[p];
 	    }
 	}
     }
-    return p;
-}
+    return ExtraLayer * H.nvar * H.nyt;
+}				// unpack_arrayv
 
 int
 pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	    real_t * buffer)
 {
-    int ivar, i, j, p = 0;
+    int ivar, i, j;
+#pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = ymin; j < ymin + ExtraLayer; j++) {
-	    // #warning "GATHER to vectorize ?"
-	    // #pragma simd
 	    for (i = 0; i < H.nxt; i++) {
-		buffer[p++] = Hv->uold[IHv(i, j, ivar)];
+		long p =
+		    (i) + (j - ymin) * (H.nxt) + ivar * (ExtraLayer * H.nxt);
+		buffer[p] = Hv->uold[IHv(i, j, ivar)];
 	    }
 	}
     }
-    return p;
+    return ExtraLayer * H.nvar * H.nxt;
 }
 
 int
 unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t * Hv,
 	      real_t * buffer)
 {
-    int ivar, i, j, p = 0;
+    int ivar, i, j;
+#pragma omp parallel for default(none) private(ivar, i, j) shared(buffer, H, Hv, ymin) collapse(3)
     for (ivar = 0; ivar < H.nvar; ivar++) {
 	for (j = ymin; j < ymin + ExtraLayer; j++) {
-	    // #warning "SCATTER to vectorize ?"
 	    for (i = 0; i < H.nxt; i++) {
-		Hv->uold[IHv(i, j, ivar)] = buffer[p++];
+		long p =
+		    (i) + (j - ymin) * (H.nxt) + ivar * (ExtraLayer * H.nxt);
+		Hv->uold[IHv(i, j, ivar)] = buffer[p];
 	    }
 	}
     }
-    return p;
+    return ExtraLayer * H.nvar * H.nxt;
 }
 
 #define VALPERLINE 11

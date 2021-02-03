@@ -277,6 +277,7 @@ void process_args(int argc, char **argv, hydroparam_t * H)
     H->box[YMAX_BOX] = H->ny;
 
 #ifdef MPI
+    fflush(stdout);
     if (H->nproc > 1) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	// first pass : determin our actual sub problem size
@@ -292,6 +293,8 @@ void process_args(int argc, char **argv, hydroparam_t * H)
 	       H->mype, H->nproc, H->box[XMIN_BOX], H->box[XMAX_BOX],
 	       H->box[YMIN_BOX], H->box[YMAX_BOX], H->box[UP_BOX],
 	       H->box[DOWN_BOX], H->box[LEFT_BOX], H->box[RIGHT_BOX]);
+	
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	if (H->nx <= 0) {
 	    printf
