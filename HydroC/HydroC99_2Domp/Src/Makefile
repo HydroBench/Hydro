@@ -92,7 +92,11 @@ endif
 
 hydro:  $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o hydro 
-	# ldd hydro | grep libmpi
+ifeq ($(GPU),O)
+	touch .lastgpu
+else
+	touch .lastcpu
+endif
 
 clean:
 	rm -f *.o *~ hydro
@@ -129,61 +133,57 @@ include $(DEPS)
 TARGETFUNCS=*.o
 
 runcpu:
-	@if [ -e lastgpu ] ; then rm -f $(TARGETFUNCS) lastgpu; fi
+	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
 	make -j GPU=N
 	env OMP_NUM_THREADS=8 ./hydro -i input.nml
-	@touch lastcpu
 
 rungpu:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
-	@touch lastgpu
 
 rungpusp:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O SP=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
-	@touch lastgpu
 
 rungpu0:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=LEVEL0 LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 ./hydro -i input.nml
-	@touch lastgpu
 
 rungpu0d:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=LEVEL0 LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
-	@touch lastgpu
 
 rungpuq:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL ./hydro -i input.nml
-	@touch lastgpu
 
 rungpud: 
 	make clean
 	make -j GPU=O QUIET=O TRACK=N
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
-	@touch lastgpu
 
 rungpud5: 
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
-	@touch lastgpu
 
 run8: hydro
 	env OMP_NUM_THREADS=8 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
 
 runpargpu:
-	@if [ -e lastcpu ] ; then rm -f $(TARGETFUNCS) lastcpu; fi
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O MPI=O hydro
-	# env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 /usr/bin/mpirun -np 2 --oversubscribe ./hydro -i input.nml
 	env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 mpirun -n 2 ./hydro -i input.nml
+
+runpar:
+	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
+	make -j GPU=N QUIET=O MPI=O hydro
+	env OMP_NUM_THREADS=2 mpirun -n 4 ./hydro -i input.nml
 
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 tarball:
