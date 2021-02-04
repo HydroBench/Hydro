@@ -30,7 +30,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	     real_t qgdnv[Hnvar][Hstep][Hnxyt],	//
 	     int sgnm[Hstep][Hnxyt], hydrowork_t * Hw)
 {
-    int i, s, ii, iimx;
+    int i, s, iimx;
     int iter;
     real_t smallp_ = Square(Hsmallc) / Hgamma;
     real_t gamma6_ = (Hgamma + one) / (two * Hgamma);
@@ -83,6 +83,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(goon[0:tmpsiz])
 #pragma omp teams distribute parallel for default(none)		\
 	private(s, i),							\
+	firstprivate(Hsmallr, Hgamma, slices, narray, smallp)		\
 	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
 	collapse(2)
 #else
@@ -120,6 +121,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     // fprintf(stderr, "riemann between loop 1 and 2\n");
 #pragma omp target teams distribute parallel for default(none)		\
 	private(s, i, iter),\
+	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
 	shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
 	map(pstar[0:tmpsiz])					\
 	map(rl[0:tmpsiz])					\
@@ -179,6 +181,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     // fprintf(stderr, "riemann between loop 2 and 3\n");
 #pragma omp target teams distribute parallel for default(none)		\
 	private(s, i),							\
+	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) \
 	shared(qgdnv, sgnm, qleft, qright, pstar)			\
 	shared(rl, ul, pl, rr, ur, cl, pr, cr, goon)			\
 	map(qleft[0:Hnvar][0:Hstep][0:narray])			\

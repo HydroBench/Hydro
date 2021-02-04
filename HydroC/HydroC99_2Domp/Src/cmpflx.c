@@ -43,6 +43,7 @@ cmpflx(const int narray,
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
 	default(none) private(s, i, ekin, etot), \
+    firstprivate(slices, nface, entho, Hnvar) \
 	shared(flux, qgdnv) \
 	collapse(2)
 #else
@@ -84,6 +85,7 @@ cmpflx(const int narray,
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
 	default(none) private(s, i), \
+    firstprivate(slices, nface, Hnvar) \
 	shared(flux, qgdnv) \
 	collapse(3)
 #else

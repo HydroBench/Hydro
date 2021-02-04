@@ -46,6 +46,7 @@ qleftright(const int idim,
 	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
 	default(none) private(s, i, nvar), \
+	firstprivate(slices, Hnvar, bmax)	   \
 	shared(qleft, qright, qxm, qxp)  \
 	collapse(3)
 #else

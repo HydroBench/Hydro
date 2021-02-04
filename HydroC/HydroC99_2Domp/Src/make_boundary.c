@@ -20,19 +20,18 @@
 
 void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 {
-    int i, ivar, i0, j, j0, err, size;
+    int i, ivar, i0, j, j0;
     real_t sign;
 #ifdef MPI
     static real_t *sendbufru = 0, *sendbufld = 0;	// [ExtraLayerTot * H.nxyt * H.nvar]
     static real_t *recvbufru = 0, *recvbufld = 0;
 #endif
     struct timespec start, end;
-    static FILE *fic = NULL;
-    long lgr = ExtraLayerTot * H.nxyt * H.nvar;
 
     WHERE("make_boundary");
 #ifdef MPI
     if (sendbufru == 0) {
+	long lgr = ExtraLayer * H.nvar * H.nxyt;
 	sendbufru = (real_t *) malloc(sizeof(sendbufru[0]) * lgr);
 	sendbufld = (real_t *) malloc(sizeof(sendbufld[0]) * lgr);
 	recvbufru = (real_t *) malloc(sizeof(recvbufru[0]) * lgr);

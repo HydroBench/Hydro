@@ -36,7 +36,7 @@ constoprim(const int n,
 	map(e[0:Hstep][0:Hnxyt])
 #pragma omp teams distribute parallel for \
     default(none)				\
-    firstprivate(ijmin, ijmax)			\
+	firstprivate(ijmin, ijmax, slices, Hsmallr)	\
     private(s, i),				\
     shared(u, q, e) collapse(2)
 #else

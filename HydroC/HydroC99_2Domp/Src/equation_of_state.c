@@ -24,7 +24,6 @@ equation_of_state(int imin,
 		  real_t c[Hstep][Hnxyt])
 {
     int k, s;
-    int inpar = 0;
     real_t smallp;
     struct timespec start, end;
 

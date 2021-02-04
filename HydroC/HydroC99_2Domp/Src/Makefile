@@ -6,10 +6,6 @@ ifeq ($(MPI),O)
 CFLAGS_MPI+=-D MPI
 endif
 
-ifeq ($(QUIET),O)
-CFLAGS_OMP+= -W"no-\#pragma-messages" 
-endif
-
 # OpenMP options
 #---------------
 ifeq ($(GPU),O)
@@ -31,14 +27,17 @@ CFLAGS_OMP+= -fiopenmp
 endif
 CFLAGS_OMP+= -qopenmp-simd -O3 -mavx2 -fvectorize
 # -fno-color-diagnostics 
+ifeq ($(QUIET),O)
+CFLAGS_OMP+= -W"no-\#pragma-messages" 
 endif
+endif # icx
 
 ifeq ($(CC),icc)
 CFLAGS_OMP+= -fopenmp -qopenmp-simd -O3 -mavx2
 ifeq ($(MPI),O)
 override CC=mpiicc
 endif
-endif
+endif # icc
 
 ifeq ($(CC),gcc)
 # CFLAGS_OMP=-fopenmp -fopenmp-simd -O3 -mavx2 -DTARGET=1 -foffload=-mavx2 -flto
@@ -47,11 +46,16 @@ endif
 
 ifeq ($(CC),clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
-endif
+endif # clang
 
 ifeq ($(CC),/usr/bin/clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
-endif
+endif # system clang
+
+ifeq ($(CC),pgi)
+override CC=pgcc -ta=tesla,cc70 -mp=gpu -Minfo=all -Mpreprocess
+CFLAGS_OMP+= -fopenmp -O3
+endif # pgi compiler
 
 ifeq ($(SP),O)
 CFLAGS +=-DPREC_SP
@@ -195,4 +199,11 @@ runall:
 	make clean rungpuq SP=N | tail -9
 	make clean runcpu SP=O | tail -9
 	make clean rungpuq SP=O | tail -9
+
+inti:
+	ccc_mprun -p v100 -x -c12 -n1 env OMP_NUM_THREADS=12 ./hydro -i input.nml
+
+intipar:
+	ccc_mprun -p v100 -x -c12 -n4 env OMP_NUM_THREADS=12 ./hydro -i input.nml
+
 #EOF

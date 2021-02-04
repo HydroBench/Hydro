@@ -31,9 +31,9 @@ fakereadsize = 0	# number of bytes to read
 /
 
 &MESH0
-nx=1000		# total number of cells in the x dimension
-ny=1000			# total number of cells in the y dimension
-nxystep=128
+nx=2000		# total number of cells in the x dimension
+ny=2000			# total number of cells in the y dimension
+nxystep=256
 tilesize=508		# lengths of the sizes of the square tiles paving the domain
 morton=1		# affects the tiles to threads according to a morton curve
 numa=1			# intialize arrays in a numa aware manner
