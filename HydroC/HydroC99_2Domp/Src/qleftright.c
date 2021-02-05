@@ -44,14 +44,12 @@ qleftright(const int idim,
 	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(qleft[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])
-#pragma omp teams distribute parallel for \
+#endif
+#pragma omp TEAMSDIS parallel for \
 	default(none) private(s, i, nvar), \
 	firstprivate(slices, Hnvar, bmax)	   \
 	shared(qleft, qright, qxm, qxp)  \
 	collapse(3)
-#else
-#pragma omp parallel for private(nvar, i, s), shared(qleft, qright)
-#endif
     for (s = 0; s < slices; s++) {
 	for (nvar = 0; nvar < Hnvar; nvar++) {
 // #pragma omp simd

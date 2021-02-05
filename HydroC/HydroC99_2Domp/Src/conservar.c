@@ -48,13 +48,11 @@ gatherConservativeVars(const int idim,
 #pragma omp target				\
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar *Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none) \
+#endif
+#pragma omp TEAMSDIS parallel for default(none)		\
 	private(s, i), \
 	firstprivate(slices, Himin, Himax, rowcol, Hnxt, Hnyt)	\
 	shared(u, uold) collapse(2)
-#else
-#pragma omp parallel for private(i, s), shared(u) COLLAPSE
-#endif
 	for (s = 0; s < slices; s++) {
 	    for (i = Himin; i < Himax; i++) {
 		int idxuoID = IHU(i, rowcol + s, ID);
@@ -78,16 +76,12 @@ gatherConservativeVars(const int idim,
 	    
 #ifdef TARGETON
 #pragma omp target				\
-	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(uold[0:Hnvar *Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none)\
-	firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt),	       \
-	private(s, i), shared(u, uold) collapse(3)
-#else
-#pragma omp parallel for default(none)\
- 	firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt),	\
- 	private(i, s, ivar), shared(u, uold) collapse(3)
+    map(u[0:Hnvar][0:Hstep][0:Hnxyt])		\
+    map(uold[0:Hnvar *Hnxt * Hnyt])
 #endif
+#pragma omp TEAMSDIS parallel for default(none)			\
+    firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt),	\
+    private(s, i, ivar), shared(u, uold) collapse(3)
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin; i < Himax; i++) {
@@ -96,21 +90,16 @@ gatherConservativeVars(const int idim,
 		}
 	    }
 	}
-	//
     } else {
 	// Gather conservative variables
 #ifdef TARGETON
 #pragma omp target				\
 	map(u[0:Hnvar][0:Hstep][Himin:Himax])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none) \
- 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
-	private(s, i), shared(u, uold) collapse(2)
-#else
-#pragma omp parallel for \
- 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
-	private(j, s), shared(u)
 #endif
+#pragma omp TEAMSDIS parallel for default(none) \
+ 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
+	private(s, j), shared(u, uold) collapse(2)
 	for (s = 0; s < slices; s++) {
 	    for (j = Hjmin; j < Hjmax; j++) {
 		u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
@@ -129,14 +118,10 @@ gatherConservativeVars(const int idim,
 #pragma omp target				\
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar *Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none)\
-	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	       \
-	private(s, i), shared(u, uold) collapse(3)
-#else
-#pragma omp parallel for default(none)\
- 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
- 	private(j, s, ivar), shared(u, uold) collapse(3)
 #endif
+#pragma omp TEAMSDIS parallel for default(none)\
+	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	       \
+        private(s, j, ivar), shared(u, uold) collapse(3)
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (j = Hjmin; j < Hjmax; j++) {
@@ -192,16 +177,11 @@ updateConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for \
+#endif
+#pragma omp TEAMSDIS parallel for \
 	firstprivate(slices, Himin, Himax, rowcol, dtdx, Hnxt, Hnyt)	\
 	default(none) \
 	private(s, i, ivar), shared(u, uold, flux) collapse(2)
-#else
-#pragma omp parallel for \
-	private(ivar, s,i), \
-	firstprivate(slices, Himin, Himax, rowcol, dtdx, Hnxt, Hnyt)	\
-	shared(uold) COLLAPSE
-#endif
 	for (s = 0; s < slices; s++) {
 	    for (ivar = 0; ivar <= IP; ivar++) {
 		for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
@@ -218,15 +198,10 @@ updateConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none)\
+#endif
+#pragma omp TEAMSDIS parallel for default(none)\
 	firstprivate(rowcol, Hnvar, slices, Himin, Himax, dtdx, Hnxt, Hnyt),		\
 	private(s, i, ivar), shared(u, uold, flux) collapse(3)
-#else
-#pragma omp parallel for \
- 	default(none)\
- 	firstprivate(rowcol, dtdx, Himin, Himax, Hnvar, slices, Hnxt, Hnyt)	\
- 	private(ivar, s, i), shared(uold, u, flux) collapse(3)
-#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
@@ -250,17 +225,13 @@ updateConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for \
+#endif
+#pragma omp TEAMSDIS parallel for			\
 	default(none) \
-	private(s, i, ivar), \
+	private(s, j, ivar), \
 	firstprivate(slices, Hjmin, Hjmax, dtdx, Hnxt, Hnyt, rowcol)	\
 	shared(u, uold, flux) \
 	collapse(2)
-#else
-#pragma omp parallel for \
-	firstprivate(slices, Hjmin, Hjmax, dtdx, Hnxt, Hnyt, rowcol)	\
-	private(j, s), shared(uold)
-#endif
 	for (s = 0; s < slices; s++) {
 	    for (j = (Hjmin + ExtraLayer); j < (Hjmax - ExtraLayer); j++) {
 		uold[IHU(rowcol + s, j, ID)] =
@@ -288,14 +259,10 @@ updateConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
-#pragma omp teams distribute parallel for default(none)\
+#endif
+#pragma omp TEAMSDIS parallel for default(none)\
 	firstprivate(Hnvar, slices, Hjmin, Hjmax, dtdx, Hnxt, Hnyt, rowcol),	\
 	private(s, j, ivar), shared(u, uold, flux) collapse(3)
-#else
-#pragma omp parallel for default(none)\
- 	firstprivate(rowcol, Hjmin, Hjmax, dtdx, Hnvar, slices, Hnxt, Hnyt),	\
- 	private(ivar, s, j), shared(uold, u, flux) collapse(3)
-#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {

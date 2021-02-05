@@ -33,12 +33,12 @@ slope(const int n,
 #pragma omp target \
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt]) \
 	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])
-#pragma omp teams distribute parallel for \
-	private(nbv, s, i) shared(q, dq) \
-	collapse(3)
-#else
-#pragma omp parallel for private(nbv, s, i) shared(dq) collapse(3)	// COLLAPSE
 #endif
+#pragma omp TEAMSDIS parallel for \
+    default(none)\
+    firstprivate(Hslope_type, ijmin, ijmax, slices, Hnvar)	\
+    private(nbv, s, i) \
+    shared(q, dq) collapse(3)
     for (s = 0; s < slices; s++) {
 	for (nbv = 0; nbv < Hnvar; nbv++) {
 	    for (i = ijmin + 1; i < ijmax - 1; i++) {

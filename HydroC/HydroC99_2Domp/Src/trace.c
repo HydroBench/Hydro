@@ -60,16 +60,10 @@ trace(const real_t dtdx,
  	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])
-
-#pragma omp teams distribute parallel for default(none), private(s,i), 	\
-	firstprivate(dtdx, slices, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
-	shared(qxp, qxm, c, q, dq) collapse(2)
-#else
-#pragma omp parallel for default(none),					\
-	private(s,i),							\
-	firstprivate(dtdx, slices, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
-	shared(qxp, qxm, c, q, dq) collapse(2)
 #endif
+#pragma omp TEAMSDIS parallel for default(none), private(s,i), 	\
+	firstprivate(dtdx, slices, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
+	shared(qxp, qxm, c, q, dq) collapse(2)
     for (s = 0; s < slices; s++) {
 	for (i = ijmin + 1; i < ijmax - 1; i++) {
 	    real_t cc, csq, r, u, v, p;
@@ -147,16 +141,10 @@ trace(const real_t dtdx,
  	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(qxp[0:Hnvar][0:Hstep][0:Hnxyt])		\
  	map(qxm[0:Hnvar][0:Hstep][0:Hnxyt])
-
-#pragma omp teams distribute parallel for default(none), private(s,i), 	\
+#endif
+#pragma omp TEAMSDIS parallel for default(none), private(s,i), 	\
 	firstprivate(dtdx, slices, Hnvar, ijmin,ijmax,zeror,zerol, Hnxyt, Hstep, project) \
 	shared(qxp, qxm, c, q, dq) collapse(3)
-#else
-#pragma omp parallel for default(none),					\
-	private(s,i),							\
-	firstprivate(dtdx, slices, Hnvar, ijmin, ijmax,zeror,zerol, Hnxyt, Hstep, project) \
-	shared(qxp, qxm, c, q, dq) collapse(3)
-#endif
 	for (IN = IP + 1; IN < Hnvar; IN++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = ijmin + 1; i < ijmax - 1; i++) {

@@ -39,11 +39,6 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
     }
 #endif
     start = cclock();
-#ifdef MPI
-#ifdef TARGETON
-// #pragma omp target data map(tofrom: sendbufru[0:lgr], sendbufld[0:lgr], recvbufru[0:lgr], recvbufld[0:lgr])
-#endif
-#endif
     {
 
 	if (idim == 1) {
@@ -55,11 +50,10 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 		// Left boundary
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
-#pragma omp teams distribute parallel for \
-    default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
-#else
-#pragma omp parallel for default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
 #endif
+#pragma omp TEAMSDIS parallel for \
+    default(none),\
+    private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (i = 0; i < ExtraLayer; i++) {
 			sign = 1.0;
@@ -92,11 +86,9 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 		// Right boundary
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
-#pragma omp teams distribute parallel for \
-    default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
-#else
-#pragma omp parallel for default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
 #endif
+#pragma omp TEAMSDIS parallel for \
+    default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (i = H.nx + ExtraLayer; i < H.nx + ExtraLayerTot; i++) {
 			sign = 1.0;
@@ -136,11 +128,9 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 		j0 = 0;
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
-#pragma omp teams distribute parallel for \
-    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
-#else
-#pragma omp parallel for default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
 #endif
+#pragma omp TEAMSDIS parallel for \
+    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
 
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (j = 0; j < ExtraLayer; j++) {
@@ -173,11 +163,9 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 	    if (H.boundary_up > 0) {
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
-#pragma omp teams distribute parallel for \
-    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
-#else
-#pragma omp parallel for default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
 #endif
+#pragma omp TEAMSDIS parallel for \
+    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (j = H.ny + ExtraLayer; j < H.ny + ExtraLayerTot; j++) {
 			sign = 1.0;

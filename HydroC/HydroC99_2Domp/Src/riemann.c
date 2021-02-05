@@ -81,17 +81,12 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(pr[0:tmpsiz])					\
 	map(cr[0:tmpsiz])					\
 	map(goon[0:tmpsiz])
-#pragma omp teams distribute parallel for default(none)		\
+#endif
+#pragma omp TEAMSDIS parallel for default(none)		\
 	private(s, i),							\
 	firstprivate(Hsmallr, Hgamma, slices, narray, smallp)		\
 	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
 	collapse(2)
-#else
-#pragma omp parallel for private(s, i),					\
-	firstprivate(Hsmallr, Hgamma, slices, narray, smallp)		\
-	default(none),							\
-	shared(qgdnv, sgnm, qleft, qright, pstar, ul, rl, pl, rr, ur, pr, cl, cr, goon)
-#endif
     for (s = 0; s < slices; s++) {
 	// Precompute values for this slice
 	for (i = 0; i < narray; i++) {
@@ -119,10 +114,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 
 #ifdef WITHTARGET
     // fprintf(stderr, "riemann between loop 1 and 2\n");
-#pragma omp target teams distribute parallel for default(none)		\
-	private(s, i, iter),\
-	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
-	shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
+#pragma omp target \
 	map(pstar[0:tmpsiz])					\
 	map(rl[0:tmpsiz])					\
 	map(ul[0:tmpsiz])					\
@@ -132,13 +124,12 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(cl[0:tmpsiz])					\
 	map(pr[0:tmpsiz])					\
 	map(cr[0:tmpsiz])					\
-	map(goon[0:tmpsiz]) collapse(2)
-#else
-#pragma omp parallel for private(s, i, iter),				\
-	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
-	default(none),							\
-	shared(pstar, ul, rl, pl, rr, ur, pr, cl, cr, goon)
+	map(goon[0:tmpsiz]) 
 #endif
+#pragma omp TEAMSDIS parallel for default(none)	\
+	private(s, i, iter),\
+	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
+	shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
 
     for (s = 0; s < slices; s++) {
 	// solve the riemann problem on the interfaces of this slice
@@ -179,11 +170,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 
 #ifdef WITHTARGET
     // fprintf(stderr, "riemann between loop 2 and 3\n");
-#pragma omp target teams distribute parallel for default(none)		\
-	private(s, i),							\
-	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) \
-	shared(qgdnv, sgnm, qleft, qright, pstar)			\
-	shared(rl, ul, pl, rr, ur, cl, pr, cr, goon)			\
+#pragma omp target \
 	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
 	map(qright[0:Hnvar][0:Hstep][0:narray])			\
 	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
@@ -197,14 +184,13 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(cl[0:tmpsiz])					\
 	map(pr[0:tmpsiz])					\
 	map(cr[0:tmpsiz])					\
-	map(goon[0:tmpsiz]) collapse(2)	//
-
-#else
-#pragma omp parallel for private(s, i),					\
-	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) \
-	default(none),							\
-	shared(qgdnv, sgnm, qleft, qright, pstar, ul, rl, pl, rr, ur, pr, cl, cr, goon)
+	map(goon[0:tmpsiz]) 	//
 #endif
+#pragma omp TEAMSDIS parallel for default(none)			\
+	private(s, i),							\
+	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) \
+	shared(qgdnv, sgnm, qleft, qright, pstar)			\
+	shared(rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < narray; i++) {
 	    int ii = i + s * narray;
@@ -301,22 +287,17 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
     if (Hnvar > IP) {
 	int invar;
 #ifdef WITHTARGET
-#pragma omp target teams distribute parallel for default(none)		\
-	private(s, i),							\
-	firstprivate(slices, Hnvar, narray),			\
-	shared(qgdnv, sgnm, qleft, qright)			\
+#pragma omp target \
 	map(qleft[0:Hnvar][0:Hstep][0:narray])			\
 	map(qright[0:Hnvar][0:Hstep][0:narray])			\
 	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
-	map(sgnm[0:Hstep][0:Hnxyt])			\
-	collapse(3)		//
-
-#else
-#pragma omp parallel for private(s, i, invar),	\
- 	default(none),\
- 	firstprivate(slices, Hnvar, narray),			\
- 	shared(qgdnv, sgnm, qleft, qright) collapse(3)
+	map(sgnm[0:Hstep][0:Hnxyt])
 #endif
+#pragma omp TEAMSDIS parallel for default(none)			\
+	private(s, i, invar),							\
+	firstprivate(slices, Hnvar, narray),			\
+	shared(qgdnv, sgnm, qleft, qright)			\
+	collapse(3)		//
 	for (invar = IP + 1; invar < Hnvar; invar++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = 0; i < narray; i++) {

@@ -37,16 +37,15 @@ equation_of_state(int imin,
 #endif
     
 #ifdef TARGETON
-#pragma omp target teams distribute parallel for default(none), \
-	firstprivate(slices, Hgamma, smallp, imin, imax) \
-	private(s,k), \
-	shared(c,q, eint) collapse(2)\
-	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
-	map(c[0:Hstep][0:Hnxyt]) \
-	map(eint[0:Hstep][0:Hnxyt])
-#else
-#pragma omp parallel for default(none) firstprivate(slices, Hgamma, smallp, imin, imax) private(s,k), shared(c,q, eint) COLLAPSE
+#pragma omp target				\
+    map(q[0:Hnvar][0:Hstep][0:Hnxyt]),		\
+    map(c[0:Hstep][0:Hnxyt]),			\
+    map(eint[0:Hstep][0:Hnxyt])
 #endif
+#pragma omp TEAMSDIS parallel for default(none),	 \
+    firstprivate(slices, Hgamma, smallp, imin, imax),	 \
+    private(s,k),					 \
+    shared(c,q, eint) collapse(2)
     for (s = 0; s < slices; s++) {
 	for (k = imin; k < imax; k++) {
 	    register real_t rhok = q[ID][s][k];
