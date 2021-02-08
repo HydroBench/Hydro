@@ -10,6 +10,7 @@
 #define USEMKL 0
 #define ALIGNED 1
 
+//#define TILEUSER 1
 #define TILEUSER 1
 
 #define WITHBCAST 1		// read the input file once and broadcast the values
@@ -64,17 +65,17 @@ static const char *Schedule = "schedule(dynamic)";
 #endif
 
 #if SCHEDDEF == 2
-#define SCHEDULE schedule(static,1)
+#define SCHEDULE schedule(static, 1)
 static const char *Schedule = "schedule(static,1)";
 #endif
 
 #if SCHEDDEF == 3
-#define SCHEDULE schedule(static,2)
+#define SCHEDULE schedule(static, 2)
 static const char *Schedule = "schedule(static,2)";
 #endif
 
 #if SCHEDDEF == 4
-#define SCHEDULE schedule(static,4)
+#define SCHEDULE schedule(static, 4)
 static const char *Schedule = "schedule(static,4)";
 #endif
 
@@ -88,9 +89,5 @@ static const char *Schedule = "schedule(runtime)";
 
 #define TILE_PER_THREAD 4
 
-// macros to use in conjunction with armie
-#define __START_TRACE() {asm volatile (".inst 0x2520e020");}
-#define __STOP_TRACE()  {asm volatile (".inst 0x2520e040");}
-
 #endif
-//EOF
+// EOF
