@@ -5,39 +5,28 @@
 #include <omp.h>
 #endif
 
-#include <cstring>
-#include <cstdlib>
-#include <unistd.h>
+#include <cerrno>
+#include <climits>
 #include <cmath>
 #include <cstdio>
-#include <climits>
-#include <cerrno>
-#include <iostream>
+#include <cstdlib>
+#include <cstring>
 #include <iomanip>
-
-#include <strings.h>
+#include <iostream>
 #include <unistd.h>
-#include <malloc.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <float.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <stdarg.h>
 
 using namespace std;
 
 //
-#include "EnumDefs.hpp"
 #include "Domain.hpp"
-#include "cclock.h"
+#include "EnumDefs.hpp"
+#include "cclock.hpp"
 
 void Domain::boundary_init()
 {
     int32_t size, ivar, i, j, i0, j0;
     double start, end, startio, elaps;
-    start = dcclock();
+    start = Custom_Timer::dcclock();
     int sign;
 #ifdef MPI_ON
     MPI_Request requests[4];
@@ -137,7 +126,7 @@ void Domain::boundary_init()
 	}
 #endif
     }				// Y_SCAN
-    elaps = dcclock() - start;
+    elaps = Custom_Timer::dcclock() - start;
     m_mainTimer.add(BOUNDINIT, elaps);
 
 }				// boundary_init
@@ -148,7 +137,7 @@ void Domain::boundary_process()
     int32_t size, ivar, i, j, i0, j0;
     int sign;
     double start, end;
-    start = dcclock();
+    start = Custom_Timer::dcclock();
 #ifdef MPI_ON
     MPI_Request requests[4];
     MPI_Status status[4];
@@ -280,8 +269,8 @@ void Domain::boundary_process()
     }				// Y_SCAN
     Matrix2 < real_t > &uold = *(*m_uold) (IP_VAR);
     if (m_prt)
-	uold.printFormatted("uold boundary_process");
-    double elaps = dcclock() - start;
+	std::cout << "uold boundary_process" << uold;
+    double elaps = Custom_Timer::dcclock() - start;
     m_mainTimer.add(BOUNDEXEC, elaps);
 }				// boundary_process
 
