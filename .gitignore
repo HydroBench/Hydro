@@ -17,3 +17,4 @@ hmpp*.cu
 *.hmf
 *.hmc
 *.d
+/.project
