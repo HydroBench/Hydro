@@ -174,9 +174,13 @@ void Domain::boundary_process()
 
 	if (m_boundary_left > 0) {
 	    // Left boundary
+#pragma omp parallel for \
+    default(none),\
+    firstprivate(ymin, ymax),\
+    private(ivar, i, j, i0, sign) shared(m_uold) collapse(2)
 	    for (ivar = 0; ivar < NB_VAR; ivar++) {
-		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (i = 0; i < m_ExtraLayer; i++) {
+		    Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		    sign = 1.0;
 		    if (m_boundary_left == 1) {
 			i0 = 2 * m_ExtraLayer - i - 1;	// CL reflexion
@@ -188,7 +192,6 @@ void Domain::boundary_process()
 		    } else {
 			i0 = m_nx + i;	// CL periodique
 		    }
-#pragma ivdep
 		    for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
 			uold(i, j) = uold(i0, j) * sign;
 		    }
@@ -198,9 +201,13 @@ void Domain::boundary_process()
 
 	if (m_boundary_right > 0) {
 	    // Right boundary
+#pragma omp parallel for \
+    default(none) \
+    firstprivate(ymin, ymax),					\
+    private(ivar, i, j, i0, sign) shared(m_uold) collapse(2)
 	    for (ivar = 0; ivar < NB_VAR; ivar++) {
-		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (i = m_nx + m_ExtraLayer; i < m_nx + 2 * m_ExtraLayer; i++) {
+		    Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		    sign = 1.0;
 		    if (m_boundary_right == 1) {
 			i0 = 2 * m_nx + 2 * m_ExtraLayer - i - 1;
@@ -212,7 +219,6 @@ void Domain::boundary_process()
 		    } else {
 			i0 = i - m_nx;
 		    }
-#pragma ivdep
 		    for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++) {
 			uold(i, j) = uold(i0, j) * sign;
 		    }
@@ -233,9 +239,13 @@ void Domain::boundary_process()
 	// Lower boundary
 	if (m_boundary_down > 0) {
 	    j0 = 0;
+#pragma omp parallel for \
+    default(none) \
+    firstprivate(xmin, xmax),					\
+    private(ivar, i, j, j0, sign) shared(m_uold) collapse(2)
 	    for (ivar = 0; ivar < NB_VAR; ivar++) {
-		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = 0; j < m_ExtraLayer; j++) {
+		    Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		    sign = 1;
 		    if (m_boundary_down == 1) {
 			j0 = 2 * m_ExtraLayer - j - 1;
@@ -247,7 +257,6 @@ void Domain::boundary_process()
 		    } else {
 			j0 = m_ny + j;
 		    }
-#pragma ivdep
 		    for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uold(i, j) = uold(i, j0) * sign;
 		    }
@@ -256,9 +265,13 @@ void Domain::boundary_process()
 	}
 	// Upper boundary
 	if (m_boundary_up > 0) {
+#pragma omp parallel for \
+    default(none)						\
+    firstprivate(xmin, xmax),					\
+    private(ivar, i, j, j0, sign) shared(m_uold) collapse(2)
 	    for (ivar = 0; ivar < NB_VAR; ivar++) {
-		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		for (j = m_ny + m_ExtraLayer; j < m_ny + 2 * m_ExtraLayer; j++) {
+		    Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 		    sign = 1;
 		    if (m_boundary_up == 1) {
 			j0 = 2 * m_ny + 2 * m_ExtraLayer - j - 1;
@@ -270,7 +283,6 @@ void Domain::boundary_process()
 		    } else {
 			j0 = j - m_ny;
 		    }
-#pragma ivdep
 		    for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
 			uold(i, j) = uold(i, j0) * sign;
 		    }
@@ -288,69 +300,79 @@ void Domain::boundary_process()
 int32_t Domain::pack_arrayv(int32_t xoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
-    real_t v;
+    int32_t ivar, i, j;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
+#pragma omp parallel for default(none) private(ivar, i, j) \
+    firstprivate(ymin, ymax, xoffset, m_ExtraLayer), shared(buffer, m_uold) collapse(3)
     for (ivar = 0; ivar < NB_VAR; ivar++) {
-	Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 	for (j = ymin; j < ymax; j++) {
 	    for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
-		v = uold(i, j);
-		buffer[p++] = v;
+		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
+		int32_t p1 = (i - xoffset) + (j - ymin) * (m_ExtraLayer) + ivar * (m_ExtraLayer * (ymax - ymin));
+		buffer[p1] = uold(i, j);
 	    }
 	}
     }
-    return p;
+    return NB_VAR * (m_ExtraLayer * (ymax - ymin));
 }
 
 int32_t Domain::unpack_arrayv(int32_t xoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
+    int32_t ivar, i, j;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
+#pragma omp parallel for default(none) private(ivar, i, j) \
+    firstprivate(ymin, ymax, xoffset, m_ExtraLayer), shared(buffer, m_uold) collapse(3)
     for (ivar = 0; ivar < NB_VAR; ivar++) {
-	Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 	for (j = ymin; j < ymax; j++) {
 	    for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
-		uold(i, j) = buffer[p++];
+		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
+		int32_t p1 = (i - xoffset) + (j - ymin) * (m_ExtraLayer) + ivar * (m_ExtraLayer * (ymax - ymin));
+		uold(i, j) = buffer[p1];
 	    }
 	}
     }
-    return p;
+    return NB_VAR * (m_ExtraLayer * (ymax - ymin));
 }
 
 int32_t Domain::pack_arrayh(int32_t yoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
+    int32_t ivar, i, j;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
+#pragma omp parallel for default(none) private(ivar, i, j) \
+    firstprivate(xmin, xmax, yoffset, m_ExtraLayer), shared(buffer, m_uold) collapse(3)
     for (ivar = 0; ivar < NB_VAR; ivar++) {
-	Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 	for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
 	    for (i = xmin; i < xmax; i++) {
-		buffer[p++] = uold(i, j);
+		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
+		int32_t p1 = (i - xmin) + (j - yoffset) * (xmax - xmin) + ivar * m_ExtraLayer * (xmax - xmin);
+		buffer[p1] = uold(i, j);
 	    }
 	}
     }
-    return p;
+    return (xmax - xmin) * m_ExtraLayer * NB_VAR;
 }
 
 int32_t Domain::unpack_arrayh(int32_t yoffset, Preal_t buffer)
 {
     int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
+    int32_t ivar, i, j;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
+#pragma omp parallel for default(none) private(ivar, i, j) \
+    firstprivate(xmin, xmax, yoffset, m_ExtraLayer), shared(buffer, m_uold) collapse(3)
     for (ivar = 0; ivar < NB_VAR; ivar++) {
-	Matrix2 < real_t > &uold = *(*m_uold) (ivar);
 	for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
 	    for (i = xmin; i < xmax; i++) {
-		uold(i, j) = buffer[p++];
+		Matrix2 < real_t > &uold = *(*m_uold) (ivar);
+		int32_t p1 = (i - xmin) + (j - yoffset) * (xmax - xmin) + ivar * m_ExtraLayer * (xmax - xmin);
+		uold(i, j) = buffer[p1];
 	    }
 	}
     }
-    return p;
+    return (xmax - xmin) * m_ExtraLayer * NB_VAR;
 }
