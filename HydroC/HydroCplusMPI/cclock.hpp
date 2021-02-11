@@ -13,15 +13,14 @@ class Custom_Timer {
     typedef std::chrono::high_resolution_clock::time_point my_time_t;
     my_time_t m_time_point_start;
 
-     Custom_Timer()
-    :m_time_point_start(std::chrono::high_resolution_clock::now()) {
-    } static Custom_Timer *get();
+    Custom_Timer() : m_time_point_start(std::chrono::high_resolution_clock::now()) {}
+    static Custom_Timer *get();
 
- public:
+  public:
     static double dcclock();
     static my_time_t cclock();
     static double ccelaps(const my_time_t &, const my_time_t &);
     static void convertToHuman(char *s, double t);
 };
 
-#endif				// CCLOCK_H
+#endif // CCLOCK_H

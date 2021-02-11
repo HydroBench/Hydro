@@ -14,15 +14,14 @@
 
 using namespace std;
 
-void validmatrix()
-{
+void validmatrix() {
     int p = 0;
-    Matrix2 < double >tst(3, 4);
+    Matrix2<double> tst(3, 4);
 
     for (int j = 0; j < tst.getH(); j++) {
-	for (int i = 0; i < tst.getW(); i++) {
-	    tst(i, j) = p++;
-	}
+        for (int i = 0; i < tst.getW(); i++) {
+            tst(i, j) = p++;
+        }
     }
     std::cout << "tst" << tst;
     tst.swapDimOnly();
@@ -31,8 +30,7 @@ void validmatrix()
     exit(1);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 
 #ifdef WITHHBW
     hbw_set_policy(HBW_POLICY_PREFERRED);
@@ -43,11 +41,11 @@ int main(int argc, char **argv)
 
     if (domain->isStopped()) {
 #ifdef MPI_ON
-	// #pragma message "MPI is activated"
-	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_Finalize();
-	cout << "Hydroc: computation already finished" << endl;
-	exit(1);
+        // #pragma message "MPI is activated"
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Finalize();
+        cout << "Hydroc: computation already finished" << endl;
+        exit(1);
 #endif
     }
     domain->compute();
@@ -56,7 +54,7 @@ int main(int argc, char **argv)
 #endif
 
     if (domain->getMype() == 0)
-	cout << "Hydro: done." << endl;
+        cout << "Hydro: done." << endl;
 
 #ifdef MPI_ON
     MPI_Finalize();

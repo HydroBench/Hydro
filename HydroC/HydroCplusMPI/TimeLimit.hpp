@@ -7,23 +7,21 @@
 
 // template <typename T>
 class TimeLimit {
- private:
+  private:
     double m_orgTime;
     double m_curTime;
     double m_allotedTime;
 
- protected:
- public:
+  protected:
+  public:
     // basic constructor
-     TimeLimit(void);		// default constructor. make it private if needed.
+    TimeLimit(void); // default constructor. make it private if needed.
     // TimeLimit();
     // destructor
     ~TimeLimit();
     double timeRemain();
     double timeRemainAll();
-    double getTimeAllocated() {
-	return m_allotedTime;
-    };
+    double getTimeAllocated() { return m_allotedTime; };
     // copy operator
     // TimeLimit(const TimeLimit & obj);
     // assignment operator
