@@ -33,25 +33,25 @@
 
 #undef HAVE_PRECISION
 
-#ifdef SINGLE
+#ifdef SINGLE_REAL
 #define HAVE_PRECISION
 #endif
 
-#ifdef DOUBLE
+#ifdef DOUBLE_REAL
 #ifdef HAVE_PRECISION
-#error "Multiple precisions given (SINGLE, DOUBLE)"
+#error "Multiple precisions given (SINGLE_REAL, DOUBLE_REAL)"
 #endif
 #define HAVE_PRECISION
 #endif
 
 #ifndef HAVE_PRECISION
-#error "No precision given (SINGLE, DOUBLE)"
+#error "No precision given (SINGLE_REAL, DOUBLE_REAL)"
 #endif
 
 #include <algorithm>
 #include <cmath>
 
-#ifdef SINGLE
+#ifdef SINGLE_REAL
 typedef float REAL_T;
 #define REAL_FMT "%f"
 
@@ -96,7 +96,7 @@ typedef F32vec16 VMASK_T;
 #endif // KNC
 #endif // SINGLE
 
-#ifdef DOUBLE
+#ifdef DOUBLE_REAL
 typedef double REAL_T;
 #define REAL_FMT "%lf"
 

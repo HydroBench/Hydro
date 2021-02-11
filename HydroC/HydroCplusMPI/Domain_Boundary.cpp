@@ -46,7 +46,7 @@ void Domain::boundary_init() {
             size = pack_arrayv(m_ExtraLayer, m_sendbufld);
             size = pack_arrayv(m_nx, m_sendbufru);
 
-            startio = dcclock();
+            startio = Custom_Timer::dcclock();
 
             if (m_box[RIGHT_D] != -1) {
                 MPI_Isend(m_sendbufru, size, mpiFormat, m_box[RIGHT_D], 123, MPI_COMM_WORLD,
@@ -75,7 +75,7 @@ void Domain::boundary_init() {
             err = MPI_Waitall(reqcnt, requests, status);
             assert(err == MPI_SUCCESS);
 
-            elaps = dcclock() - startio;
+            elaps = Custom_Timer::dcclock() - startio;
             double bandwith = bytesMoved / (1024.0 * 1024.0) / elaps;
             m_mainTimer.set(BOUNDINITBW, bandwith);
             // if (m_myPe == 0) cerr << "X " << bandwith << " ";
@@ -89,7 +89,7 @@ void Domain::boundary_init() {
             size = pack_arrayh(m_ExtraLayer, m_sendbufld);
             size = pack_arrayh(m_ny, m_sendbufru);
 
-            startio = dcclock();
+            startio = Custom_Timer::dcclock();
 
             if (m_box[DOWN_D] != -1) {
                 MPI_Isend(m_sendbufld, size, mpiFormat, m_box[DOWN_D], 123, MPI_COMM_WORLD,
@@ -118,7 +118,7 @@ void Domain::boundary_init() {
             err = MPI_Waitall(reqcnt, requests, status);
             assert(err == MPI_SUCCESS);
 
-            elaps = dcclock() - startio;
+            elaps = Custom_Timer::dcclock() - startio;
             double bandwith = bytesMoved / (1024.0 * 1024.0) / elaps;
             m_mainTimer.set(BOUNDINITBW, bandwith);
             // if (m_myPe == 0) cerr << "Y " << bandwith << " ";

@@ -42,7 +42,7 @@
 #endif
 #endif
 
-#define DOUBLE 1
+#define DOUBLE_REAL 1
 
 #ifdef __MIC__
 #ifndef SCHEDDEF
