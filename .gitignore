@@ -18,3 +18,5 @@ hmpp*.cu
 *.hmc
 *.d
 /.project
+HydroC/HydroCplusMPI/hydroc
+.gitignore
