@@ -20,26 +20,23 @@
 
 using namespace std;
 
-inline void *memsetth(void *s, int c, size_t n)
-{
+inline void *memsetth(void *s, int c, size_t n) {
     char *ptr = (char *)s;
     char cval = c;
 #pragma omp simd
     for (int32_t i = 0; i < n; i++) {
-	ptr[i] = cval;
+        ptr[i] = cval;
     }
     return s;
 }
 
-ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin,
-			     int32_t ymax)
-{
+ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     int32_t lgx, lgy, lgmax;
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
     lgmax = lgx;
     if (lgmax < lgy)
-	lgmax = lgy;
+        lgmax = lgy;
 
     m_q = new Soa(NB_VAR, lgx, lgy);
     m_qxm = new Soa(NB_VAR, lgx, lgy);
@@ -49,8 +46,8 @@ ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin,
     m_qright = new Soa(NB_VAR, lgx, lgy);
     m_qgdnv = new Soa(NB_VAR, lgx, lgy);
 
-    m_c = new Matrix2 < real_t > (lgx, lgy);
-    m_e = new Matrix2 < real_t > (lgx, lgy);
+    m_c = new Matrix2<real_t>(lgx, lgy);
+    m_e = new Matrix2<real_t>(lgx, lgy);
 
 #if RIEMANNINREGS == 0
     m_pstar = AlignedAllocReal(lgmax);
@@ -82,8 +79,7 @@ ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin,
 #endif
 }
 
-ThreadBuffers::~ThreadBuffers()
-{
+ThreadBuffers::~ThreadBuffers() {
     delete m_q;
     delete m_qxm;
     delete m_qxp;
@@ -110,25 +106,24 @@ ThreadBuffers::~ThreadBuffers()
 #endif
 }
 
-void ThreadBuffers::swapStorageDims()
-{
+void ThreadBuffers::swapStorageDims() {
 #pragma novector
     for (int32_t i = 0; i < NB_VAR; i++) {
-	Matrix2 < real_t > *m;
-	m = (*m_q) (i);
-	m->swapDimOnly();
-	m = (*m_qxm) (i);
-	m->swapDimOnly();
-	m = (*m_qxp) (i);
-	m->swapDimOnly();
-	m = (*m_dq) (i);
-	m->swapDimOnly();
-	m = (*m_qleft) (i);
-	m->swapDimOnly();
-	m = (*m_qright) (i);
-	m->swapDimOnly();
-	m = (*m_qgdnv) (i);
-	m->swapDimOnly();
+        Matrix2<real_t> *m;
+        m = (*m_q)(i);
+        m->swapDimOnly();
+        m = (*m_qxm)(i);
+        m->swapDimOnly();
+        m = (*m_qxp)(i);
+        m->swapDimOnly();
+        m = (*m_dq)(i);
+        m->swapDimOnly();
+        m = (*m_qleft)(i);
+        m->swapDimOnly();
+        m = (*m_qright)(i);
+        m->swapDimOnly();
+        m = (*m_qgdnv)(i);
+        m->swapDimOnly();
     }
     m_c->swapDimOnly();
     m_e->swapDimOnly();

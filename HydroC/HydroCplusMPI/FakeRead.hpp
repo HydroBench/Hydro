@@ -9,22 +9,22 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <stdint.h>		// for the definition of uint32_t
+#include <stdint.h> // for the definition of uint32_t
 
-// template <typename T>
+
 class FakeRead {
- private:
+  private:
     size_t m_fSize;
     int m_bSize;
     FILE *m_fd;
     double *m_buf;
     int m_rank;
 
- protected:
- public:
+  protected:
+  public:
     // basic constructor
     // FakeRead(void); // default constructor. make it private if needed.
-     FakeRead(long fSize = 2000000000, int rank = 0);
+    FakeRead(long fSize = 2000000000, int rank = 0);
     // destructor
     ~FakeRead();
     int Read(int64_t lg);

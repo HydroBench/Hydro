@@ -155,7 +155,8 @@ Archiv:
 # TestThx2_Omp TestThx2_1 README.after 
 
 indent:
-	indent *.cpp *.hpp *.c *.h
+	clang-format -i *.cpp *.hpp
+	#indent *.cpp *.hpp *.c *.h
 
 #
 # - - - section to launch runs easily through a songle make command. They should be tailored to YOUR needs - - -
