@@ -82,11 +82,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(cr[0:tmpsiz])					\
 	map(goon[0:tmpsiz])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)		\
-	private(s, i),							\
-	firstprivate(Hsmallr, Hgamma, slices, narray, smallp)		\
-	shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) \
-	collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i), firstprivate(Hsmallr, Hgamma, slices, narray, smallp) shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	// Precompute values for this slice
 	for (i = 0; i < narray; i++) {
@@ -126,10 +126,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(cr[0:tmpsiz])					\
 	map(goon[0:tmpsiz]) 
 #endif
-#pragma omp TEAMSDIS parallel for default(none)	\
-	private(s, i, iter),\
-	firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) \
-	shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, iter) collapse(2)   
+#else
+#pragma omp TEAMSDIS parallel for default(none)	private(s, i, iter), firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6) shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
+#endif
 
     for (s = 0; s < slices; s++) {
 	// solve the riemann problem on the interfaces of this slice
@@ -186,11 +187,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(cr[0:tmpsiz])					\
 	map(goon[0:tmpsiz]) 	//
 #endif
-#pragma omp TEAMSDIS parallel for default(none)			\
-	private(s, i),							\
-	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) \
-	shared(qgdnv, sgnm, qleft, qright, pstar)			\
-	shared(rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none)	private(s, i),	firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6) shared(qgdnv, sgnm, qleft, qright, pstar) shared(rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < narray; i++) {
 	    int ii = i + s * narray;
@@ -293,11 +294,11 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 	map(qgdnv[0:Hnvar][0:Hstep][0:narray])			\
 	map(sgnm[0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)			\
-	private(s, i, invar),							\
-	firstprivate(slices, Hnvar, narray),			\
-	shared(qgdnv, sgnm, qleft, qright)			\
-	collapse(3)		//
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, invar), collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i, invar), firstprivate(slices, Hnvar, narray), shared(qgdnv, sgnm, qleft, qright) collapse(3)		//
+#endif
 	for (invar = IP + 1; invar < Hnvar; invar++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = 0; i < narray; i++) {

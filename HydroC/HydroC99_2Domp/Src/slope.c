@@ -30,15 +30,14 @@ slope(const int n,
     ijmin = 0;
     ijmax = n;
 #ifdef TARGETON
-#pragma omp target \
-	map(q[0:Hnvar][0:Hstep][0:Hnxyt]) \
-	map(dq[0:Hnvar][0:Hstep][0:Hnxyt])
+#pragma omp target map(q[0:Hnvar][0:Hstep][0:Hnxyt], dq[0:Hnvar][0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none)\
-    firstprivate(Hslope_type, ijmin, ijmax, slices, Hnvar)	\
-    private(nbv, s, i) \
-    shared(q, dq) collapse(3)
+    
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(nbv, s, i) collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) collapse(3) private(nbv, s, i) shared(q, dq) firstprivate(Hslope_type, ijmin, ijmax, slices, Hnvar)	
+#endif
     for (s = 0; s < slices; s++) {
 	for (nbv = 0; nbv < Hnvar; nbv++) {
 	    for (i = ijmin + 1; i < ijmax - 1; i++) {

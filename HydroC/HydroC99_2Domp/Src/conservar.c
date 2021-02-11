@@ -49,10 +49,11 @@ gatherConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar *Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)		\
-	private(s, i), \
-	firstprivate(slices, Himin, Himax, rowcol, Hnxt, Hnyt)	\
-	shared(u, uold) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i), firstprivate(slices, Himin, Himax, rowcol, Hnxt, Hnyt) shared(u, uold) collapse(2)
+#endif
 	for (s = 0; s < slices; s++) {
 	    for (i = Himin; i < Himax; i++) {
 		int idxuoID = IHU(i, rowcol + s, ID);
@@ -79,9 +80,11 @@ gatherConservativeVars(const int idim,
     map(u[0:Hnvar][0:Hstep][0:Hnxyt])		\
     map(uold[0:Hnvar *Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)			\
-    firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt),	\
-    private(s, i, ivar), shared(u, uold) collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, ivar), collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none)	firstprivate(Hnvar, slices, Himin, Himax, rowcol, Hnxt, Hnyt), private(s, i, ivar), shared(u, uold) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin; i < Himax; i++) {
@@ -97,9 +100,11 @@ gatherConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][Himin:Himax])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none) \
- 	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	\
-	private(s, j), shared(u, uold) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, j), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt), private(s, j), shared(u, uold) collapse(2)
+#endif
 	for (s = 0; s < slices; s++) {
 	    for (j = Hjmin; j < Hjmax; j++) {
 		u[ID][s][j] = uold[IHU(rowcol + s, j, ID)];
@@ -119,9 +124,11 @@ gatherConservativeVars(const int idim,
 	map(u[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar *Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)\
-	firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt),	       \
-        private(s, j, ivar), shared(u, uold) collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, j, ivar), collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, slices, Hjmin, Hjmax, rowcol, Hnxt, Hnyt), private(s, j, ivar), shared(u, uold) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (j = Hjmin; j < Hjmax; j++) {
@@ -178,10 +185,11 @@ updateConservativeVars(const int idim,
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	firstprivate(slices, Himin, Himax, rowcol, dtdx, Hnxt, Hnyt)	\
-	default(none) \
-	private(s, i, ivar), shared(u, uold, flux) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, ivar), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for firstprivate(slices, Himin, Himax, rowcol, dtdx, Hnxt, Hnyt) default(none) private(s, i, ivar), shared(u, uold, flux) collapse(2)
+#endif
 	for (s = 0; s < slices; s++) {
 	    for (ivar = 0; ivar <= IP; ivar++) {
 		for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
@@ -199,9 +207,11 @@ updateConservativeVars(const int idim,
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(uold[0:Hnvar * Hnxt * Hnyt])
 #endif
-#pragma omp TEAMSDIS parallel for default(none)\
-	firstprivate(rowcol, Hnvar, slices, Himin, Himax, dtdx, Hnxt, Hnyt),		\
-	private(s, i, ivar), shared(u, uold, flux) collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, ivar), collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(rowcol, Hnvar, slices, Himin, Himax, dtdx, Hnxt, Hnyt), private(s, i, ivar), shared(u, uold, flux) collapse(3)
+#endif
 	    for (ivar = IP + 1; ivar < Hnvar; ivar++) {
 		for (s = 0; s < slices; s++) {
 		    for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {

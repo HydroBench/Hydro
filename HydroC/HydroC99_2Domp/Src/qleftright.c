@@ -45,11 +45,11 @@ qleftright(const int idim,
 	map(qleft[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(qright[0:Hnvar][0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	default(none) private(s, i, nvar), \
-	firstprivate(slices, Hnvar, bmax)	   \
-	shared(qleft, qright, qxm, qxp)  \
-	collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, nvar) collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i, nvar), firstprivate(slices, Hnvar, bmax) shared(qleft, qright, qxm, qxp) collapse(3)
+#endif
     for (s = 0; s < slices; s++) {
 	for (nvar = 0; nvar < Hnvar; nvar++) {
 // #pragma omp simd

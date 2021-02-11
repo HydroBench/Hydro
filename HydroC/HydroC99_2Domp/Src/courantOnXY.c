@@ -34,12 +34,12 @@ courantOnXY(real_t * cournox,
 #else
 #define NTNT
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none)			 \
-    firstprivate(slices, Hnx)		 \
-    private(s,i)			 \
-    shared(q,c)			 \
-    reduction(max:tmp1, tmp2) NTNT collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s,i) reduction(max:tmp1, tmp2) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(slices, Hnx)private(s,i)shared(q,c) reduction(max:tmp1, tmp2) NTNT collapse(2)
+#endif
+
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < Hnx; i++) {
 	    tmp1 = MAX(tmp1, c[s][i] + FABS(q[IU][s][i]));

@@ -9,16 +9,10 @@ ifeq ($(DBG),O)
      NOFMA=O
 else
    ifeq ($(OPTLVL),)
-	OPTIM+=-O3
+	OPTIM+=-O2
    else
 	OPTIM+=$(OPTLVL)
    endif
-endif
-
-ifneq ($(DBG),O)
-   OPTIM+=-O2
-else
-   OPTIM+=-O0
 endif
 
 ifeq ($(CXX),icpc)

@@ -42,11 +42,11 @@ cmpflx(const int narray,
 	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	default(none) private(s, i, ekin, etot), \
-        firstprivate(slices, nface, entho, Hnvar) \
-	shared(flux, qgdnv) \
-	collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, ekin, etot), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i, ekin, etot), firstprivate(slices, nface, entho, Hnvar) shared(flux, qgdnv) collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < nface; i++) {
 	    real_t qgdnvID = qgdnv[ID][s][i];
@@ -82,11 +82,11 @@ cmpflx(const int narray,
 	map(qgdnv[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(flux[0:Hnvar][0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	default(none) private(s, i), \
-        firstprivate(slices, nface, Hnvar) \
-	shared(flux, qgdnv) \
-	collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, IN) collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(s, i, IN), firstprivate(slices, nface, Hnvar) shared(flux, qgdnv) collapse(3)
+#endif
 	for (IN = IP + 1; IN < Hnvar; IN++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = 0; i < nface; i++) {

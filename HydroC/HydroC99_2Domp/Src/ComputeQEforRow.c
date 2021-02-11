@@ -36,12 +36,11 @@ ComputeQEforRow(const int j,
 	map(e[0:Hstep][0:Hnxyt])		\
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	default(none)	\
-	shared(q, e, uold)		  \
-	firstprivate(Hsmallr, slices, Hnx, Hnxt, Hnyt, j)	\
-        private(s, i) collapse(2)
-    
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none)	shared(q, e, uold) firstprivate(Hsmallr, slices, Hnx, Hnxt, Hnyt, j) private(s, i) collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = 0; i < Hnx; i++) {
 	    real_t eken;

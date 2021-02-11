@@ -1,5 +1,6 @@
 CC:=icx
 MPI:=O
+DEF:=
 #defaut behavior
 
 ifeq ($(MPI),O)
@@ -9,11 +10,11 @@ endif
 # OpenMP options
 #---------------
 ifeq ($(GPU),O)
-CFLAGS_OMP+=-DTARGETON
+DEF+=-DTARGETON
 endif
 
 ifeq ($(TRACK),O)
-CFLAGS_OMP+=-DTRACKDATA
+DEF+=-DTRACKDATA
 endif
 
 ifeq ($(CC),icx)
@@ -53,12 +54,18 @@ CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
 endif # system clang
 
 ifeq ($(CC),pgi)
-override CC=pgcc -ta=tesla,cc70 -mp=gpu -Minfo=all -Mpreprocess
+override CC=pgcc
+# -Minfo=all -Mpreprocess
+CFLAGS +=-ta=tesla,cc70 -mp=gpu 
 CFLAGS_OMP+= -fopenmp -O3
 endif # pgi compiler
 
 ifeq ($(SP),O)
-CFLAGS +=-DPREC_SP
+DEF +=-DPREC_SP
+endif
+
+ifeq ($(LOOP),O)
+DEF +=-DLOOPFORM
 endif
 
 CFLAGS += $(CFLAGS_MPI) $(DEF)

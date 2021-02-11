@@ -130,7 +130,7 @@ include $(DEPS)
 	$(CXX) -c $(CXXFLAGS) $(CFLAGS) $(OPTIM) $< -o $@ 
 
 %.o: %.c
-	$(CC) -c -O3 $< -o $@ 
+	$(CC) -c $< -o $@ 
 
 ifeq ($(CRAY),O)
 %.d: %.cpp
@@ -140,11 +140,9 @@ else
 	@echo "Generating $@"
 	@$(CXX) -M $(DEFS) $(CFLAGS) $< | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
 endif
-clean:
-	rm -rf *.o hydroc *~ toto *.optrpt
 
 cleanall:
-	rm -rf *.d *.o hydroc *~ toto *.optrpt
+	rm -f *.d *.o hydroc *~ toto *.optrpt
 
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 Archiv:
@@ -164,3 +162,8 @@ indent:
 include make.runs
 
 FORCE:
+
+
+clean: FORCE
+	rm -f *.o hydroc *~ toto *.optrpt
+

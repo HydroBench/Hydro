@@ -51,9 +51,11 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none),\
-    private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none), private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
+#endif
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (i = 0; i < ExtraLayer; i++) {
 			sign = 1.0;
@@ -87,8 +89,11 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j, i0, sign) shared(H, Hv) collapse(2)
+#endif
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (i = H.nx + ExtraLayer; i < H.nx + ExtraLayerTot; i++) {
 			sign = 1.0;
@@ -129,9 +134,11 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
-
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
+#endif
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (j = 0; j < ExtraLayer; j++) {
 			sign = 1.0;
@@ -164,8 +171,11 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t * Hv)
 #ifdef TARGETON
 #pragma omp target map(Hv->uold[0:H.nvar *H.nxt * H.nyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j, j0, sign) shared(H, Hv) collapse(2)
+#endif
 		for (ivar = 0; ivar < H.nvar; ivar++) {
 		    for (j = H.ny + ExtraLayer; j < H.ny + ExtraLayerTot; j++) {
 			sign = 1.0;

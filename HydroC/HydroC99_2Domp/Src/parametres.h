@@ -151,5 +151,11 @@ typedef enum {
 
 extern double functim[TIM_END];
 
+#ifdef TARGETON
+#define TEAMSDIS teams distribute
+#else
+#define TEAMSDIS
+#endif
+
 #endif				// PARAMETRES_H_INCLUDED
 //EOF

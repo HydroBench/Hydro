@@ -35,11 +35,11 @@ constoprim(const int n,
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(e[0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-    default(none)				\
-    firstprivate(ijmin, ijmax, slices, Hsmallr)	\
-    private(s, i),				\
-    shared(u, q, e) collapse(2)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i), collapse(2)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(ijmin, ijmax, slices, Hsmallr) private(s, i), shared(u, q, e) collapse(2)
+#endif
     for (s = 0; s < slices; s++) {
 	for (i = ijmin; i < ijmax; i++) {
 	    real_t eken;
@@ -70,12 +70,11 @@ constoprim(const int n,
 	map(q[0:Hnvar][0:Hstep][0:Hnxyt])	\
 	map(e[0:Hstep][0:Hnxyt])
 #endif
-#pragma omp TEAMSDIS parallel for \
-	default(none) \
-	firstprivate(Hnvar, slices, ijmin, ijmax),\
-        private(s, i, IN),				  \
-	shared(u, q, e) \
-	collapse(3)
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, i, IN), collapse(3)
+#else
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, slices, ijmin, ijmax), private(s, i, IN), shared(u, q, e) collapse(3)
+#endif
 	for (IN = IP + 1; IN < Hnvar; IN++) {
 	    for (s = 0; s < slices; s++) {
 		for (i = ijmin; i < ijmax; i++) {
