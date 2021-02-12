@@ -1,14 +1,14 @@
+#include <assert.h>
+#include <float.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <malloc.h>
-#include <assert.h>
-#include <limits.h>
 #include <sys/time.h>
-#include <float.h>
-#include <math.h>
+#include <unistd.h>
 
 //
 #include "perfcnt.h"
@@ -22,4 +22,4 @@ long flopsTra = 0;
 double MflopsSUM = 0;
 long nbFLOPS = 0;
 
-//EOF
+// EOF

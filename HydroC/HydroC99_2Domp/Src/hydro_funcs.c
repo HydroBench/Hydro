@@ -1,19 +1,18 @@
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "utils.h"
-#include "hydro_utils.h"
 #include "hydro_funcs.h"
+#include "hydro_utils.h"
+#include "utils.h"
 
 #include "hydro_numa.h"
 
-void hydro_init(hydroparam_t * H, hydrovar_t * Hv)
-{
+void hydro_init(hydroparam_t *H, hydrovar_t *Hv) {
     int i, j;
     int x, y;
 
@@ -23,8 +22,8 @@ void hydro_init(hydroparam_t * H, hydrovar_t * Hv)
     // We add two extra layers left/right/top/bottom
     H->imax = H->nx + ExtraLayerTot;
     H->jmax = H->ny + ExtraLayerTot;
-    H->nxt = H->imax - H->imin;	// column size in the array
-    H->nyt = H->jmax - H->jmin;	// row size in the array
+    H->nxt = H->imax - H->imin; // column size in the array
+    H->nyt = H->jmax - H->jmin; // row size in the array
 
     // maximum direction size
     H->nxyt = (H->nxt > H->nyt) ? H->nxt : H->nyt;
@@ -37,101 +36,96 @@ void hydro_init(hydroparam_t * H, hydrovar_t * Hv)
     // printf("apres %d \n", H->nxyt);
 
     // allocate uold for each conservative variable
-    Hv->uold = (real_t *) DMalloc(H->nvar * H->nxt * H->nyt);
+    Hv->uold = (real_t *)DMalloc(H->nvar * H->nxt * H->nyt);
 
     // wind tunnel with point explosion
     for (j = H->jmin + ExtraLayer; j < H->jmax - ExtraLayer; j++) {
-	for (i = H->imin + ExtraLayer; i < H->imax - ExtraLayer; i++) {
-	    Hv->uold[IHvP(i, j, ID)] = one;
-	    Hv->uold[IHvP(i, j, IU)] = zero;
-	    Hv->uold[IHvP(i, j, IV)] = zero;
-	    Hv->uold[IHvP(i, j, IP)] = 1e-5;
-	}
+        for (i = H->imin + ExtraLayer; i < H->imax - ExtraLayer; i++) {
+            Hv->uold[IHvP(i, j, ID)] = one;
+            Hv->uold[IHvP(i, j, IU)] = zero;
+            Hv->uold[IHvP(i, j, IV)] = zero;
+            Hv->uold[IHvP(i, j, IP)] = 1e-5;
+        }
     }
 
     // Initial shock
     if (H->testCase == 0) {
-	if (H->nproc == 1) {
-	    x = (H->imax - H->imin) / 2 + ExtraLayer * 0;
-	    y = (H->jmax - H->jmin) / 2 + ExtraLayer * 0;
-	    Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-	    printf("Centered test case : %d %d\n", x, y);
-	} else {
-	    x = ((H->globnx) / 2);
-	    y = ((H->globny) / 2);
-	    if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX])
-		&& (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
-		x = x - H->box[XMIN_BOX] + ExtraLayer;
-		y = y - H->box[YMIN_BOX] + ExtraLayer;
-		Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-		printf("Centered test case : [%d] %d %d\n", H->mype, x, y);
-	    }
-	}
+        if (H->nproc == 1) {
+            x = (H->imax - H->imin) / 2 + ExtraLayer * 0;
+            y = (H->jmax - H->jmin) / 2 + ExtraLayer * 0;
+            Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+            printf("Centered test case : %d %d\n", x, y);
+        } else {
+            x = ((H->globnx) / 2);
+            y = ((H->globny) / 2);
+            if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) &&
+                (y < H->box[YMAX_BOX])) {
+                x = x - H->box[XMIN_BOX] + ExtraLayer;
+                y = y - H->box[YMIN_BOX] + ExtraLayer;
+                Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+                printf("Centered test case : [%d] %d %d\n", H->mype, x, y);
+            }
+        }
     }
     if (H->testCase == 1) {
-	if (H->nproc == 1) {
-	    x = ExtraLayer;
-	    y = ExtraLayer;
-	    Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-	    printf("Lower corner test case : %d %d\n", x, y);
-	} else {
-	    x = ExtraLayer;
-	    y = ExtraLayer;
-	    if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX])
-		&& (y >= H->box[YMIN_BOX]) && (y < H->box[YMAX_BOX])) {
-		Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-		printf("Lower corner test case : [%d] %d %d\n", H->mype, x, y);
-	    }
-	}
+        if (H->nproc == 1) {
+            x = ExtraLayer;
+            y = ExtraLayer;
+            Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+            printf("Lower corner test case : %d %d\n", x, y);
+        } else {
+            x = ExtraLayer;
+            y = ExtraLayer;
+            if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (y >= H->box[YMIN_BOX]) &&
+                (y < H->box[YMAX_BOX])) {
+                Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+                printf("Lower corner test case : [%d] %d %d\n", H->mype, x, y);
+            }
+        }
     }
     if (H->testCase == 2) {
-	if (H->nproc == 1) {
-	    x = ExtraLayer;
-	    y = ExtraLayer;
-	    for (j = y; j < H->jmax; j++) {
-		Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
-	    }
-	    printf("SOD tube test case\n");
-	} else {
-	    x = ExtraLayer;
-	    y = ExtraLayer;
-	    for (j = 0; j < H->globny; j++) {
-		if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX])
-		    && (j >= H->box[YMIN_BOX]) && (j < H->box[YMAX_BOX])) {
-		    y = j - H->box[YMIN_BOX] + ExtraLayer;
-		    Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
-		}
-	    }
-	    printf("SOD tube test case in //\n");
-	}
+        if (H->nproc == 1) {
+            x = ExtraLayer;
+            y = ExtraLayer;
+            for (j = y; j < H->jmax; j++) {
+                Hv->uold[IHvP(x, j, IP)] = one / H->dx / H->dx;
+            }
+            printf("SOD tube test case\n");
+        } else {
+            x = ExtraLayer;
+            y = ExtraLayer;
+            for (j = 0; j < H->globny; j++) {
+                if ((x >= H->box[XMIN_BOX]) && (x < H->box[XMAX_BOX]) && (j >= H->box[YMIN_BOX]) &&
+                    (j < H->box[YMAX_BOX])) {
+                    y = j - H->box[YMIN_BOX] + ExtraLayer;
+                    Hv->uold[IHvP(x, y, IP)] = one / H->dx / H->dx;
+                }
+            }
+            printf("SOD tube test case in //\n");
+        }
     }
     if (H->testCase > 2) {
-	printf("Test case not implemented -- aborting !\n");
-	abort();
+        printf("Test case not implemented -- aborting !\n");
+        abort();
     }
     fflush(stdout);
-}				// hydro_init
+} // hydro_init
 
-void hydro_finish(const hydroparam_t H, hydrovar_t * Hv)
-{
+void hydro_finish(const hydroparam_t H, hydrovar_t *Hv) {
     DFree(&Hv->uold, H.nvar * H.nxt * H.nyt);
-}				// hydro_finish
+} // hydro_finish
 
-static void touchPage(real_t * adr, int lg)
-{
+static void touchPage(real_t *adr, int lg) {
     int i;
 #ifndef NOTOUCHPAGE
 #pragma omp parallel for private(i) shared(adr)
     for (i = 0; i < lg; i++) {
-	adr[i] = 0.0l;
+        adr[i] = 0.0l;
     }
 #endif
 }
 
-void
-allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
-		    hydrovarwork_t * Hvw)
-{
+void allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t *Hw, hydrovarwork_t *Hvw) {
     int domain = ngrid * H.nxystep;
     int domainVar = domain * H.nvar;
     int domainD = domain * sizeof(real_t);
@@ -160,8 +154,9 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
 
 #ifdef MOVETHEPAGES
 #ifndef __MIC__
-#define MOVEPAGEVAR(t) force_move_pages(t, domainVar, sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
-#define MOVEPAGE(t)    force_move_pages(t, domain,    sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#define MOVEPAGEVAR(t)                                                                             \
+    force_move_pages(t, domainVar, sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
+#define MOVEPAGE(t) force_move_pages(t, domain, sizeof(real_t), HYDRO_NUMA_SIZED_BLOCK_RR, pageM)
 #else
 #define MOVEPAGEVAR(t)
 #define MOVEPAGE(t)
@@ -173,20 +168,20 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
 
 #ifdef ONEBLOCK
     if (H.mype == 0)
-	fprintf(stdout, "Page offset %d\n", (int)PAGEOFFSET);
+        fprintf(stdout, "Page offset %d\n", (int)PAGEOFFSET);
     // determine the right amount of pages to fit all arrays
     domainVarM = (domainVar + pageMD - 1) / pageMD;
     domainVarM *= pageMD + PAGEOFFSET;
     domainM = (domain + pageMD - 1) / pageMD;
     domainM *= pageMD + PAGEOFFSET;
 
-    oneBlock = 9 * domainVarM + 12 * domainM;	// expressed in term of pages of double
+    oneBlock = 9 * domainVarM + 12 * domainM; // expressed in term of pages of double
     assert(oneBlock >= (9 * domainVar + 12 * domain));
-// #pragma message "ONE BLOCK option"
-    blockD = (real_t *) malloc(oneBlock * sizeof(real_t));
+    // #pragma message "ONE BLOCK option"
+    blockD = (real_t *)malloc(oneBlock * sizeof(real_t));
     assert(blockD != NULL);
-    if (((uint64_t) (&blockD[0]) & 63) == 0) {
-	fprintf(stderr, "ONE block allocated is not aligned \n");
+    if (((uint64_t)(&blockD[0]) & 63) == 0) {
+        fprintf(stderr, "ONE block allocated is not aligned \n");
     }
     Hvw->u = blockD;
     touchPage(Hvw->u, domainVar);
@@ -258,7 +253,7 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
     MOVEPAGE(Hw->e);
     Hw->c = DMalloc(domain);
     MOVEPAGE(Hw->c);
-    // 
+    //
     Hw->pstar = DMalloc(domain);
     MOVEPAGE(Hw->pstar);
     Hw->rl = DMalloc(domain);
@@ -301,12 +296,9 @@ allocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
     //   Hw->pold = DMalloc(ngrid);
     //   Hw->ind = IMalloc(ngrid);
     //   Hw->ind2 = IMalloc(ngrid);
-}				// allocate_work_space
+} // allocate_work_space
 
-void
-deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
-		      hydrovarwork_t * Hvw)
-{
+void deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t *Hw, hydrovarwork_t *Hvw) {
     int domain = ngrid * H.nxystep;
     int domainVar = domain * H.nvar;
     int domainD = domain * sizeof(real_t);
@@ -331,12 +323,11 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
     domainM = (domain + pageMD - 1) / pageMD;
     domainM *= pageMD + PAGEOFFSET;
 
-    oneBlock = 9 * domainVarM + 12 * domainM;	// expressed in term of pages of double
+    oneBlock = 9 * domainVarM + 12 * domainM; // expressed in term of pages of double
     DFree(&Hvw->u, oneBlock);
     Hvw->q = Hvw->dq = Hvw->qxm = Hvw->qxp = 0;
     Hvw->qleft = Hvw->qright = Hvw->qgdnv = Hvw->flux = Hw->e = Hw->c = 0;
-    Hw->pstar = Hw->rl = Hw->ul = Hw->pl = Hw->cl = Hw->rr = Hw->ur = Hw->pr =
-	Hw->cr = Hw->ro = 0;
+    Hw->pstar = Hw->rl = Hw->ul = Hw->pl = Hw->cl = Hw->rr = Hw->ur = Hw->pr = Hw->cr = Hw->ro = 0;
 #else
     DFree(&Hvw->u, domainVar);
     DFree(&Hvw->q, domainVar);
@@ -381,6 +372,6 @@ deallocate_work_space(int ngrid, const hydroparam_t H, hydrowork_t * Hw,
     //   Free(Hw->pold);
     //   Free(Hw->ind);
     //   Free(Hw->ind2);
-}				// deallocate_work_space
+} // deallocate_work_space
 
 // EOF

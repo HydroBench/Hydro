@@ -15,12 +15,12 @@ typedef struct timespec ts_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
-    ts_t cclock(void);		// for high precision operations on time
-    double dcclock(void);	// might loose some precision 
+ts_t cclock(void);    // for high precision operations on time
+double dcclock(void); // might loose some precision
 
-    double ccelaps(ts_t start, ts_t end);
+double ccelaps(ts_t start, ts_t end);
 #ifdef __cplusplus
 };
 #endif
 
-#endif				// CCLOCK_H
+#endif // CCLOCK_H
