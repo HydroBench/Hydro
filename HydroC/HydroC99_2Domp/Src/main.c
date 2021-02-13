@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
     map(alloc                                                                                      \
         : cdt [0:Hstep] [0:Hnxyt]),                                                                \
     map(alloc                                                                                      \
-        : edt [0:Hstep] [0:Hnxyt]),
+        : edt [0:Hstep] [0:Hnxyt])
 #endif
     {
 // make sure that our data is uploaded to the GPU

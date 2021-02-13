@@ -8,12 +8,10 @@
 #include "qleftright.h"
 #include "utils.h"
 
-void
-// qleftright(const int idim, const hydroparam_t H, hydrovarwork_t * Hvw)
-qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, const int Hnvar,
-           const int slices, const int Hstep, real_t qxm[Hnvar][Hstep][Hnxyt],
-           real_t qxp[Hnvar][Hstep][Hnxyt], real_t qleft[Hnvar][Hstep][Hnxyt],
-           real_t qright[Hnvar][Hstep][Hnxyt]) {
+void qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, const int Hnvar,
+                const int slices, const int Hstep, real_t qxm[Hnvar][Hstep][Hnxyt],
+                real_t qxp[Hnvar][Hstep][Hnxyt], real_t qleft[Hnvar][Hstep][Hnxyt],
+                real_t qright[Hnvar][Hstep][Hnxyt]) {
     // #define IHVW(i,v) ((i) + (v) * Hnxyt)
     int nvar, i, s;
     int bmax;
@@ -39,7 +37,7 @@ qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, const 
 #pragma omp teams loop bind(teams) private(s, i, nvar) collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, nvar),                               \
-    firstprivate(slices, Hnvar, bmax) shared(qleft, qright, qxm, qxp) collapse(3)
+    firstprivate(slices, Hnvar, bmax, Hnxyt, Hstep) shared(qleft, qright, qxm, qxp) collapse(3)
 #endif
     for (s = 0; s < slices; s++) {
         for (nvar = 0; nvar < Hnvar; nvar++) {

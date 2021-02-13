@@ -28,7 +28,7 @@ void courantOnXY(real_t *cournox, real_t *cournoy, const int Hnx, const int Hnxy
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(s, i) reduction(max : tmp1, tmp2) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(slices, Hnx) private(s, i)            \
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(slices, Hnx, Hnxyt, Hstep) private(s, i) \
     shared(q, c) reduction(max                                                                     \
                            : tmp1, tmp2) NTNT collapse(2)
 #endif

@@ -80,7 +80,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i), collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i),                                     \
-    firstprivate(Hsmallr, Hgamma, slices, narray, smallp)                                          \
+    firstprivate(Hsmallr, Hgamma, slices, narray, smallp, Hnxyt, Hstep)	\
         shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon)            \
             collapse(2)
 #endif
@@ -119,7 +119,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i, iter) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, iter),                               \
-    firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6)         \
+    firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6, Hnxyt, Hstep)         \
         shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
 #endif
 
@@ -168,7 +168,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i),                                     \
-    firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6)                         \
+    firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6, Hnxyt, Hstep)                         \
         shared(qgdnv, sgnm, qleft, qright, pstar) shared(rl, ul, pl, rr, ur, cl, pr, cr, goon)     \
             collapse(2)
 #endif
@@ -272,7 +272,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i, invar), collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, invar),                              \
-    firstprivate(slices, Hnvar, narray), shared(qgdnv, sgnm, qleft, qright) collapse(3) //
+    firstprivate(slices, Hnvar, narray), shared(qgdnv, sgnm, qleft, qright, Hnxyt, Hstep) collapse(3) //
 #endif
         for (invar = IP + 1; invar < Hnvar; invar++) {
             for (s = 0; s < slices; s++) {

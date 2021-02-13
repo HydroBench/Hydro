@@ -38,7 +38,7 @@ void cmpflx(const int narray, const int Hnxyt, const int Hnvar, const real_t Hga
 #pragma omp teams loop bind(teams) private(s, i, ekin, etot), collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, ekin, etot),                         \
-    firstprivate(slices, nface, entho, Hnvar) shared(flux, qgdnv) collapse(2)
+    firstprivate(slices, nface, entho, Hnvar, Hnxyt, Hstep) shared(flux, qgdnv) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
         for (i = 0; i < nface; i++) {
@@ -77,7 +77,7 @@ void cmpflx(const int narray, const int Hnxyt, const int Hnvar, const real_t Hga
 #pragma omp teams loop bind(teams) private(s, i, IN) collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, IN),                                 \
-    firstprivate(slices, nface, Hnvar) shared(flux, qgdnv) collapse(3)
+    firstprivate(slices, nface, Hnvar, Hnxyt, Hstep) shared(flux, qgdnv) collapse(3)
 #endif
         for (IN = IP + 1; IN < Hnvar; IN++) {
             for (s = 0; s < slices; s++) {
