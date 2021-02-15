@@ -18,20 +18,25 @@ void courantOnXY(real_t *cournox, real_t *cournoy, const int Hnx, const int Hnxy
 #ifdef TARGETON
 #ifdef TRACKDATA
     fprintf(stderr, "Moving courantOnXY IN\n");
-#endif
+#endif // TRACKDATA
 
 #pragma omp target map(tmp1, tmp2) map(c [0:Hstep] [0:Hnxyt]) map(q [0:Hnvar] [0:Hstep] [0:Hnxyt])
+
+#ifdef __INTEL_LLVM_COMPILER
+    // as of version 2021 1.0 the reduction needs those parameters. Why ??²
 #define NTNT num_teams(24) num_threads(16)
 #else
 #define NTNT
-#endif
+#endif // __INTEL_LLVM_COMPILER
+#endif // TARGETON
+    
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(s, i) reduction(max : tmp1, tmp2) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) firstprivate(slices, Hnx, Hnxyt, Hstep) private(s, i) \
     shared(q, c) reduction(max                                                                     \
                            : tmp1, tmp2) NTNT collapse(2)
-#endif
+#endif // LOOPFORM
 
     for (s = 0; s < slices; s++) {
         for (i = 0; i < Hnx; i++) {

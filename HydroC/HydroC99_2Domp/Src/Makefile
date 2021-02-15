@@ -42,7 +42,7 @@ endif # icc
 
 ifeq ($(CC),gcc)
 # CFLAGS_OMP=-fopenmp -fopenmp-simd -O3 -mavx2 -DTARGET=1 -foffload=-mavx2 -flto
-CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -flto
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -flto -foffload=-lm -foffload=-latomic
 endif
 
 ifeq ($(CC),clang)
@@ -51,6 +51,21 @@ endif # clang
 
 ifeq ($(CC),/usr/bin/clang)
 CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
+ifeq ($(MPI),O)
+CFLAGS+=-DMPI
+ifeq ($(I_MPI_ROOT),)
+CFLAGS_MPI=-I$(I_MPI_ROOT)/include
+LDFLAGS_MPI=-L$(I_MPI_ROOT)/lib -lmpi
+else
+CFLAGS_MPI=-I/usr/lib/x86_64-linux-gnu/openmpi/include
+LDFLAGS_MPI=-L/usr/lib/x86_64-linux-gnu/openmpi/lib/lib -lmpi
+endif
+endif
+endif # system clang
+
+ifeq ($(CC),llvm11)
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -fopenmp-targets=nvptx64-nvidia-cuda 
+override CC=clang 
 endif # system clang
 
 ifeq ($(CC),pgi)
@@ -70,11 +85,9 @@ endif
 
 CFLAGS += $(CFLAGS_MPI) $(DEF)
 CFLAGS += $(CFLAGS_OMP) -g 
-CFLAGS += $(CFLAGS_FTI)
 # CFLAGS += -vec-report3
 LDFLAGS +=$(LDFLAGS_MPI)
 LDFLAGS +=$(LDFLAGS_OMP)
-LDFLAGS +=$(LDFLAGS_FTI)
 LDFLAGS +=-lrt -lm
 
 # Sources directories
@@ -174,13 +187,14 @@ rungpuq:
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL ./hydro -i input.nml
 
 rungpud: 
-	make clean
-	make -j GPU=O QUIET=O TRACK=N
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
+	make -j GPU=O QUIET=O 
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 ./hydro -i input.nml
 
 rungpud5: 
 	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
-	make -j GPU=O QUIET=O
+	make clean
+	make -j GPU=O QUIET=O TRACK=O
 	env OMP_NUM_THREADS=1 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=5 ./hydro -i input.nml
 
 run8: hydro
@@ -189,7 +203,12 @@ run8: hydro
 runpargpu:
 	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
 	make -j GPU=O QUIET=O MPI=O hydro
-	env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 mpirun -n 2 ./hydro -i input.nml
+	env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=0 mpirun -n 4 ./hydro -i input.nml
+
+runpargpud:
+	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
+	make -j GPU=O QUIET=O MPI=O hydro
+	env OMP_NUM_THREADS=2 LIBOMPTARGET_PLUGIN=OPENCL LIBOMPTARGET_PROFILE=T,msec LIBOMPTARGET_DEBUG=1 mpirun -n 4 ./hydro -i input.nml
 
 runpar:
 	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
