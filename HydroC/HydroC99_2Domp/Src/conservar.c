@@ -158,14 +158,14 @@ void updateConservativeVars(const int idim, const int rowcol, const real_t dtdx,
     map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
 #ifdef LOOPFORM
-#pragma omp teams loop bind(teams) private(s, i, ivar), collapse(2)
+#pragma omp teams loop bind(teams) private(s, i, ivar), collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for firstprivate(slices, Himin, Himax, rowcol, dtdx, Hnxt,           \
                                                Hnyt, Hnxyt, Hstep) default(none) private(s, i, ivar),            \
-    shared(u, uold, flux) collapse(2)
+    shared(u, uold, flux) collapse(3)
 #endif
-        for (s = 0; s < slices; s++) {
-            for (ivar = 0; ivar <= IP; ivar++) {
+	for (ivar = 0; ivar <= IP; ivar++) {
+	    for (s = 0; s < slices; s++) {
                 for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
                     uold[IHU(i, rowcol + s, ivar)] =
                         u[ivar][s][i] + (flux[ivar][s][i - 2] - flux[ivar][s][i - 1]) * dtdx;
@@ -204,8 +204,12 @@ void updateConservativeVars(const int idim, const int rowcol, const real_t dtdx,
 #pragma omp target map(u [0:Hnvar] [0:Hstep] [0:Hnxyt]) map(flux [0:Hnvar] [0:Hstep] [0:Hnxyt])    \
     map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, j, ivar), collapse(2)
+#else
 #pragma omp TEAMSDIS parallel for default(none) private(s, j, ivar),                               \
     firstprivate(slices, Hjmin, Hjmax, dtdx, Hnxt, Hnyt, rowcol, Hnxyt, Hstep) shared(u, uold, flux) collapse(2)
+#endif
         for (s = 0; s < slices; s++) {
             for (j = (Hjmin + ExtraLayer); j < (Hjmax - ExtraLayer); j++) {
                 uold[IHU(rowcol + s, j, ID)] =
@@ -228,9 +232,13 @@ void updateConservativeVars(const int idim, const int rowcol, const real_t dtdx,
 #pragma omp target map(u [0:Hnvar] [0:Hstep] [0:Hnxyt]) map(flux [0:Hnvar] [0:Hstep] [0:Hnxyt])    \
     map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
+#ifdef LOOPFORM
+#pragma omp teams loop bind(teams) private(s, j, ivar), collapse(3)
+#else
 #pragma omp TEAMSDIS parallel for default(none)                                                    \
     firstprivate(Hnvar, slices, Hjmin, Hjmax, dtdx, Hnxt, Hnyt, rowcol, Hnxyt, Hstep), \
     private(s, j, ivar), shared(u, uold, flux) collapse(3)
+#endif
             for (ivar = IP + 1; ivar < Hnvar; ivar++) {
                 for (s = 0; s < slices; s++) {
                     for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
