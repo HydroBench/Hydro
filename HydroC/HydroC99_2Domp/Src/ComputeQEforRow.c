@@ -14,8 +14,6 @@ void ComputeQEforRow(const int j, const real_t Hsmallr, const int Hnx, const int
                      real_t e[Hstep][Hnxyt]) {
     int i, s;
 
-#define IHV(i, j, v) ((i) + Hnxt * ((j) + Hnyt * (v)))
-
 #ifdef TRACKDATA
     fprintf(stderr, "Moving ComputeQEforRow IN\n");
 #endif
@@ -50,11 +48,6 @@ void ComputeQEforRow(const int j, const real_t Hsmallr, const int Hnx, const int
 #ifdef TRACKDATA
     fprintf(stderr, "Moving ComputeQEforRow OUT\n");
 #endif
-
-    {
-        int nops = slices * Hnx;
-        FLOPS(5 * nops, 3 * nops, 1 * nops, 0 * nops);
-    }
-#undef IHV
-#undef IHVW
+    int nops = slices * Hnx;
+    FLOPS(5 * nops, 3 * nops, 1 * nops, 0 * nops);
 }

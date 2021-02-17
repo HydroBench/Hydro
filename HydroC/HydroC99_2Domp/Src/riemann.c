@@ -31,7 +31,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
              real_t qright[Hnvar][Hstep][Hnxyt], //
              real_t qgdnv[Hnvar][Hstep][Hnxyt],  //
              int sgnm[Hstep][Hnxyt], hydrowork_t *Hw) {
-    int i, s, iimx;
+    int i, s;
     int iter;
     real_t smallp_ = Square(Hsmallc) / Hgamma;
     real_t gamma6_ = (Hgamma + one) / (two * Hgamma);

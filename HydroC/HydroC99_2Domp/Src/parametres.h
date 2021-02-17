@@ -81,6 +81,7 @@ typedef struct _hydrovar {
 #ifndef IHv
 // #define IHv(i,j,v) ((i) + (j) * H.nxt + (H.nxt * H.nyt) * (v))
 #define IHv(i, j, v) ((i) + (H.nxt * (H.nyt * (v) + (j))))
+#define IHV(i, j, v) ((i) + (Hnxt * (Hnyt * (v) + (j))))
 #define IHvP(i, j, v) ((i) + (j)*H->nxt + (H->nxt * H->nyt) * (v))
 #endif /*  */
 

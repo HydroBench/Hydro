@@ -83,5 +83,4 @@ void constoprim(const int n, const int Hnxyt, const int Hnvar, const real_t Hsma
     functim[TIM_CONPRI] += ccelaps(start, end);
 } // constoprim
 
-#undef IHVW
 // EOF

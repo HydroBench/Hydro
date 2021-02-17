@@ -31,19 +31,28 @@ int pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *bu
     int ivar, i, j;
     long lgr = ExtraLayer * H.nvar * H.nyt;
     real_t *uold = &Hv->uold[0];
-#ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt]) map(tofrom : buffer [0:lgr])
+    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
+
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving pack_arrayv IN %d\n", (int) sizeof(H));
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, H), \
+    
+#ifdef TARGETON
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(from: buffer [0:lgr])
+#endif
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
-    for (ivar = 0; ivar < H.nvar; ivar++) {
-        for (j = 0; j < H.nyt; j++) {
+    for (ivar = 0; ivar < Hnvar; ivar++) {
+        for (j = 0; j < Hnyt; j++) {
             for (i = xmin; i < xmin + ExtraLayer; i++) {
-                long p = (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * H.nyt);
-                buffer[p] = uold[IHv(i, j, ivar)];
+                long p = (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * Hnyt);
+                buffer[p] = uold[IHV(i, j, ivar)];
             }
         }
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving pack_arrayv OUT\n");
+#endif
     return lgr;
 } // pack_arrayv
 
@@ -51,20 +60,27 @@ int unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *
     int ivar, i, j;
     long lgr = ExtraLayer * H.nvar * H.nyt;
     real_t *uold = &Hv->uold[0];
+    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
 
-#ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt]) map(tofrom : buffer [0:lgr])
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving unpack_arrayv IN\n");
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, H), \
+#ifdef TARGETON
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(to: buffer [0:lgr])
+#endif
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
-    for (ivar = 0; ivar < H.nvar; ivar++) {
-        for (j = 0; j < H.nyt; j++) {
+    for (ivar = 0; ivar < Hnvar; ivar++) {
+        for (j = 0; j < Hnyt; j++) {
             for (i = xmin; i < xmin + ExtraLayer; i++) {
-                long p = (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * H.nyt);
-                uold[IHv(i, j, ivar)] = buffer[p];
+                long p = (i - xmin) + j * (ExtraLayer) + ivar * (ExtraLayer * Hnyt);
+                uold[IHV(i, j, ivar)] = buffer[p];
             }
         }
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving unpack_arrayv OUT\n");
+#endif
     return lgr;
 } // unpack_arrayv
 
@@ -72,20 +88,27 @@ int pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t *Hv, real_t *bu
     int ivar, i, j;
     long lgr = ExtraLayer * H.nvar * H.nxt;
     real_t *uold = &Hv->uold[0];
+    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
 
-#ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt]) map(tofrom : buffer [0:lgr])
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving pack_arrayh IN\n");
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, H), \
+#ifdef TARGETON
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(from: buffer [0:lgr])
+#endif
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
-    for (ivar = 0; ivar < H.nvar; ivar++) {
+    for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = ymin; j < ymin + ExtraLayer; j++) {
-            for (i = 0; i < H.nxt; i++) {
-                long p = (i) + (j - ymin) * (H.nxt) + ivar * (ExtraLayer * H.nxt);
-                buffer[p] = uold[IHv(i, j, ivar)];
+            for (i = 0; i < Hnxt; i++) {
+                long p = (i) + (j - ymin) * (Hnxt) + ivar * (ExtraLayer * Hnxt);
+                buffer[p] = uold[IHV(i, j, ivar)];
             }
         }
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving pack_arrayh OUT\n");
+#endif
     return lgr;
 }
 
@@ -93,19 +116,27 @@ int unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t *Hv, real_t *
     long lgr = ExtraLayer * H.nvar * H.nxt;
     int ivar, i, j;
     real_t *uold = &Hv->uold[0];
-#ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt]) map(tofrom : buffer [0:lgr])
+    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
+
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving unpack_arrayh IN\n");
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, H), \
+#ifdef TARGETON
+#pragma omp target map(uold [0:Hnvar *Hnxt * Hnyt]) map(to: buffer [0:lgr])
+#endif
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
-    for (ivar = 0; ivar < H.nvar; ivar++) {
+    for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = ymin; j < ymin + ExtraLayer; j++) {
-            for (i = 0; i < H.nxt; i++) {
-                long p = (i) + (j - ymin) * (H.nxt) + ivar * (ExtraLayer * H.nxt);
-                uold[IHv(i, j, ivar)] = buffer[p];
+            for (i = 0; i < Hnxt; i++) {
+                long p = (i) + (j - ymin) * (Hnxt) + ivar * (ExtraLayer * Hnxt);
+                uold[IHV(i, j, ivar)] = buffer[p];
             }
         }
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving unpack_arrayh OUT\n");
+#endif
     return lgr;
 }
 
@@ -141,13 +172,30 @@ void mpileftright(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbu
     MPI_Status status[4];
     MPI_Datatype mpiFormat = MPI_DOUBLE;
 
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright IN\n");
+#endif
     if (sizeof(real_t) == sizeof(float))
         mpiFormat = MPI_FLOAT;
 
     i = ExtraLayer;
     size = pack_arrayv(i, H, Hv, sendbufld);
+#ifdef TARGETON
+    // get the buffer from the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright update from\n");
+#endif
+#pragma omp target update from(sendbufld [0:size])
+#endif
     i = H.nx;
     size = pack_arrayv(i, H, Hv, sendbufru);
+#ifdef TARGETON
+    // get the buffer from the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright update from\n");
+#endif
+#pragma omp target update from(sendbufru [0:size])
+#endif
     if (H.box[RIGHT_BOX] != -1) {
         MPI_Isend(sendbufru, size, mpiFormat, H.box[RIGHT_BOX], 123, MPI_COMM_WORLD,
                   &requests[reqcnt]);
@@ -173,13 +221,30 @@ void mpileftright(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbu
 
     if (H.box[RIGHT_BOX] != -1) {
         i = H.nx + ExtraLayer;
+#ifdef TARGETON
+        // put the buffer on the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright update to\n");
+#endif
+#pragma omp target update to(recvbufru [0:size])
+#endif
         size = unpack_arrayv(i, H, Hv, recvbufru);
     }
 
     if (H.box[LEFT_BOX] != -1) {
         i = 0;
+#ifdef TARGETON
+        // put the buffer on the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright update to\n");
+#endif
+#pragma omp target update to(recvbufld [0:size])
+#endif
         size = unpack_arrayv(i, H, Hv, recvbufld);
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpileftright OUT\n");
+#endif
 #endif
 }
 
@@ -194,6 +259,9 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbufru
     MPI_Status status[4];
     MPI_Datatype mpiFormat = MPI_DOUBLE;
 
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown IN\n");
+#endif
     if (sizeof(real_t) == sizeof(float))
         mpiFormat = MPI_FLOAT;
 
@@ -201,6 +269,9 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbufru
     size = pack_arrayh(j, H, Hv, sendbufld);
 #ifdef TARGETON
     // get the buffer from the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown update from\n");
+#endif
 #pragma omp target update from(sendbufld [0:size])
 #endif
 
@@ -208,6 +279,9 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbufru
     size = pack_arrayh(j, H, Hv, sendbufru);
 #ifdef TARGETON
     // get the buffer from the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown update from\n");
+#endif
 #pragma omp target update from(sendbufru [0:size])
 #endif
 
@@ -237,6 +311,9 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbufru
     if (H.box[DOWN_BOX] != -1) {
 #ifdef TARGETON
         // put the buffer on the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown update to\n");
+#endif
 #pragma omp target update to(recvbufld [0:size])
 #endif
         j = 0;
@@ -245,11 +322,17 @@ void mpiupdown(int idim, const hydroparam_t H, hydrovar_t *Hv, real_t *sendbufru
     if (H.box[UP_BOX] != -1) {
 #ifdef TARGETON
         // put the buffer on the GPU
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown update to\n");
+#endif
 #pragma omp target update to(recvbufru [0:size])
 #endif
         j = H.ny + ExtraLayer;
         unpack_arrayh(j, H, Hv, recvbufru);
     }
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving mpiupdown OUT\n");
+#endif
 #endif
 }
 

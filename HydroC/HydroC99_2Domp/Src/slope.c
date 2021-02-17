@@ -15,7 +15,6 @@ void slope(const int n, const int Hnvar, const int Hnxyt, const real_t Hslope_ty
     struct timespec start, end;
     int nbv, i, ijmin, ijmax, s;
     // long ihvwin, ihvwimn, ihvwipn;
-    // #define IHVW(i, v) ((i) + (v) * Hnxyt)
 
     WHERE("slope");
 #ifdef TRACKDATA
@@ -34,10 +33,10 @@ void slope(const int n, const int Hnvar, const int Hnxyt, const real_t Hslope_ty
 #pragma omp TEAMSDIS parallel for default(none) collapse(3) private(nbv, s, i) shared(q, dq)       \
     firstprivate(Hslope_type, ijmin, ijmax, slices, Hnvar, Hnxyt, Hstep)
 #endif
-    for (s = 0; s < slices; s++) {
-        for (nbv = 0; nbv < Hnvar; nbv++) {
+    for (nbv = 0; nbv < Hnvar; nbv++) {
+        for (s = 0; s < slices; s++) {
             for (i = ijmin + 1; i < ijmax - 1; i++) {
-                real_t dlft, drgt, dcen, dsgn, slop, dlim;
+                real_t dlft, drgt, dcen, dsgn;
                 int llftrgt = 0;
                 real_t t1;
                 dlft = Hslope_type * (q[nbv][s][i] - q[nbv][s][i - 1]);
@@ -61,7 +60,4 @@ void slope(const int n, const int Hnvar, const int Hnxyt, const real_t Hslope_ty
     fprintf(stderr, "Moving slope OUT\n");
 #endif
 } // slope
-
-#undef IHVW
-
 // EOF

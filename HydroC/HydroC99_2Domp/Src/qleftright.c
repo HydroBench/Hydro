@@ -12,16 +12,15 @@ void qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, c
                 const int slices, const int Hstep, real_t qxm[Hnvar][Hstep][Hnxyt],
                 real_t qxp[Hnvar][Hstep][Hnxyt], real_t qleft[Hnvar][Hstep][Hnxyt],
                 real_t qright[Hnvar][Hstep][Hnxyt]) {
-    // #define IHVW(i,v) ((i) + (v) * Hnxyt)
     int nvar, i, s;
     int bmax;
-    struct timespec start, end;
+    // struct timespec start, end;
 
     WHERE("qleftright");
 #ifdef TRACKDATA
     fprintf(stderr, "Moving qleftright IN\n");
 #endif
-    start = cclock();
+    // start = cclock();
 
     if (idim == 1) {
         bmax = Hnx + 1;
@@ -39,8 +38,8 @@ void qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, c
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, nvar),                               \
     firstprivate(slices, Hnvar, bmax, Hnxyt, Hstep) shared(qleft, qright, qxm, qxp) collapse(3)
 #endif
-    for (s = 0; s < slices; s++) {
-        for (nvar = 0; nvar < Hnvar; nvar++) {
+    for (nvar = 0; nvar < Hnvar; nvar++) {
+        for (s = 0; s < slices; s++) {
             // #pragma omp simd
             for (i = 0; i < bmax; i++) {
                 qleft[nvar][s][i] = qxm[nvar][s][i + 1];
@@ -48,14 +47,11 @@ void qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, c
             }
         }
     }
-    end = cclock();
+    // end = cclock();
     // functim[TIM_QLEFTR] += ccelaps(start, end);
 #ifdef TRACKDATA
     fprintf(stderr, "Moving qleftright OUT\n");
 #endif
     return;
 }
-
-#undef IHVW
-
 // EOF

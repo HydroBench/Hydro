@@ -27,7 +27,12 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #endif
     struct timespec start, end;
     real_t * uold = Hv->uold;
-
+    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
+    int32_t Hnx = H.nx, Hny = H.ny, Himin = H.imin, Himax = H.imax, Hjmin = H.jmin, Hjmax = H.jmax;
+    int32_t Hboundup = H.boundary_up, Hbounddown = H.boundary_down, Hboundleft = H.boundary_left, Hboundright = H.boundary_right;
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving make_boundary IN\n");
+#endif
     WHERE("make_boundary");
 #ifdef MPI
     if (sendbufru == 0) {
@@ -45,74 +50,74 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #ifdef MPI
             mpileftright(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 #endif
-            if (H.boundary_left > 0) {
+            if (Hboundleft > 0) {
                 // Left boundary
 #ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt])
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none),                                                   \
-    firstprivate(H) private(ivar, i, j, i0, sign) shared(uold) collapse(2)
+    firstprivate(Hnvar, Hnxt, Hnyt, Hnx, Hboundleft, Hjmin, Hjmax) private(ivar, i, j, i0, sign) shared(uold) collapse(2)
 #endif
-                for (ivar = 0; ivar < H.nvar; ivar++) {
+                for (ivar = 0; ivar < Hnvar; ivar++) {
                     for (i = 0; i < ExtraLayer; i++) {
                         sign = 1.0;
-                        if (H.boundary_left == 1) {
+                        if (Hboundleft == 1) {
                             i0 = ExtraLayerTot - i - 1;
                             if (ivar == IU) {
                                 sign = -1.0;
                             }
-                        } else if (H.boundary_left == 2) {
+                        } else if (Hboundleft == 2) {
                             i0 = 2;
                         } else {
-                            i0 = H.nx + i;
+                            i0 = Hnx + i;
                         }
-                        for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
-                            uold[IHv(i, j, ivar)] = uold[IHv(i0, j, ivar)] * sign;
+                        for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
+                            uold[IHV(i, j, ivar)] = uold[IHV(i0, j, ivar)] * sign;
                         }
                     }
                 }
                 {
                     int nops =
-                        H.nvar * ExtraLayer * ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer));
+                        Hnvar * ExtraLayer * ((Hjmax - ExtraLayer) - (Hjmin + ExtraLayer));
                     FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);
                 }
             }
 
-            if (H.boundary_right > 0) {
+            if (Hboundright > 0) {
                 // Right boundary
 #ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt])
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(H) private(ivar, i, j, i0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hnx, Hboundright, Hjmin, Hjmax) private(ivar, i, j, i0, sign)      \
     shared(uold) collapse(2)
 #endif
-                for (ivar = 0; ivar < H.nvar; ivar++) {
-                    for (i = H.nx + ExtraLayer; i < H.nx + ExtraLayerTot; i++) {
+                for (ivar = 0; ivar < Hnvar; ivar++) {
+                    for (i = Hnx + ExtraLayer; i < Hnx + ExtraLayerTot; i++) {
                         sign = 1.0;
-                        if (H.boundary_right == 1) {
-                            i0 = 2 * H.nx + ExtraLayerTot - i - 1;
+                        if (Hboundright == 1) {
+                            i0 = 2 * Hnx + ExtraLayerTot - i - 1;
                             if (ivar == IU) {
                                 sign = -1.0;
                             }
-                        } else if (H.boundary_right == 2) {
-                            i0 = H.nx + ExtraLayer;
+                        } else if (Hboundright == 2) {
+                            i0 = Hnx + ExtraLayer;
                         } else {
-                            i0 = i - H.nx;
+                            i0 = i - Hnx;
                         }
-                        for (j = H.jmin + ExtraLayer; j < H.jmax - ExtraLayer; j++) {
-                            uold[IHv(i, j, ivar)] = uold[IHv(i0, j, ivar)] * sign;
+                        for (j = Hjmin + ExtraLayer; j < Hjmax - ExtraLayer; j++) {
+                            uold[IHV(i, j, ivar)] = uold[IHV(i0, j, ivar)] * sign;
                         } // for j
                     }     // for i
                 }
                 {
-                    int nops = H.nvar * ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer)) *
-                               ((H.nx + ExtraLayerTot) - (H.nx + ExtraLayer));
+                    int nops = Hnvar * ((Hjmax - ExtraLayer) - (Hjmin + ExtraLayer)) *
+                               ((Hnx + ExtraLayerTot) - (Hnx + ExtraLayer));
                     FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);
                 }
             }
@@ -121,73 +126,73 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
             mpiupdown(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 #endif
             // Lower boundary
-            if (H.boundary_down > 0) {
+            if (Hbounddown > 0) {
                 j0 = 0;
 #ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt])
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(H) private(ivar, i, j, j0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hny, Hbounddown, Himin, Himax) private(ivar, i, j, j0, sign)      \
     shared(uold) collapse(2)
 #endif
-                for (ivar = 0; ivar < H.nvar; ivar++) {
+                for (ivar = 0; ivar < Hnvar; ivar++) {
                     for (j = 0; j < ExtraLayer; j++) {
                         sign = 1.0;
-                        if (H.boundary_down == 1) {
+                        if (Hbounddown == 1) {
                             j0 = ExtraLayerTot - j - 1;
                             if (ivar == IV) {
                                 sign = -1.0;
                             }
-                        } else if (H.boundary_down == 2) {
+                        } else if (Hbounddown == 2) {
                             j0 = ExtraLayerTot;
                         } else {
-                            j0 = H.ny + j;
+                            j0 = Hny + j;
                         }
-                        for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
-                            uold[IHv(i, j, ivar)] = uold[IHv(i, j0, ivar)] * sign;
+                        for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
+                            uold[IHV(i, j, ivar)] = uold[IHV(i, j0, ivar)] * sign;
                         }
                     }
                 }
                 {
-                    int nops = H.nvar * ((ExtraLayer) - (0)) *
-                               ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
+                    int nops = Hnvar * ((ExtraLayer) - (0)) *
+                               ((Himax - ExtraLayer) - (Himin + ExtraLayer));
                     FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);
                 }
             }
             // Upper boundary
-            if (H.boundary_up > 0) {
+            if (Hboundup > 0) {
 #ifdef TARGETON
-#pragma omp target map(uold [0:H.nvar * H.nxt * H.nyt])
+#pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt])
 #endif
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(H) private(ivar, i, j, j0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hny, Hboundup, Himin, Himax) private(ivar, i, j, j0, sign)      \
     shared(uold) collapse(2)
 #endif
-                for (ivar = 0; ivar < H.nvar; ivar++) {
-                    for (j = H.ny + ExtraLayer; j < H.ny + ExtraLayerTot; j++) {
+                for (ivar = 0; ivar < Hnvar; ivar++) {
+                    for (j = Hny + ExtraLayer; j < Hny + ExtraLayerTot; j++) {
                         sign = 1.0;
-                        if (H.boundary_up == 1) {
-                            j0 = 2 * H.ny + ExtraLayerTot - j - 1;
+                        if (Hboundup == 1) {
+                            j0 = 2 * Hny + ExtraLayerTot - j - 1;
                             if (ivar == IV) {
                                 sign = -1.0;
                             }
-                        } else if (H.boundary_up == 2) {
-                            j0 = H.ny + 1;
+                        } else if (Hboundup == 2) {
+                            j0 = Hny + 1;
                         } else {
-                            j0 = j - H.ny;
+                            j0 = j - Hny;
                         }
-                        for (i = H.imin + ExtraLayer; i < H.imax - ExtraLayer; i++) {
-                            uold[IHv(i, j, ivar)] = uold[IHv(i, j0, ivar)] * sign;
+                        for (i = Himin + ExtraLayer; i < Himax - ExtraLayer; i++) {
+                            uold[IHV(i, j, ivar)] = uold[IHV(i, j0, ivar)] * sign;
                         }
                     }
                 }
                 {
-                    int nops = H.nvar * ((H.ny + ExtraLayerTot) - (H.ny + ExtraLayer)) *
-                               ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
+                    int nops = Hnvar * ((Hny + ExtraLayerTot) - (Hny + ExtraLayer)) *
+                               ((Himax - ExtraLayer) - (Himin + ExtraLayer));
                     FLOPS(1 * nops, 0 * nops, 0 * nops, 0 * nops);
                 }
             }
@@ -195,6 +200,9 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
     } // end of the omp target data
     end = cclock();
     functim[TIM_MAKBOU] += ccelaps(start, end);
+#ifdef TRACKDATA
+    fprintf(stderr, "Moving make_boundary OUT\n");
+#endif
 }
 
 // make_boundary
