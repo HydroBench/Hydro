@@ -1,6 +1,8 @@
 CC:=icx
 MPI:=O
 DEF:=
+PNG:=O
+
 #defaut behavior
 
 ifeq ($(MPI),O)
@@ -88,6 +90,10 @@ CFLAGS += $(CFLAGS_OMP) -g
 # CFLAGS += -vec-report3
 LDFLAGS +=$(LDFLAGS_MPI)
 LDFLAGS +=$(LDFLAGS_OMP)
+ifeq ($(PNG),O)
+LDFLAGS +=-lpng
+DEF+=-DWITHPNG
+endif
 LDFLAGS +=-lrt -lm
 
 # Sources directories
@@ -100,15 +106,14 @@ SRCDIR = .
 
 # Sources files
 #--------------
-SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c mpibounds.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c
+SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c mpibounds.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c Image.c ImagePng.c
 # SRC2 are the files that can be offloaded
 SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c
 SRC+=$(SRC2)
 
 DEPS=$(patsubst %.c,%.d,$(SRC))
 OBJ=$(patsubst %.c,%.o,$(SRC))
-
-# HEADER=$(wildcard *.h)
+HEADER=$(wildcard *.h)
 
 ifeq ($(PREC),SP)
 CFLAGS += -DPREC_SP=1
@@ -159,7 +164,7 @@ TARGETFUNCS=*.o
 runcpu:
 	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
 	make -j GPU=N
-	env OMP_NUM_THREADS=8 ./hydro -i input.nml
+	env OMP_NUM_THREADS=4 ./hydro -i input.nml
 
 rungpu:
 	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi
@@ -213,7 +218,7 @@ runpargpud:
 runpar:
 	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
 	make -j GPU=N QUIET=O MPI=O hydro
-	env OMP_NUM_THREADS=2 mpirun -n 4 ./hydro -i input.nml
+	env OMP_NUM_THREADS=1 mpirun -n 4 ./hydro -i input.nml
 
 DATEHOUR=$(shell date +%Y%m%d%H%M )
 tarball:
@@ -227,7 +232,7 @@ runall:
 	make clean rungpuq SP=O | tail -9
 
 inti:
-	ccc_mprun -p v100 -x -c12 -n1 env OMP_NUM_THREADS=12 ./hydro -i input.nml
+	ccc_mprun -p v100 -x -c12 -n1 env OMP_NUM_THREADS=12 nvprof ./hydro -i input.nml
 
 intipar:
 	ccc_mprun -p v100 -x -c12 -n4 env OMP_NUM_THREADS=12 ./hydro -i input.nml

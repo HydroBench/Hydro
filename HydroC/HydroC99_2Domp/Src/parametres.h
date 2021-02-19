@@ -31,11 +31,15 @@ typedef enum {
 typedef struct _hydroparam {
     int prt;
 
-    // time control
+    // time and outputs controls
     real_t t, tend;
     int nstep, nstepmax;
+    // -- VTK output
     int noutput;
     real_t dtoutput;
+    // -- PNG or PPM image depending on compilation option
+    int nimage;
+    real_t dtimage;
 
     // dimensions
     int imin, imax, jmin, jmax, nx, ny, nxt, nyt, nxyt, nxystep;

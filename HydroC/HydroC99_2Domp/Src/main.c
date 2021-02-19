@@ -13,6 +13,7 @@
 #include <unistd.h>
 extern int gethostname(char *name, size_t len);
 
+#include "Image.h"
 #include "cclock.h"
 #include "compute_deltat.h"
 #include "hydro_funcs.h"
@@ -131,13 +132,16 @@ int main(int argc, char **argv) {
     char myhost[256];
     real_t dt = 0;
     int nvtk = 0;
+    int nimg = 0;
     char outnum[80];
     int time_output = 0;
+    int time_image = 0;
     long flops = 0;
     char dtTxt = ' ';
 
     // real_t output_time = 0.0;
     real_t next_output_time = 0;
+    real_t next_image_time = 0;
     double start_time = 0, end_time = 0;
     double start_iter = 0, end_iter = 0;
     double elaps = 0;
@@ -193,9 +197,16 @@ int main(int argc, char **argv) {
         time_output = 1;
         next_output_time = next_output_time + H.dtoutput;
     }
+    if (H.dtimage > 0) {
+	time_image = 1;
+        next_image_time = next_image_time + H.dtimage;
+    }
 
     if (H.dtoutput > 0 || H.noutput > 0)
         vtkfile(++nvtk, H, &Hv);
+
+    if (H.dtimage > 0 || H.nimage > 0)
+	DumpImage(nimg++, &H, &Hv);
 
     if (H.mype == 0)
         fprintf(stdout, "Hydro starts main loop.\n");
@@ -309,7 +320,7 @@ int main(int argc, char **argv) {
     map(alloc                                                                                      \
         : edt [0:Hstep] [0:Hnxyt])
 #endif
-    {
+    { // Open target data block
 // make sure that our data is uploaded to the GPU
 #ifdef TARGETON
 #ifdef TRACKDATA
@@ -403,17 +414,44 @@ int main(int argc, char **argv) {
                 }
             }
             if (time_output == 0 && H.noutput > 0) {
+#ifdef TARGETON
+		// retreive our (part of) image from the GPU
+#pragma omp target update from(uold[0:Hnvar * Hnxt * Hnyt])
+#endif
                 if ((H.nstep % H.noutput) == 0) {
                     vtkfile(++nvtk, H, &Hv);
                     sprintf(outnum, "%s [%04d]", outnum, nvtk);
                 }
             } else {
+#ifdef TARGETON
+#pragma omp target update from(uold[0:Hnvar * Hnxt * Hnyt])
+#endif
                 if (time_output == 1 && H.t >= next_output_time) {
                     vtkfile(++nvtk, H, &Hv);
                     next_output_time = next_output_time + H.dtoutput;
                     sprintf(outnum, "%s [%04d]", outnum, nvtk);
                 }
             }
+
+            if ((time_image == 0) && (H.nimage > 0)) {
+		if ((H.nstep % H.nimage) == 0) {
+#ifdef TARGETON
+#pragma omp target update from(uold[0:Hnvar * Hnxt * Hnyt])
+#endif
+		    DumpImage(nimg, &H, &Hv);
+                    sprintf(outnum, "%s <%04d>", outnum, nimg++);
+		}
+		//
+	    } else {
+                if (time_image == 1 && H.t >= next_image_time) {
+#ifdef TARGETON
+#pragma omp target update from(uold[0:Hnvar * Hnxt * Hnyt])
+#endif
+		    DumpImage(nimg, &H, &Hv);
+                    next_image_time = next_image_time + H.dtimage;
+                    sprintf(outnum, "%s <%04d>", outnum, nimg++);
+		}
+	    }
             if (H.mype == 0) {
                 fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s %c\n", H.nstep, H.t, dt,
                         cellPerCycle, outnum, dtTxt);
@@ -429,7 +467,7 @@ int main(int argc, char **argv) {
                 }
             }
         } // while
-    }
+    } // Close target data block
     end_time = dcclock();
 
     // Deallocate work spaces

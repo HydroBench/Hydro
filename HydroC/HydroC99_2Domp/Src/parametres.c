@@ -15,7 +15,6 @@ static void usage(void) {
     fprintf(stderr, "--help");
     fprintf(stderr, "-i input");
     fprintf(stderr, "-v :: to increase verbosity");
-    fprintf(stderr, "-c :: configuration file for fti");
     fprintf(stderr, "------------------------------------");
     exit(1);
 }
@@ -67,6 +66,8 @@ static void default_values(hydroparam_t *H) {
 
     H->shrink = 1;
     H->shrinkSize = 1000;
+    H->nimage = 0;
+    H->dtimage = 0;
 }
 
 static void keyval(char *buffer, char **pkey, char **pval) {
@@ -161,6 +162,10 @@ static void process_input(char *datafile, hydroparam_t *H) {
             sscanf(pval, "%d", &H->noutput);
             continue;
         }
+        if (strcmp(pkey, "nimage") == 0) {
+            sscanf(pval, "%d", &H->nimage);
+            continue;
+        }
         if (strcmp(pkey, "iorder") == 0) {
             sscanf(pval, "%d", &H->iorder);
             continue;
@@ -192,6 +197,10 @@ static void process_input(char *datafile, hydroparam_t *H) {
         }
         if (strcmp(pkey, "dtoutput") == 0) {
             sscanf(pval, realFmt, &H->dtoutput);
+            continue;
+        }
+        if (strcmp(pkey, "dtimage") == 0) {
+            sscanf(pval, realFmt, &H->dtimage);
             continue;
         }
         if (strcmp(pkey, "testcase") == 0) {
