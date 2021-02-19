@@ -68,6 +68,11 @@ typedef struct _hydroparam {
 
     // test case
     int testCase;
+
+    // images parameters.
+    int shrinkSize;
+    int shrink;
+    FILE* fp;
 } hydroparam_t;
 
 #define HSCHEME_MUSCL 1

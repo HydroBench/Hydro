@@ -33,19 +33,12 @@
 #include "Image.h"
 #include "SplitSurface.h"
 
-#if WITHPNG > 0
-png_structp m_png_ptr;
-png_infop m_info_ptr;
-png_bytep *m_row_pointers;
-png_byte *m_buffer;
-#else
-uint8_t *m_buffer;
-#endif
+static uint8_t *m_buffer;
 
 #define IHU(i, j, v) ((i) + Hnxt * ((j) + Hnyt * (v)))
 // real_t uold[Hnvar * Hnxt * Hnyt]
 
-static real_t reduceMaxAndBcast(real_t dt) {
+real_t reduceMaxAndBcast(real_t dt) {
     real_t dtmax = dt;
 #ifdef MPI
     if (sizeof(real_t) == sizeof(double)) {
@@ -71,8 +64,6 @@ static void abort_(const char *s, ...) {
     abort();
 #endif
 }
-
-#define PIXRGBA 4
 
 void getMaxVarValues(real_t *mxP, real_t *mxD, real_t *mxUV, hydroparam_t *H, hydrovar_t *Hv) {
     int32_t xmin = H->imin, xmax = H->imax, ymin = H->jmin, ymax = H->jmax;
@@ -115,7 +106,7 @@ void getMaxVarValues(real_t *mxP, real_t *mxD, real_t *mxUV, hydroparam_t *H, hy
     *mxUV = iuvmax;
 }
 
-void pngProcess(hydroparam_t *H, hydrovar_t *Hv) {
+void ppmProcess(hydroparam_t *H, hydrovar_t *Hv) {
     int32_t d, x, y;
     int32_t xmin = H->imin + ExtraLayer, xmax = H->imax - ExtraLayer;
     int32_t ymin = H->jmin + ExtraLayer, ymax = H->jmax - ExtraLayer;
@@ -282,7 +273,7 @@ void pngProcess(hydroparam_t *H, hydrovar_t *Hv) {
                             Iptr[c] = 0;
                         for (int vy = -extrem; vy < extrem + 1; vy++) {
                             for (int vx = -extrem; vx < extrem + 1; vx++) {
-                                pngFillGap(curx, cury, curx + vx, cury + vy, Iptr, &cpt, imgSizeX, imgSizeY);
+                                imgFillGap(curx, cury, curx + vx, cury + vy, Iptr, &cpt, imgSizeX, imgSizeY);
                             }
                         }
                         if (cpt) {
@@ -298,7 +289,7 @@ void pngProcess(hydroparam_t *H, hydrovar_t *Hv) {
     }
 }
 
-void pngFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int *cpt, int32_t imgSizeX,
+void imgFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int *cpt, int32_t imgSizeX,
                 int32_t imgSizeY) {
     uint8_t *nptr, *nrow;
     if ((nx >= 0) && (nx < imgSizeX) && (ny >= 0) && (ny < imgSizeY)) {
@@ -313,7 +304,7 @@ void pngFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int *cpt, int32
     }
 }
 
-void pngWriteFile(char *name, hydroparam_t *H) {
+void ppmWriteFile(char *name, hydroparam_t *H) {
     int32_t cury = 0;
     int32_t curx = 0;
     int imgSizeX = H->globnx;
@@ -340,7 +331,7 @@ void pngWriteFile(char *name, hydroparam_t *H) {
             abort_("File %s could not be opened for writing", imgname);
 #endif
         }
-#define BINARY 0
+#define BINARY 1
 #if BINARY == 1
         fprintf(H->fp, "P6\n");
         fprintf(H->fp, "%d %d\n", imgSizeX, imgSizeY);
@@ -373,7 +364,7 @@ void pngWriteFile(char *name, hydroparam_t *H) {
 #endif
 }
 
-void pngCloseFile(hydroparam_t *H) {
+void imgCloseFile(hydroparam_t *H) {
     int32_t y;
     int imgSizeX, imgSizeY;
     if (H->mype == 0) {
@@ -389,13 +380,15 @@ void pngCloseFile(hydroparam_t *H) {
 
 void DumpImage(int n, hydroparam_t *H, hydrovar_t *Hv) {
     char pngName[256];
-    pngProcess(H, Hv);
 #if WITHPNG > 0
     sprintf(pngName, "%s_%06d.png", "IMAGE", n);
+    pngProcess(H, Hv);
+    pngWriteFile(pngName, H);
 #else
     sprintf(pngName, "%s_%06d.ppm", "IMAGE", n);
+    ppmProcess(H, Hv);
+    ppmWriteFile(pngName, H);
 #endif
-    pngWriteFile(pngName, H);
-    pngCloseFile(H);
+    imgCloseFile(H);
 }
 // EOF

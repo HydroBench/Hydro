@@ -64,6 +64,9 @@ static void default_values(hydroparam_t *H) {
     H->nstepmax = INT_MAX;
     H->dtoutput = 0.0;
     H->testCase = 0;
+
+    H->shrink = 1;
+    H->shrinkSize = 1000;
 }
 
 static void keyval(char *buffer, char **pkey, char **pval) {
