@@ -48,7 +48,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 
         if (idim == 1) {
 #ifdef MPI
-            mpileftright(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
+            if (H.nproc > 1) mpileftright(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 #endif
             if (Hboundleft > 0) {
                 // Left boundary
@@ -123,7 +123,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
             }
         } else {
 #ifdef MPI
-            mpiupdown(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
+            if (H.nproc > 1) mpiupdown(idim, H, Hv, sendbufru, sendbufld, recvbufru, recvbufld);
 #endif
             // Lower boundary
             if (Hbounddown > 0) {

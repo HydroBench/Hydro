@@ -164,7 +164,7 @@ TARGETFUNCS=*.o
 runcpu:
 	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
 	make -j GPU=N
-	env OMP_NUM_THREADS=4 ./hydro -i input.nml
+	./hydro -i input.nml
 
 rungpu:
 	@if [ -e .lastcpu ] ; then rm -f $(TARGETFUNCS) .lastcpu; fi

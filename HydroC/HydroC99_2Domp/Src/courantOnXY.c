@@ -27,7 +27,7 @@ void courantOnXY(real_t *cournox, real_t *cournoy, const int Hnx, const int Hnxy
 #ifdef __INTEL_LLVM_COMPILER
 #undef NTNT
     // as of version 2021 1.0 the reduction needs those parameters. Why ??²
-#define NTNT num_teams(24) num_threads(16)
+#define NTNT num_teams(84) num_threads(256)
 #endif // __INTEL_LLVM_COMPILER
 #endif // TARGETON
     
