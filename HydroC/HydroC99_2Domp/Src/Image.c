@@ -33,6 +33,8 @@
 #include "Image.h"
 #include "SplitSurface.h"
 
+typedef unsigned char uint8_t;
+
 static uint8_t *m_buffer;
 
 #define IHU(i, j, v) ((i) + Hnxt * ((j) + Hnyt * (v)))
@@ -296,7 +298,8 @@ void imgFillGap(int curx, int cury, int nx, int ny, int Iptr[4], int *cpt, int32
         nrow = &(m_buffer[ny * imgSizeX * PIXRGBA]);
         nptr = &(nrow[nx * PIXRGBA]);
         if (nptr[3] == 255) {
-            for (int c = 0; c < PIXRGBA; c++) {
+	    int c;
+            for (c = 0; c < PIXRGBA; c++) {
                 Iptr[c] += nptr[c];
             }
             cpt++;

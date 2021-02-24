@@ -48,11 +48,11 @@ CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -flto -foffload=-lm -foffload=-la
 endif
 
 ifeq ($(CC),clang)
-CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fvectorize -fno-color-diagnostics
 endif # clang
 
 ifeq ($(CC),/usr/bin/clang)
-CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fno-color-diagnostics
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -mavx2 -fvectorize -fslp-vectorize -fno-color-diagnostics
 ifeq ($(MPI),O)
 CFLAGS+=-DMPI
 ifeq ($(I_MPI_ROOT),)
@@ -66,7 +66,7 @@ endif
 endif # system clang
 
 ifeq ($(CC),llvm11)
-CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -fopenmp-targets=nvptx64-nvidia-cuda 
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -fvectorize -fopenmp-targets=nvptx64-nvidia-cuda 
 override CC=clang 
 endif # system clang
 
