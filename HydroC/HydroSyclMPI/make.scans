@@ -1,0 +1,63 @@
+rinti4200b: inti4200
+	echo "224 threads au maximum sur la machine"
+	ssh inti4200 "cd HydroCplusMPI; make CRAY=O; rm -f CRAYomp.dat CRAYmpi.dat"
+	# ssh inti4200 'cd HydroCplusMPI; for i in `seq 1 224 `; do env OMP_NUM_THREADS=$$i mpirun -n 1 ./hydroc.cray -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> CRAYomp.dat; tail -1 CRAYomp.dat; fi ; done '
+	ssh inti4200 'cd HydroCplusMPI; for i in `seq 1 224 `; do env OMP_NUM_THREADS=1 mpirun -n $$i ./hydroc.cray -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> CRAYmpi.dat; tail -1 CRAYmpi.dat; fi ; done '
+	echo "Done"
+	ssh inti4200 'cd HydroCplusMPI; cat CRAY*.dat'
+
+
+epyc.d:
+	mkdir -p epyc.d
+	scp -rpq *.cpp *.hpp *.c *.h Makefile make.* input.nml fait.epyc patchbin ~/bin/hydroAverage epyc.d
+
+repycb: 
+	rm -rf epyc.d
+	make epyc.d
+	echo "64 threads au maximum"
+	cd epyc.d; fait.epyc; rm -f EPYCg++omp.dat EPYCiccomp.dat
+	cd epyc.d; for i in `seq 1 64 `; do env OMP_NUM_THREADS=$$i ccc_mprun -p epyc -n 1 -c 32 ./hydroc.epyc -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> EPYCg++omp.dat; tail -1 EPYCg++omp.dat; fi ; done 
+	cd epyc.d; for i in `seq 1 64 `; do env OMP_NUM_THREADS=$$i KMP_AFFINITY=scatter ccc_mprun -p epyc -n 1 -c 32 ./hydroc.epyicc -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> EPYCiccomp.dat; tail -1 EPYCiccomp.dat; fi ; done 
+
+avx2.d:
+	mkdir -p avx2.d
+	cd avx2.d; rm -f AVX2omp.dat
+	scp -rpq *.cpp *.hpp *.c *.h Makefile make.* input.nml ~/bin/hydroAverage avx2.d
+	
+avx3.d:
+	mkdir -p avx3.d
+	cd avx3.d; rm -f AVX3omp.dat
+	scp -rpq *.cpp *.hpp *.c *.h Makefile make.* input.nml ~/bin/hydroAverage avx3.d
+	
+ravx2b: 
+	rm -rf avx2.d
+	make avx2.d
+	echo "64 threads au maximum"
+	cd avx2.d; make AVX2=O MPI=N
+	cd avx2.d; for i in `seq 1 64 `; do env OMP_NUM_THREADS=$$i KMP_AFFINITY=scatter ccc_mprun -p haswell -n 1 -c 32 ./hydroc.avx2 -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> AVX2omp.dat; tail -1 AVX2omp.dat; fi ; done 
+	
+ravx3b: 
+	rm -rf avx3.d
+	make avx3.d
+	echo "48 threads au maximum"
+	cd avx3.d; make AVX3=O MPI=N
+	cd avx3.d; for i in `seq 1 48 `; do env OMP_NUM_THREADS=$$i KMP_AFFINITY=scatter ccc_mprun -p skl -n 1 -c 48 ./hydroc.avx3 -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> AVX3omp.dat; tail -1 AVX3omp.dat; fi ; done 
+	
+
+knl.d:
+	mkdir -p knl.d
+	rm -f KNLomp.dat
+	scp -rpq *.cpp *.hpp *.c *.h Makefile make.* input.nml ~/bin/hydroAverage knl.d
+
+rknlb: 
+	make knl.d
+	echo "272 threads au maximum"
+	cd knl.d; make KNL=O MPI=N
+	cd knl.d; for i in `seq 1 68 `; do env OMP_NUM_THREADS=$$i KMP_AFFINITY=scatter ccc_mprun -p knl-quad-cache -n 1 -c68 ./hydroc.knl -i input.nml > r.lst; r=`./hydroAverage r.lst`; if [ "$$r" != "" ]; then echo $$i $$r >> KNLomp.dat; tail -1 KNLomp.dat; fi ; done 
+
+rallb:
+	make rknlb
+	make ravx3b
+	make ravx2b
+	make repycb
+#EOF

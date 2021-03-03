@@ -1,0 +1,8 @@
+ifeq ($(MPC),O)
+	ifeq ($(OPENMP),O)
+		OPTIM+=-fopenmp -fmpc-privatize -fPIC
+	endif
+	DEFS+=-DMPI_ON 
+	CXX=mpc_g++
+	CXX=mpc_icpc
+endif

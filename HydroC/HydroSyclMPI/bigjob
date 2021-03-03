@@ -1,0 +1,49 @@
+#!/bin/bash
+#MSUB -s /bin/bash
+#MSUB -T 14400
+#MSUB -N 64
+#MSUB -n 512
+#MSUB -e VeryBig.%I.err
+#MSUB -o VeryBig.%I.out
+#MSUB -r VeryBig
+#MSUB -q standard
+
+set -x
+module unload mic
+cd ~/Cplus
+
+export r=$PWD
+cd $SCRATCHDIR
+
+export OMP_NUM_THREADS=2 KMP_AFFINITY=scatter
+CMD1="gdb -x runcmd $r/tst"
+CMD1="./tst -i $r/verybig.nml"
+
+mkdir -p valbig
+cd valbig
+
+if [ ! -f tst ]; then
+    cp -p $r/tst .
+fi
+pwd
+# rm -f STOP Continue.dump *.png
+cat > runcmd <<EOF 
+run -i $r/input.nml
+where
+quit
+EOF
+
+date 1>&2
+
+R=0
+time ccc_mprun $CMD1
+R=$?
+if [ ! -f STOP ] ; then
+    if [ $R -eq 0 ] ; then
+	ccc_msub ~/Cplus/bigjob
+    fi
+fi
+faitfilm
+date 1>&2
+
+# EOF

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+make
+
+if [ $? -ne 0 ] ; then exit 1; fi
+
+sed 's/X/10/' < inputX.nml > input.nml
+./tst -i input.nml > tile1
+
+sed 's/X/5/' < inputX.nml > input.nml
+./tst -i input.nml > tile4
+
+emacs tile1 tile4 &
+
+#EOF

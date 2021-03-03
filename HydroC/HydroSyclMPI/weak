@@ -1,0 +1,14 @@
+#!/bin/bash
+#MSUB -s /bin/bash
+#MSUB -T 72000
+#MSUB -N 1
+#MSUB -n 1
+#MSUB -e Weak.%I.err
+#MSUB -o Weak.%I.out
+#MSUB -r Weak
+#MSUB -q knc
+
+
+
+echo "Hello"
+#EOF

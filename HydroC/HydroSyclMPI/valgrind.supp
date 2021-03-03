@@ -1,0 +1,70 @@
+{
+   <get_max_threadsAddr8>
+   Memcheck:Addr8
+   fun:__intel_sse2_strlen
+...
+   fun:omp_get_max_threads
+   fun:_ZN6Domain8setTilesEv
+   fun:_ZN6DomainC1EiPPc
+   fun:main
+}
+
+{
+   <max_threadsParam>
+   Memcheck:Param
+   sched_setaffinity(mask)
+   fun:syscall
+...
+   fun:omp_get_max_threads
+...
+   fun:main
+}
+{
+   <get_max_threadsCond>
+   Memcheck:Cond
+   fun:__intel_sse2_strncmp
+...
+   fun:omp_get_max_threads
+...
+   fun:main
+}
+{
+   <get_max_threadsValue8>
+   Memcheck:Value8
+   fun:__intel_sse2_strncmp
+...
+   fun:omp_get_max_threads
+...
+   fun:main
+}
+{
+   <strdup>
+   Memcheck:Cond
+   fun:__intel_sse2_strdup
+   obj:*
+   obj:*
+}
+{
+   <strdupValue8>
+   Memcheck:Value8
+   fun:memcpy
+   fun:__intel_sse2_strdup
+   obj:*
+   obj:*
+}
+{
+   <below main>
+   Memcheck:Addr8
+   fun:__intel_sse2_strlen
+...
+   fun:exit
+   fun:(below main)
+}
+{
+   <strdupCond>
+   Memcheck:Cond
+   fun:memcpy
+   fun:__intel_sse2_strdup
+   obj:*
+   obj:*
+}

@@ -1,0 +1,16 @@
+CXX=g++
+# -mtune=xgene1
+ARCHEXT=armv7
+CFLAGS=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g
+
+ifeq ($(MPI),O)
+     MPI_INCLUDE=/usr/include/openmpi
+     MPI_LIB=/usr/lib64/openmpi/lib
+     INCS+=-I$(MPI_INCLUDE) -DMPI_ON
+     LIBS+=-L$(MPI_LIB) -lmpi_cxx -lmpi  -Wl,-rpath,$(MPI_LIB) 
+endif

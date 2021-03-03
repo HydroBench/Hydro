@@ -1,0 +1,48 @@
+#!/bin/bash
+set -x
+
+export r=$PWD
+cd $SCRATCHDIR
+
+NP="-n16 -N4"
+#CMD1="gdb -x runcmd $r/tst"
+CMD1="$r/tst -i $r/input.nml"
+#CMD2="gdb -x runcmd $r/tst"
+CMD2="$r/tst -i $r/input2.nml"
+
+mkdir -p avecRep sansRep
+cd avecRep
+pwd
+rm -f STOP Continue.dump *.png
+cat > runcmd <<EOF 
+run -i $r/input.nml
+where
+quit
+EOF
+
+while [ ! -f STOP ] ; do
+    time ccc_mprun -p hybridk40 $NP -T 6400 $CMD1
+done
+
+I1="$PWD/"`ls *.png | tail -1`
+
+cd ../sansRep
+pwd
+cat > runcmd <<EOF 
+run -i $r/input2.nml
+where
+quit
+EOF
+
+rm -f STOP Continue.dump *.png
+while [ ! -f STOP ] ; do
+    time ccc_mprun -p hybridk40 $NP -T 6400 $CMD2
+done
+I2="$PWD/"`ls *.png | tail -1`
+
+
+cd ..
+
+display $I1 &
+display $I2 &
+#EOF
