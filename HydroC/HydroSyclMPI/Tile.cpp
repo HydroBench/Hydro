@@ -1411,32 +1411,32 @@ void Tile::setVoisins(Tile *left, Tile *right, Tile *up, Tile *down) {
 
 void Tile::setBuffers(ThreadBuffers *buf) {
     assert(buf != 0);
-    m_myBuffers = buf;
+    auto & myThreadBuffers = buf;
 
-    m_q = m_myBuffers->getQ();           // NXT, NYT
-    m_qxm = m_myBuffers->getQXM();       // NXT, NYT
-    m_qxp = m_myBuffers->getQXP();       // NXT, NYT
-    m_dq = m_myBuffers->getDQ();         // NXT, NYT
-    m_qleft = m_myBuffers->getQLEFT();   // NX + 1, NY + 1
-    m_qright = m_myBuffers->getQRIGHT(); // NX + 1, NY + 1
-    m_qgdnv = m_myBuffers->getQGDNV();   // NX + 1, NY + 1
-    m_c = m_myBuffers->getC();           // NXT, NYT
-    m_e = m_myBuffers->getE();           // NXT, NYT
+    m_q = myThreadBuffers->getQ();           // NXT, NYT
+    m_qxm = myThreadBuffers->getQXM();       // NXT, NYT
+    m_qxp = myThreadBuffers->getQXP();       // NXT, NYT
+    m_dq = myThreadBuffers->getDQ();         // NXT, NYT
+    m_qleft = myThreadBuffers->getQLEFT();   // NX + 1, NY + 1
+    m_qright = myThreadBuffers->getQRIGHT(); // NX + 1, NY + 1
+    m_qgdnv = myThreadBuffers->getQGDNV();   // NX + 1, NY + 1
+    m_c = myThreadBuffers->getC();           // NXT, NYT
+    m_e = myThreadBuffers->getE();           // NXT, NYT
 
     // work arrays for a single row/column
-    m_sgnm = m_myBuffers->getSGNM();
-    m_pl = m_myBuffers->getPL();
+    m_sgnm = myThreadBuffers->getSGNM();
+    m_pl = myThreadBuffers->getPL();
 
 #if RIEMANNINREGS == 0
-    m_pstar = m_myBuffers->getPSTAR();
-    m_rl = m_myBuffers->getRL();
-    m_ul = m_myBuffers->getUL();
-    m_ur = m_myBuffers->getUR();
-    m_pr = m_myBuffers->getPR();
-    m_cl = m_myBuffers->getCL();
-    m_cr = m_myBuffers->getCR();
-    m_rr = m_myBuffers->getRR();
-    m_goon = m_myBuffers->getGOON();
+    m_pstar = myThreadBuffers->getPSTAR();
+    m_rl = myThreadBuffers->getRL();
+    m_ul = myThreadBuffers->getUL();
+    m_ur = myThreadBuffers->getUR();
+    m_pr = myThreadBuffers->getPR();
+    m_cl = myThreadBuffers->getCL();
+    m_cr = myThreadBuffers->getCR();
+    m_rr = myThreadBuffers->getRR();
+    m_goon = myThreadBuffers->getGOON();
 #endif
 }
 

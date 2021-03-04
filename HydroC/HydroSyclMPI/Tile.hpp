@@ -30,7 +30,7 @@ class Tile {
     omp_lock_t m_lock;
 #endif
 
-    ThreadBuffers *m_myBuffers; // the link to our ThreadBuffers
+    // ThreadBuffers *m_myBuffers; // the link to our ThreadBuffers Not needed [jcw]
     Timers *m_threadTimers;     // one Timers per thread
     int m_prt;
 

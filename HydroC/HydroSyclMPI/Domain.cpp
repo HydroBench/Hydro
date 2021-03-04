@@ -780,7 +780,7 @@ void Domain::setTiles() {
             temp[m_mortonIdx[i]] = tt++;
         }
         // compacter le tableau
-        int32_t *temp2 = new int32_t[maxim];
+        
         for (int32_t i = 0, t = 0; i < maxim; i++) {
             if (temp[i] != -1)
                 m_mortonIdx[t++] = temp[i];

@@ -49,6 +49,7 @@ class ThreadBuffers {
     Soa *getQLEFT() { return m_qleft; };
     Soa *getQRIGHT() { return m_qright; };
     Soa *getQGDNV() { return m_qgdnv; };
+
     Matrix2<real_t> *getC() { return m_c; };
     Matrix2<real_t> *getE() { return m_e; };
 
