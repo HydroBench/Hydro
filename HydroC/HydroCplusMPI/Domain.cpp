@@ -684,7 +684,7 @@ void Domain::setTiles() {
     int32_t i, j, offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
     int32_t tileSizeM, tileSize;
     int32_t tileSizeOrg;
-    Matrix2<int32_t> *mortonIdx; // to hold the array of tiles ids.
+   
     //
     m_nbtiles = 0;
     tileSize = m_tileSize;
@@ -750,7 +750,7 @@ void Domain::setTiles() {
 #endif
 
     m_nbtiles = this->nbTile(tileSize);
-    ;
+    
     mortonH = (m_ny + tileSize - 1) / tileSize;
     mortonW = (m_nx + tileSize - 1) / tileSize;
 
@@ -780,13 +780,12 @@ void Domain::setTiles() {
             temp[m_mortonIdx[i]] = tt++;
         }
         // compacter le tableau
-        int32_t *temp2 = new int32_t[maxim];
+       
         for (int32_t i = 0, t = 0; i < maxim; i++) {
             if (temp[i] != -1)
                 m_mortonIdx[t++] = temp[i];
         }
-        // for (int32_t ir = 0; ir < m_nbtiles; ir++) cerr << temp[ir] << " "; cerr
-        // << endl;
+       
         delete[] temp;
     }
     //
