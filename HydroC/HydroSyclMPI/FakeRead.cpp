@@ -86,7 +86,7 @@ FakeRead::~FakeRead() {
     if (m_fd)
         fclose(m_fd);
     if (m_buf)
-        free(m_buf); // Should be a delete[] 
+        free(m_buf); // Should be a delete[]
 }
 
 int FakeRead::Read(int64_t lg) {

@@ -303,6 +303,7 @@ void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, rea
         amright = -half * spminus * alpham;
         azrright = -half * spzero * alpha0r;
         azv1right = -half * spzero * alpha0v;
+
         pqxpIDS[i] = r + (apright + amright + azrright);
         pqxpIUS[i] = u + (apright - amright) * OrOcc;
         pqxpIVS[i] = v + (azv1right);
@@ -316,6 +317,7 @@ void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, rea
         amleft = -half * spminus * alpham;
         azrleft = -half * spzero * alpha0r;
         azv1left = -half * spzero * alpha0v;
+
         pqxmIDS[i] = r + (apleft + amleft + azrleft);
         pqxmIUS[i] = u + (apleft - amleft) * OrOcc;
         pqxmIVS[i] = v + (azv1left);
@@ -914,12 +916,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 #pragma loop_count min = TILEMIN, avg = TILEAVG
 #endif
 #endif
-#if defined(jit1)
-// #pragma omp target map(to: xmin, xmax, zero, one, qleftIDS, qleftIPS,
-// qrightIDS, qrightIUS, qrightIPS, m_smallr, smallp, m_gamma) map(from :
-// rl,ul,pl,rr,ur,pr,cl,cr,pstar) map(tofrom : ) pas utile ici! #pragma message
-// "riemannOnRow actif sous CSA"
-#endif
+
     for (int32_t i = xmin; i < xmax; i++) {
         real_t wl_i, wr_i;
         rl[i] = std::max(qleftIDS[i], m_smallr);
@@ -943,12 +940,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
     // solve the riemann problem on the interfaces of this slice
     // for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #pragma loop_count min = 1, max = 20, avg = 10
-// #pragma unroll(5)
-#if defined(jit1)
-// #pragma omp target map(to: xmin, xmax, zero, one, gamma6, cl, pl, pr, cr,
-// m_niter_riemann) map(from : pstar) map(tofrom : goon) #pragma message
-// "riemannOnRow actif sous CSA"
-#endif
+    // #pragma unroll(5)
+
     for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
 // #pragma vector aligned
@@ -986,12 +979,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 #pragma loop_count min = TILEMIN, avg = TILEAVG
 #endif
 #endif
-#if defined(jit1)
-// #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp,
-// m_gamma, gamma6, sgnm, rl,ul,pl,rr,ur,pr,cl,cr,pstar) map(from : qgdnvIDS,
-// qgdnvIUS, qgdnvIPS, qgdnvIVS) map(tofrom : ) pas utile ici! #pragma message
-// "riemannOnRow actif sous CSA"
-#endif
+
     for (int32_t i = xmin; i < xmax; i++) {
 
         real_t wr_i = sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
@@ -1080,18 +1068,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 #endif
 #endif
 
-#if OMPOVERLOAD == 1
-#pragma omp parallel for private(i) shared(qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS, sgnm)
-#endif
-#if defined(jit1)
-// #pragma omp target map(to: xmin, xmax, zero, one, m_smallr, m_smallc, smallp,
-// smallpp, m_gamma, gamma6, qleftIDS, qleftIUS, qleftIPS, qrightIDS, qrightIUS,
-// qrightIPS, half) map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
-#pragma omp target map(tofrom : sgnm, qgdnvIDS, qgdnvIUS, qgdnvIPS, qgdnvIVS)
-// #pragma message "riemannOnRow actif sous CSA in regs"
-#else
 #pragma omp simd
-#endif
+
     for (int32_t i = xmin; i < xmax; i++) {
         int goonI = 0;
         real_t pstarI;
@@ -1407,24 +1385,11 @@ void Tile::godunov() {
     if (m_order > 1) {
         slope();
     }
-#if ARMIETRACE == 2
-    __START_TRACE()
-#pragma message "ARMIE trace on trace"
-#endif
-    trace();
-#if ARMIETRACE == 2
-    __STOP_TRACE()
-#endif
+
     qleftr();
 
-#if ARMIETRACE == 1
-    __START_TRACE()
-#pragma message "ARMIE trace on riemann"
-#endif
     riemann();
-#if ARMIETRACE == 1
-    __STOP_TRACE()
-#endif
+
     compflx();
     if (m_prt)
         std::cout << "Tile uold godunov apres compflx" << uold;
@@ -1473,22 +1438,6 @@ void Tile::setBuffers(ThreadBuffers *buf) {
     m_rr = m_myBuffers->getRR();
     m_goon = m_myBuffers->getGOON();
 #endif
-}
-
-void Tile::waitVoisin(Tile *voisin, int step) {
-    int okToGO = 0;
-    if (voisin == 0)
-        return;
-    while (!okToGO) {
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-        { okToGO = voisin->isProcessed(step); }
-        if (!okToGO) {
-            sched_yield();
-        }
-    }
-    return;
 }
 
 long Tile::getLengthByte() { return m_u->getLengthByte() + m_flux->getLengthByte(); }

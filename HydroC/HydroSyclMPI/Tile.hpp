@@ -216,7 +216,7 @@ class Tile {
     void notProcessed() { m_hasBeenProcessed = 0; };
     void doneProcessed(int step) { m_hasBeenProcessed = step; };
     int32_t isProcessed(int step) { return m_hasBeenProcessed == step; };
-    void waitVoisin(Tile *voisin, int step);
+
     int32_t myThread() {
         int32_t r = 0;
 #ifdef _OPENMP

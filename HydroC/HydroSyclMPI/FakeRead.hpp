@@ -11,7 +11,6 @@
 #include <iostream>
 #include <stdint.h> // for the definition of uint32_t
 
-
 class FakeRead {
   private:
     size_t m_fSize;
