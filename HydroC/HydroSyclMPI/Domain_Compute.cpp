@@ -225,7 +225,6 @@ real_t Domain::computeTimeStep() {
         boundary_init();
         boundary_process();
 
-        real_t *pm_localDt = m_localDt;
         double start = Custom_Timer::dcclock();
         int32_t t;
         if (m_tasked == 0) {
