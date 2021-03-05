@@ -3,19 +3,16 @@
 //
 #ifndef FAKEREAD_H
 #define FAKEREAD_H
-//
-#include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <stdint.h> // for the definition of uint32_t
+
+
+#include <cstdio>
+#include <cstdint>
 
 class FakeRead {
   private:
     size_t m_fSize;
     int m_bSize;
-    FILE *m_fd;
+    std::FILE *m_fd;
     double *m_buf;
     int m_rank;
 

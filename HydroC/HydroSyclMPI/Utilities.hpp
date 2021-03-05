@@ -1,10 +1,11 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
-#include <cstddef> // for size_t
-
 #include "EnumDefs.hpp"
 #include "precision.hpp"
+
+#include <cstddef> // for size_t
+
 
 template <typename T> inline T Square(T x) { return x * x; }
 

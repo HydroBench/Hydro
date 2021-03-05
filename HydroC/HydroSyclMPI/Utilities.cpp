@@ -1,16 +1,21 @@
+#include "EnumDefs.hpp"
+#include "Options.hpp"
+#include "Utilities.hpp"
+
+
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <malloc.h>
-#include <unistd.h>
 
-#include "EnumDefs.hpp"
-#include "Options.hpp"
-#include "Utilities.hpp"
+
+#include <unistd.h>
+#include <malloc.h> // for memalign
 
 void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, int *box,
                     int mype) {
@@ -65,12 +70,6 @@ void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, 
     if ((incy * ny + ymin) < ymax)
         incy++;
 
-    // if (mype == 0 && !done) {
-    //    printf("HydroC: Simple decomposition\n");
-    //    printf("HydroC: nx=%d ny=%d\n", nx, ny);
-    //    done = 1;
-    // }
-
     box[XMIN_D] = pex * incx + xmin;
     if (box[XMIN_D] < 0)
         box[XMIN_D] = 0;
@@ -112,7 +111,7 @@ void getCPUName(char cpuName[1024]) {
             char *l = fgets(cmd, 1023, fic);
             if (strstr(cmd, "model name") != NULL) {
                 char *p = strchr(cmd, ':');
-                strcpy(cpuName, p);
+                strncpy(cpuName, p, 1023);
                 p = strchr(cpuName, '\n');
                 if (p)
                     *p = 0;

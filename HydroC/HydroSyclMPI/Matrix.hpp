@@ -87,7 +87,7 @@ template <typename T> class Matrix2 : private Volume {
     void swapDimAndValues();
     int32_t maxMorton(void) { return morton2(getW(), getH()); };
     bool idxFromMorton(int32_t &x, int32_t &y, int32_t m) {
-        umorton2(&x, &y, m);
+        umorton2(x, y, m);
         if ((x < _w) && (y < _h))
             return true;
         return false;

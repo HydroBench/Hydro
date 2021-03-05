@@ -4,11 +4,11 @@
 #ifndef DOMAIN_H
 #define DOMAIN_H
 //
-#include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
+#include "EnumDefs.hpp"
+#include "Soa.hpp"
+#include "ThreadBuffers.hpp"
+#include "Tile.hpp"
+#include "TimeLimit.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -18,13 +18,7 @@
 #include <png.h>
 #endif
 
-#include "EnumDefs.hpp"
-#include "Soa.hpp"
-#include "ThreadBuffers.hpp"
-#include "Tile.hpp"
-#include "TimeLimit.hpp"
 
-// template <typename T>
 class Domain {
   private:
     // variables to protect between runs
@@ -97,6 +91,7 @@ class Domain {
     // PNG output
     int32_t m_withPng;
     FILE *m_fp;
+
 #if WITHPNG > 0
     png_structp m_png_ptr;
     png_infop m_info_ptr;
@@ -105,6 +100,7 @@ class Domain {
 #else
     uint8_t *m_buffer;
 #endif
+    
     int32_t m_shrink;
     int32_t m_shrinkSize;
     double m_timeGuard;

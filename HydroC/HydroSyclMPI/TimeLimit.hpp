@@ -5,7 +5,7 @@
 #define TIMELIMIT_H
 //
 
-// template <typename T>
+
 class TimeLimit {
   private:
     double m_orgTime;

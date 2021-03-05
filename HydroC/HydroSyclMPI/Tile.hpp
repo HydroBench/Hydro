@@ -4,22 +4,18 @@
 #ifndef TILE_H
 #define TILE_H
 //
-#include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include "EnumDefs.hpp"
 #include "Options.hpp"
 #include "Soa.hpp"
 #include "ThreadBuffers.hpp"
 #include "Timers.hpp"
 #include "Utilities.hpp"
+
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 
 class Tile {
   private:

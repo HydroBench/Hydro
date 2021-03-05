@@ -25,11 +25,11 @@ static int32_t umorton1(int32_t x) {
 
 // morton2 - extract odd and even bits
 
-static void umorton2(int32_t *x, int32_t *y, int32_t m) {
+static void umorton2(int32_t &x, int32_t &y, int32_t m) {
     int32_t z1;
-    *x = umorton1(m);
+    x = umorton1(m);
     z1 = m >> 1;
-    *y = umorton1(z1);
+    y = umorton1(z1);
 };
 
 static int32_t morton2(int32_t x, int32_t y) { return morton1(x) | (morton1(y) << 1); };

@@ -1,8 +1,8 @@
+#include "Domain.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
-
-#include "Domain.hpp"
 
 #include <assert.h>
 #include <cmath>

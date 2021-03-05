@@ -1,6 +1,17 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
+
+#include "Options.hpp"
+
+#if USEINTRINSICS != 0
+#include "arch.hpp"
+#endif
+
+#include "Tile.hpp"
+#include "Timers.hpp"
+#include "cclock.hpp"
+
 #include <algorithm> // for min, max
 #include <cassert>
 #include <cerrno>
@@ -14,20 +25,7 @@
 #include <omp.h>
 #endif
 
-using namespace std;
-
 //
-
-#include "Options.hpp"
-
-
-#if USEINTRINSICS != 0
-#include "arch.hpp"
-#endif
-
-#include "Tile.hpp"
-#include "Timers.hpp"
-#include "cclock.hpp"
 
 Tile::Tile() {
     for (int32_t i = 0; i < NEIGHBOUR_TILE; i++) {
@@ -41,7 +39,7 @@ Tile::Tile() {
 #endif
 }
 
-// template <typename T>
+
 Tile::~Tile() {
 #ifdef _OPENMP
     omp_destroy_lock(&m_lock);
@@ -396,7 +394,7 @@ void Tile::compflx() {
                      fluxIPS, fluxIDS);
     }
     if (m_prt)
-        cout << "Tile fluxIP compflx" << fluxIP;
+        std::cout << "Tile fluxIP compflx" << fluxIP;
 
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPFLX, elaps);
@@ -477,11 +475,11 @@ void Tile::updateconserv() {
     Matrix2<real_t> &uIU = *(*m_u)(IU_VAR);
     real_t dtdx = m_dt / m_dx;
     if (m_prt)
-        cout << "dtdx " << dtdx << endl;
+        std::cout << "dtdx " << dtdx << std::endl;
 
     getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
     if (m_prt) {
-        cout << "scan " << m_scan << endl
+        std::cout << "scan " << m_scan << std::endl
              << "Tile uoldIP input updateconserv" << uoldIP << "Tile fluxID input updateconserv"
              << fluxID << "Tile fluxIU input updateconserv" << fluxIU
              << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
@@ -524,7 +522,7 @@ void Tile::updateconserv() {
         }
     }
     if (m_prt) {
-        cout << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
+        std::cout << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
              << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
     }
     double elaps = Custom_Timer::dcclock() - start;
@@ -574,7 +572,7 @@ void Tile::gatherconserv() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (m_prt) {
-        cout << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
+        std::cout << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
              << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
     }
 
@@ -602,7 +600,7 @@ void Tile::gatherconserv() {
         }
     }
     if (m_prt) {
-        cout << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
+        std::cout << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
              << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
     }
 
@@ -658,7 +656,7 @@ void Tile::eos(tileSpan_t span) {
         eosOnRow(xmin, xmax, smallp, qIDS, eS, qIPS, cS);
     }
     if (m_prt) {
-        cout << "Tile qIP eos" << qIP << "Tile c eos" << *m_c;
+        std::cout << "Tile qIP eos" << qIP << "Tile c eos" << *m_c;
     }
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(EOS, elaps);
@@ -758,7 +756,7 @@ real_t Tile::compute_dt() {
     }
 
     if (m_prt)
-        cerr << "tile dt " << dt << endl;
+        std::cerr << "tile dt " << dt << std::endl;
 
     elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPDT, elaps);
@@ -822,7 +820,7 @@ void Tile::constprim() {
         constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
     if (m_prt) {
-        cout << "Tile qIP constprim" << qIP << "Tile e constprim" << *m_e;
+        std::cout << "Tile qIP constprim" << qIP << "Tile e constprim" << *m_e;
     }
 
     double elaps = Custom_Timer::dcclock() - start;
@@ -1164,7 +1162,7 @@ void Tile::riemann() {
     }
 
     if (m_prt) {
-        cout << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
+        std::cout << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
              << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
     }
 
@@ -1209,7 +1207,7 @@ void Tile::boundary_process() {
     } // Y_SCAN
     Matrix2<real_t> &uold = *(*m_uold)(IP_VAR);
     if (m_prt)
-        cout << "Tile uold boundary process" << uold;
+        std::cout << "Tile uold boundary process" << uold;
 }
 
 int32_t Tile::pack_arrayv(int32_t xoffset, Preal_t buffer) {
@@ -1286,17 +1284,17 @@ void Tile::godunov() {
     Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
 
     if (m_prt)
-        cout << "= = = = = = = =  = =" << endl;
+        std::cout << "= = = = = = = =  = =" << std::endl;
     if (m_prt)
-        cout << "      Godunov" << endl;
+        std::cout << "      Godunov" << std::endl;
     if (m_prt)
-        cout << "= = = = = = = =  = =" << endl;
+        std::cout << "= = = = = = = =  = =" << std::endl;
     if (m_prt)
-        cout << endl << " scan " << m_scan << endl;
+        std::cout << std::endl << " scan " << m_scan << std::endl;
     if (m_prt)
-        cout << endl << " time " << m_tcur << endl;
+        std::cout << std::endl << " time " << m_tcur << std::endl;
     if (m_prt)
-        cout << endl << " dt " << m_dt << endl;
+        std::cout << std::endl << " dt " << m_dt << std::endl;
 
     constprim();
     eos(TILE_FULL);

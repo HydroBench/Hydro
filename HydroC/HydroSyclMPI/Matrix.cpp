@@ -2,6 +2,17 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
+#include "Matrix.hpp"
+#include "Options.hpp"
+#include "Utilities.hpp"
+
+#include <iomanip>
+#include <cstdlib>
+#include <cstdio>
+
+#include <unistd.h>
+
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -14,19 +25,6 @@
 #include <hbwmalloc.h>
 #endif
 
-//
-
-#include <cstdio>
-#include <iomanip>
-#include <iostream>
-
-#include <unistd.h>
-
-#include "Matrix.hpp"
-#include "Options.hpp"
-#include "Utilities.hpp"
-
-using namespace std;
 
 long Volume::_volume = 0;
 long Volume::_volumeMax = 0;
@@ -65,7 +63,7 @@ template <typename T> void Matrix2<T>::allocate(void) {
     _org = _arr;
 #endif
     _volume += lgrTab;
-    _volumeMax = max(_volume, _volumeMax);
+    _volumeMax = std::max(_volume, _volumeMax);
 
     memset(_arr, 0, lgrTab);
     assert(_arr != 0);
@@ -225,16 +223,16 @@ template <typename T> void Matrix2<T>::InsertMatrix(const Matrix2 &src, int32_t 
 template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix2<T> &mat) {
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
-    os << " nx=" << srcX << " ny=" << srcY << endl;
+    os << " nx=" << srcX << " ny=" << srcY << std::endl;
     for (int32_t j = 0; j < srcY; j++) {
 #pragma novector
         for (int32_t i = 0; i < srcX; i++) {
-            os << setw(12) << setiosflags(ios::scientific) << setprecision(4)
+            os << std::setw(12) << std::setiosflags(std::ios::scientific) << std::setprecision(4)
                << mat._arr[mat.Mat2Index(i, j)] << " ";
         }
-        os << endl;
+        os << std::endl;
     }
-    os << endl << endl;
+    os << std::endl << std::endl;
     return os;
 }
 

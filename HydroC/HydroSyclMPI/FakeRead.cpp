@@ -1,18 +1,17 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
+
+#include "FakeRead.hpp"
+
 #include <cstdlib>
-#include <cstring>
+#include <cassert>
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cerrno>
 
-//
-#include "FakeRead.hpp"
+
 
 FakeRead::FakeRead(long fSize, int rank) {
     size_t n = 0;
