@@ -274,11 +274,9 @@ void Domain::printSummary() {
         printf("|    GlobNy=     %d\n", m_globNy);
         printf("|    nx=         %d\n", m_nx);
         printf("|    ny=         %d\n", m_ny);
-#if TILEUSER == 1
+
         printf("|    ts=         %d\n", m_tileSize);
-#else
-        printf("|    ts=         %d\n", TILESIZ);
-#endif
+
         printf("|    nt=         %d\n", m_nbtiles);
         printf("|    tasked=     %u\n", m_tasked);
         printf("|    taskeddep=  %u\n", m_taskeddep);
@@ -688,7 +686,7 @@ void Domain::setTiles() {
     //
     m_nbtiles = 0;
     tileSize = m_tileSize;
-#if TILEUSER == 1
+
     if (tileSize <= 0) {
         int nTh = 1, nbT = 0, tsMin, tsMax, remMin, remain;
         int tsCur;
@@ -740,14 +738,8 @@ void Domain::setTiles() {
         if (m_myPe == 0 && m_stats > 0)
             cout << "Forcing tilesize to " << tileSize << endl;
     }
-#else
-    tileSize = TILESIZ;
-    if ((tileSize > m_nx) && (tileSize > m_ny)) {
-        tileSize = max(m_nx, m_ny);
-    }
-    if (m_myPe == 0 && m_stats > 0)
-        cout << "Forcing tilesize to " << tileSize << " at compile time" << endl;
-#endif
+
+
 
     m_nbtiles = this->nbTile(tileSize);
     ;

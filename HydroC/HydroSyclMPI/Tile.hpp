@@ -57,19 +57,6 @@ class Tile {
     // work arrays for a single row/column
     real_t *m_sgnm; //
     real_t *m_pl;
-
-#if RIEMANNINREGS == 0
-    Preal_t m_pstar;
-    Preal_t m_rl;
-    Preal_t m_ul;
-    Preal_t m_ur;
-    Preal_t m_pr;
-    Preal_t m_cl;
-    Preal_t m_cr;
-    Preal_t m_rr;
-    long *m_goon; //
-#endif
-
     real_t m_gamma, m_smallc, m_smallr, m_cfl;
 
     int32_t m_niter_riemann;
@@ -167,6 +154,7 @@ class Tile {
     // pack/unpack array for ghost cells exchange. Works either for OpenMP
     int32_t pack_arrayv(int32_t xoffset, Preal_t buffer);
     int32_t unpack_arrayv(int32_t xoffset, Preal_t buffer);
+    
     int32_t pack_arrayh(int32_t yoffset, Preal_t buffer);
     int32_t unpack_arrayh(int32_t yoffset, Preal_t buffer);
 

@@ -227,75 +227,18 @@ real_t Domain::computeTimeStep() {
 
         double start = Custom_Timer::dcclock();
         int32_t t;
-        if (m_tasked == 0) {
-#pragma omp parallel for private(t) SCHEDULE
-            for (t = 0; t < m_nbtiles; t++) {
-                compTStask1(t);
-            }
-            // we have to wait here that all tiles are ready to update uold
-#pragma omp parallel for private(t) SCHEDULE
-            for (t = 0; t < m_nbtiles; t++) {
-                compTStask2(t, 0, 0);
-            }
 
-        } else if (m_taskeddep > 0) {
-            int32_t *tileProcessed = (int32_t *)alloca(m_nbtiles * sizeof(int32_t));
-            assert(tileProcessed != 0);
-            for (int tile = 0; tile < m_nbtiles; tile++) {
-                // reset the tasks flags
-                tileProcessed[tile] = 0;
-            }
-            // #pragma message "Version avec TASK et dependance"
-            int32_t mydep = 0, mine = 0;
-#pragma omp parallel private(t) firstprivate(mine, mydep) shared(tileProcessed)
-            {
-#pragma omp single nowait
-                {
-                    for (t = 0; t < m_nbtiles; t++) {
-// #pragma omp task depend(out: tileProcessed[t])
-#pragma omp task
-                        {
-                            compTStask1(t);
-                            tileProcessed[t]++;
-                            // char txt[256]; sprintf(txt, "%03d task done\n", tileOrder[t]); cerr
-                            // << txt;
-                        }
-
-                        mine = t;
-                        mydep = (t == 0) ? t : t - 1;
-                    }
-                }
-#pragma omp barrier // we have to wait here that all tiles are ready to update uold
-#pragma omp single nowait
-                {
-                    for (t = 0; t < m_nbtiles; t++) {
-// #pragma omp task depend(out: tileProcessed[mydep], tileProcessed[mine])
-#pragma omp task
-                        { compTStask2(t, mydep, mine); }
-                    }
-                } // omp single
-            }     // omp parallel
-        } else {
-// #pragma message "Version avec TASK"
-#pragma omp parallel private(t)
-            {
-#pragma omp single nowait
-                {
-                    for (t = 0; t < m_nbtiles; t++) {
-#pragma omp task
-                        { compTStask1(t); }
-                    }
-                }
-#pragma omp barrier // we have to wait here that all tiles are ready to update uold
-#pragma omp single nowait
-                {
-                    for (t = 0; t < m_nbtiles; t++) {
-#pragma omp task
-                        { compTStask2(t, 0, 0); }
-                    }
-                }
-            }
+#pragma omp parallel for private(t) SCHEDULE
+        for (t = 0; t < m_nbtiles; t++) {
+            compTStask1(t);
         }
+
+        // we have to wait here that all tiles are ready to update uold
+#pragma omp parallel for private(t) SCHEDULE
+        for (t = 0; t < m_nbtiles; t++) {
+            compTStask2(t, 0, 0);
+        }
+
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();
         m_mainTimer.add(ALLTILECMP, (end - start));
