@@ -1,12 +1,7 @@
 
-#include "Matrix.hpp"
-#include "Morton.hpp"
-#include "Options.hpp"
-#include "ThreadBuffers.hpp"
-#include "Tile.hpp"
-#include "Timers.hpp"
-#include "Utilities.hpp"
-#include "precision.hpp"
+#include "Domain.hpp"
+#include "FakeRead.hpp"
+#include "cclock.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -16,30 +11,17 @@
 #include <omp.h>
 #endif
 
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iomanip>
-#include <iostream>
-#include <limits>
+#include <cmath>
+
 #include <unistd.h>
-
+#include <sys/time.h>
 #include <sys/resource.h>
-
-using namespace std;
 
 #ifndef LIGHTSYNC
 #define LIGHTSYNC 0
 #endif
 
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "FakeRead.hpp"
-#include "Soa.hpp"
-#include "cclock.hpp"
 
 void Domain::changeDirection() {
 
@@ -176,7 +158,7 @@ void Domain::compTStask1(int32_t tile) {
     m_tiles[i]->setBuffers(m_buffers[myThread()]);
     m_tiles[i]->setTcur(m_tcur);
     m_tiles[i]->setDt(m_dt);
-    // cerr << i << " demarre " << endl; cerr.flush();
+    // std::cerr << i << " demarre " << std::endl; std::cerr.flush();
     // lockStep = 1;
     // m_tiles[i]->notProcessed();
     m_tiles[i]->gatherconserv(); // input uold      output u
@@ -210,7 +192,7 @@ void Domain::compTStask2(int32_t tile, int32_t mydep, int32_t mine) {
     endT = Custom_Timer::dcclock();
     (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
-    // char txt[256]; sprintf(txt, "%03d prev %03d done\n", mine, mydep); cerr << txt;
+    // char txt[256]; sprintf(txt, "%03d prev %03d done\n", mine, mydep); std::cerr << txt;
 }
 
 real_t Domain::computeTimeStep() {
@@ -220,7 +202,7 @@ real_t Domain::computeTimeStep() {
         Matrix2<real_t> &uold = *(*m_uold)(IP_VAR);
 
         if (m_prt)
-            cout << "uold computeTimeStep" << uold;
+            std::cout << "uold computeTimeStep" << uold;
 
         boundary_init();
         boundary_process();
@@ -244,10 +226,10 @@ real_t Domain::computeTimeStep() {
         m_mainTimer.add(ALLTILECMP, (end - start));
 
         if (m_prt) {
-            cout << "After pass " << pass << " direction [" << m_scan << "]" << endl;
+            std::cout << "After pass " << pass << " direction [" << m_scan << "]" << std::endl;
         }
         changeDirection();
-        // cerr << " new dir\n";
+        // std::cerr << " new dir\n";
     }                  // X_SCAN - Y_SCAN
     changeDirection(); // to do X / Y then Y / X then X / Y ...
 
@@ -302,18 +284,18 @@ void Domain::compute() {
 
 #ifdef _OPENMP
     if (m_myPe == 0 && m_stats > 0) {
-        cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << endl;
-        // cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << endl;
-        cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << endl;
-        cout << "Hydro: OpenMP " << Schedule << endl;
+        std::cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << std::endl;
+        // std::cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << std::endl;
+        std::cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << std::endl;
+        std::cout << "Hydro: OpenMP " << Schedule << std::endl;
     }
 #endif
 #ifdef MPI_ON
     if (m_myPe == 0 && m_stats > 0) {
         if (m_nProc == 1)
-            cout << "Hydro: MPI is present with " << m_nProc << " rank" << endl;
+            std::cout << "Hydro: MPI is present with " << m_nProc << " rank" << std::endl;
         else
-            cout << "Hydro: MPI is present with " << m_nProc << " ranks" << endl;
+            std::cout << "Hydro: MPI is present with " << m_nProc << " ranks" << std::endl;
     }
 #endif
 
@@ -327,8 +309,8 @@ void Domain::compute() {
             char txt[256];
             double elaps = (end - start);
             Custom_Timer::convertToHuman(txt, elaps);
-            cout << "Read protection in " << txt << " (" << elaps << "s)" << endl;
-            cout.flush();
+            std::cout << "Read protection in " << txt << " (" << elaps << "s)" << std::endl;
+            std::cout.flush();
         }
     }
     start = Custom_Timer::dcclock();
@@ -339,8 +321,8 @@ void Domain::compute() {
         m_dt /= 2.0;
         assert(m_dt > 1.e-15);
         if (m_myPe == 0) {
-            cout << " Initial dt " << setiosflags(ios::scientific) << setprecision(5) << m_dt
-                 << endl;
+            std::cout << " Initial dt " << std::setiosflags(std::ios::scientific) << std::setprecision(5) << m_dt
+                 << std::endl;
             ;
         }
     }
@@ -482,15 +464,15 @@ void Domain::compute() {
 #endif
             if (needToStopGlob) {
                 if (m_myPe == 0) {
-                    cerr << " Hydro stops by time limit " << m_tr.timeRemain() << " < "
-                         << m_timeGuard << endl;
+                    std::cerr << " Hydro stops by time limit " << m_tr.timeRemain() << " < "
+                         << m_timeGuard << std::endl;
                 }
-                cout.flush();
-                cerr.flush();
+                std::cout.flush();
+                std::cerr.flush();
                 break;
             }
         }
-        // cout << "suivant"<< m_myPe<< endl; cout.flush();
+        // std::cout << "suivant"<< m_myPe<< endl; std::cout.flush();
     } // while (m_tcur < m_tend)
     end = Custom_Timer::dcclock();
     m_nbRun++;
@@ -509,7 +491,7 @@ void Domain::compute() {
             char txt[256];
             double elaps = (end - start);
             Custom_Timer::convertToHuman(txt, elaps);
-            cerr << "Write protection in " << txt << " (" << elaps << "s)" << endl;
+            std::cerr << "Write protection in " << txt << " (" << elaps << "s)" << std::endl;
         }
     }
 
@@ -525,7 +507,7 @@ void Domain::compute() {
     }
 
     if (getrusage(RUSAGE_SELF, &myusage) != 0) {
-        cerr << "error getting my resources usage" << endl;
+        std::cerr << "error getting my resources usage" << std::endl;
         exit(1);
     }
     m_maxrss = myusage.ru_maxrss;
@@ -561,7 +543,7 @@ void Domain::compute() {
         ecartCellPerSec = sqrt((ecartCellPerSec / nbTotCelSec) - (avgCellPerSec * avgCellPerSec));
         printf(" min %.3lf, max %.3lf, sig %.3lf\n", minCellPerSec, maxCellPerSec, ecartCellPerSec);
 #if WITH_THREAD_TIMERS == 1
-        // cout.precision(4);
+        // std::cout.precision(4);
         for (int32_t i = 0; i < m_numThreads; i++) {
             printf("Thread %4d: ", i);
             for (int32_t j = 0; j < LOOP_END; j++) {
@@ -582,7 +564,7 @@ void Domain::compute() {
         // #pragma message "Bandwidth monitoring to do properly"
         m_mainTimer.set(BOUNDINITBW, 0);
         m_mainTimer.getStats(); // all processes involved
-        // cout << endl;
+        // std::cout << std::endl;
         if (m_myPe == 0 && m_stats > 0) {
 #ifdef MPI_ON
             m_mainTimer.printStats();
@@ -614,7 +596,7 @@ void Domain::compute() {
 
     if (reader)
         delete reader;
-    // cerr << "End compute " << m_myPe << endl;
+    // std::cerr << "End compute " << m_myPe << std::endl;
 }
 
 // EOF

@@ -1,26 +1,17 @@
-#ifdef MPI_ON
-#include <mpi.h>
-#endif
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <unistd.h>
-
-using namespace std;
 
 //
 #include "Domain.hpp"
 #include "EnumDefs.hpp"
 #include "cclock.hpp"
+
+#ifdef MPI_ON
+#include <mpi.h>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 
 void Domain::boundary_init() {
     int32_t size, ivar, i, j, i0, j0;
