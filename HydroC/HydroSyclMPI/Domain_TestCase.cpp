@@ -1,6 +1,9 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
+//
+#include "Domain.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -8,22 +11,7 @@
 #include <omp.h>
 #endif
 
-#include <cerrno>
-#include <climits>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <unistd.h>
-
-using namespace std;
-
-//
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "cclock.hpp"
 
 void Domain::createTestCase() {
     int32_t xmin, xmax, ymin, ymax;

@@ -1,3 +1,7 @@
+#include "Domain.hpp"
+#include "cclock.hpp"
+
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -9,33 +13,9 @@
 #include <png.h>
 #endif
 
-#include <cerrno>
-#include <climits>
+#include <cstdarg>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <unistd.h>
 
-#include <assert.h>
-#include <float.h>
-#include <malloc.h>
-#include <stdarg.h>
-#include <strings.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-using namespace std;
-
-//
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "cclock.hpp"
 
 static void abort_(const char *s, ...) {
     va_list args;

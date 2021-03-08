@@ -5,33 +5,11 @@
 #include <omp.h>
 #endif
 
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <unistd.h>
-
-#include <float.h>
-#include <malloc.h>
-#include <stdarg.h>
-#include <strings.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-using namespace std;
 
 #include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "Soa.hpp"
-#include "cclock.hpp"
+
+#include <sys/stat.h>
+
 
 typedef unsigned char byte_t;
 

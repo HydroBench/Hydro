@@ -1,3 +1,6 @@
+
+#include "Domain.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -5,25 +8,7 @@
 #include <omp.h>
 #endif
 
-#include <cerrno>
-#include <climits>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <unistd.h>
-
-#include <strings.h>
-
-/*
- */
-using namespace std;
-
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "Soa.hpp"
 
 void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
     int32_t x, y, xmin, xmax, ymin, ymax, n = 1;

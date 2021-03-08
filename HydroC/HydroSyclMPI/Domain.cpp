@@ -8,26 +8,12 @@
 #include <omp.h>
 #endif
 
-#include <cassert>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
+//
+#include "Domain.hpp"
 
 #include <unistd.h>
 
-using namespace std;
 
-//
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "cclock.hpp"
-
-// template <typename T>
-// Domain::Domain(void) { }
-// template <typename T>
 Domain::Domain(int argc, char **argv) {
     // default values
     m_numa = 1;
@@ -104,7 +90,7 @@ Domain::Domain(int argc, char **argv) {
     if (tRemain <= 1) {
         // useless run which can be harmful to files
         if (m_myPe == 0 && m_stats > 0) {
-            cerr << "HydroC: allocated time too short " << tRemain << "s" << endl;
+            std::cerr << "HydroC: allocated time too short " << tRemain << "s" << std::endl;
         }
 #ifdef MPI_ON
         MPI_Abort(MPI_COMM_WORLD, 1);
@@ -123,9 +109,9 @@ Domain::Domain(int argc, char **argv) {
         m_timeGuard = 20;
 
     if (m_myPe == 0 && m_stats > 0) {
-        cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s"
-             << " time guard " << m_timeGuard << "s" << endl;
-        cout.flush();
+        std::cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s"
+             << " time guard " << m_timeGuard << "s" << std::endl;
+        std::cout.flush();
     }
 
     parseParams(argc, argv);
@@ -143,8 +129,8 @@ Domain::Domain(int argc, char **argv) {
     //              char txt[256];
     //              double elaps = (end - start);
     //              convertToHuman(txt, elaps);
-    //              cout << "Read protection in " << txt << " (" << elaps << "s)"
-    //              << endl; cout.flush();
+    //              std::cout << "Read protection in " << txt << " (" << elaps << "s)"
+    //              << std::endl; std::cout.flush();
     //      }
     // }
 
@@ -194,7 +180,7 @@ Domain::~Domain() {
     }
     if (m_inputFile)
         free(m_inputFile);
-    // cerr << "End ~Domain " << getMype() << endl;
+    // std::cerr << "End ~Domain " << getMype() << std::endl;
 }
 
 void Domain::domainDecompose() {
@@ -234,16 +220,16 @@ void Domain::domainDecompose() {
         }
 
         if (m_prt) {
-            cout << m_globNx << " ";
-            cout << m_globNy << " ";
-            cout << m_nProc << " ";
-            cout << m_myPe << " - ";
-            cout << m_nx << " ";
-            cout << m_ny << " - ";
-            cout << m_box[LEFT_D] << " ";
-            cout << m_box[RIGHT_D] << " ";
-            cout << m_box[DOWN_D] << " ";
-            cout << m_box[UP_D] << endl;
+            std::cout << m_globNx << " ";
+            std::cout << m_globNy << " ";
+            std::cout << m_nProc << " ";
+            std::cout << m_myPe << " - ";
+            std::cout << m_nx << " ";
+            std::cout << m_ny << " - ";
+            std::cout << m_box[LEFT_D] << " ";
+            std::cout << m_box[RIGHT_D] << " ";
+            std::cout << m_box[DOWN_D] << " ";
+            std::cout << m_box[UP_D] << std::endl;
         }
     }
 
@@ -371,7 +357,7 @@ void Domain::readInput() {
     {
         fd = fopen(m_inputFile, "r");
         if (fd == NULL) {
-            cerr << "can't read input file\n" << endl;
+            std::cerr << "can't read input file\n" << std::endl;
             abort();
         }
         while (fgets(buffer, 1024, fd) == buffer) {
@@ -509,12 +495,12 @@ void Domain::readInput() {
             }
             if (strcmp(pkey, "fakereadsize") == 0) {
                 sscanf(pval, "%ld", &m_fakeReadSize);
-                // cerr << m_fakeReadSize << endl;
+                // std::cerr << m_fakeReadSize << std::endl;
                 continue;
             }
             // string parameter
             if (strcmp(pkey, "scheme") == 0) {
-                // cerr << "[" << pval << "]" << endl;
+                // std::cerr << "[" << pval << "]" << std::endl;
                 if (strstr(pval, "muscl") != 0) {
                     m_scheme = SCHEME_MUSCL;
                 } else if (strstr(pval, "plmde") != 0) {
@@ -522,9 +508,9 @@ void Domain::readInput() {
                 } else if (strstr(pval, "collela") != 0) {
                     m_scheme = SCHEME_COLLELA;
                 } else {
-                    cerr << "Scheme name <%s> is unknown, should be one of "
+                    std::cerr << "Scheme name <%s> is unknown, should be one of "
                             "[muscl,plmde,collela]\n"
-                         << pval << endl;
+                         << pval << std::endl;
                     abort();
                 }
                 continue;
@@ -707,18 +693,18 @@ void Domain::setTiles() {
         tsCur = tsMin;
         thMin = this->nbTile(tsMin) % nTh;
         while (tsCur < tsMax) {
-            // cout << endl;
-            // cout << tsMin << " " << tsCur << " " << tsMax << endl;
+            // std::cout << std::endl;
+            // std::cout << tsMin << " " << tsCur << " " << tsMax << std::endl;
             thCur = this->nbTile(tsCur) % nTh;
             if (thCur == 0) {
-                // cout << " trouve : " << tsCur << " " << thCur << endl;
+                // std::cout << " trouve : " << tsCur << " " << thCur << std::endl;
                 tsMin = tsCur;
                 thMin = thCur;
                 break;
             }
             if (thCur < thMin) {
                 tsMin = tsCur;
-                // cout << " New min : " << tsMin << " " << thMin << endl;
+                // std::cout << " New min : " << tsMin << " " << thMin << std::endl;
             }
             tsCur++;
         }
@@ -727,16 +713,16 @@ void Domain::setTiles() {
         tileSize = tsCur;
         m_tileSize = tileSize;
         m_nbtiles = this->nbTile(tileSize);
-        // cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles
-        // % nTh) << endl;
+        // std::cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles
+        // % nTh) << std::endl;
 
 #endif
         if (m_myPe == 0 && m_stats > 0)
-            cout << "Computing tilesize to " << tileSize << " R=" << (float)m_nbtiles / (float)nTh
-                 << endl;
+            std::cout << "Computing tilesize to " << tileSize << " R=" << (float)m_nbtiles / (float)nTh
+                 << std::endl;
     } else {
         if (m_myPe == 0 && m_stats > 0)
-            cout << "Forcing tilesize to " << tileSize << endl;
+            std::cout << "Forcing tilesize to " << tileSize << std::endl;
     }
 
 
@@ -750,7 +736,7 @@ void Domain::setTiles() {
 
     // Create the Morton holder to wander around the tiles
     m_morton = new Matrix2<int32_t>(mortonW, mortonH);
-    // cerr << mortonW << " " << mortonH << endl;
+    // std::cerr << mortonW << " " << mortonH << std::endl;
     m_mortonIdx = m_morton->listMortonIdx();
     assert(m_mortonIdx != 0);
 
@@ -777,8 +763,8 @@ void Domain::setTiles() {
             if (temp[i] != -1)
                 m_mortonIdx[t++] = temp[i];
         }
-        // for (int32_t ir = 0; ir < m_nbtiles; ir++) cerr << temp[ir] << " "; cerr
-        // << endl;
+        // for (int32_t ir = 0; ir < m_nbtiles; ir++) std::cerr << temp[ir] << " "; std::cerr
+        // << std::endl;
         delete[] temp;
     }
     //
@@ -810,9 +796,9 @@ void Domain::setTiles() {
             m_tiles[m_nbtiles]->setPrt(m_prt);
             m_tiles[m_nbtiles++]->setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
             if (m_prt) {
-                cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
-                cout << " ofx " << offx << " offy " << offy;
-                cout << " nx " << m_nx << " m_ny " << m_ny << endl;
+                std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
+                std::cout << " ofx " << offx << " offy " << offy;
+                std::cout << " nx " << m_nx << " m_ny " << m_ny << std::endl;
             }
             offx += tileSize;
         }
@@ -841,12 +827,12 @@ void Domain::setTiles() {
                 tdown = (*m_morton)(i, j - 1);
                 pdown = m_tiles[tdown];
             }
-            // cerr << t << " : ";
-            // cerr << tleft << " ";
-            // cerr << tright << " ";
-            // cerr << tup << " ";
-            // cerr << tdown << " ";
-            // cerr << endl;
+            // std::cerr << t << " : ";
+            // std::cerr << tleft << " ";
+            // std::cerr << tright << " ";
+            // std::cerr << tup << " ";
+            // std::cerr << tdown << " ";
+            // std::cerr << std::endl;
             m_tiles[t]->setVoisins(pleft, pright, pup, pdown);
         }
     }
@@ -880,12 +866,12 @@ void Domain::setTiles() {
     for (int32_t i = 0; i < m_numThreads; i++) {
         // #pragma omp critical
         // {
-        //    cerr << i << " attendu " << myThread() << endl << flush;
+        //    std::cerr << i << " attendu " << myThread() << std::endl << flush;
         // }
         m_buffers[i] = new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
         assert(m_buffers[myThread()] != 0);
     }
-// cerr << "Buffer cree" << endl;
+// std::cerr << "Buffer cree" << std::endl;
 #ifdef _OPENMP
 #pragma omp parallel for private(i) if (m_numa) SCHEDULE
 #endif
@@ -907,10 +893,10 @@ void Domain::setTiles() {
         memset(cpuName, 0, 1024);
 
         gethostname(hostn, 1023);
-        cout << "HydroC starting run with " << m_nbtiles << " tiles";
-        cout << " on " << hostn << endl;
+        std::cout << "HydroC starting run with " << m_nbtiles << " tiles";
+        std::cout << " on " << hostn << std::endl;
         getCPUName(cpuName);
-        cout << "CPU name" << cpuName << endl;
+        std::cout << "CPU name" << cpuName << std::endl;
     }
     // exit(0);
 }

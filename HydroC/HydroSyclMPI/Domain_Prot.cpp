@@ -1,3 +1,6 @@
+
+#include "Domain.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -5,30 +8,10 @@
 #include <omp.h>
 #endif
 
-#include <cerrno>
-#include <climits>
-#include <cmath>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-
-// For low level file operation C Style
 #include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include <unistd.h>
-
-/*
- */
-using namespace std;
-
-#include "Domain.hpp"
-#include "EnumDefs.hpp"
-#include "Soa.hpp"
-#include "cclock.hpp"
+#include <sys/stat.h>
 
 const long pageSize = 4 * 1024 * 1024;
 typedef struct _textMarker {
@@ -52,7 +35,7 @@ inline void lgrdstScal(const int f, const protectionMode_t mode, long &l, T *x) 
         byt = read(f, (x), sizeof(T));
     }; break;
     default:
-        cerr << "Checkpoint: unknown mode" << endl;
+        std::cerr << "Checkpoint: unknown mode" << std::endl;
         abort();
     }
 }
@@ -70,7 +53,7 @@ inline void lgrdstArr(const int f, const protectionMode_t mode, long &l, T x) {
         x->read(f);
     }; break;
     default:
-        cerr << "Checkpoint: unknown mode" << endl;
+        std::cerr << "Checkpoint: unknown mode" << std::endl;
         abort();
     }
 }
@@ -90,7 +73,7 @@ inline void lgrdstArrSimple(const int f, const protectionMode_t mode, long &l, T
         byt = read(f, &(x), sizeof(x) * lgr);
         break;
     default:
-        cerr << "Checkpoint: unknown mode" << endl;
+        std::cerr << "Checkpoint: unknown mode" << std::endl;
         abort();
     }
 }
@@ -141,7 +124,7 @@ long Domain::protectTiles(const protectionMode_t mode, const int f) {
             m_tiles[tile]->read(f);
             break;
         default:
-            cerr << "Checkpoint: unknown mode" << endl;
+            std::cerr << "Checkpoint: unknown mode" << std::endl;
             abort();
         }
     }
@@ -170,14 +153,14 @@ void Domain::readProtectionVars(const int f) {
 
     // read of protection marker
     byt = read(f, protmarkR.t, sizeof(protmarkR));
-    // cerr << "marqueur lu: " << protmarkR.t << endl;
-    // cerr << "marqueur at: " << protmark.t << endl;
+    // std::cerr << "marqueur lu: " << protmarkR.t << std::endl;
+    // std::cerr << "marqueur at: " << protmark.t << std::endl;
     assert(strcmp(protmarkR.t, protmark.t) == 0); // crude protection corruption detection
     protectScalars(PROT_READ, f);
     protectArrays(PROT_READ, f);
     byt = read(f, endprotR.t, sizeof(endprotR));
-    // cerr << "marqueur lu: " << endprotR.t << endl;
-    // cerr << "marqueur at: " << endprot.t << endl;
+    // std::cerr << "marqueur lu: " << endprotR.t << std::endl;
+    // std::cerr << "marqueur at: " << endprot.t << std::endl;
     assert(strcmp(endprotR.t, endprot.t) == 0); // crude protection corruption detection
 }
 
@@ -276,7 +259,7 @@ void Domain::saveProtection() {
     }
     // rename the current checkpoint as a backup
     if (hasProtection()) {
-        cerr << " Creating a backup of the checkpoint file " << endl;
+        std::cerr << " Creating a backup of the checkpoint file " << std::endl;
         rename(ProtName, ProtNameOld);
     }
 }
@@ -288,7 +271,7 @@ void Domain::writeProtection() {
 
     if (m_myPe == 0) {
         saveProtection();
-        cerr << " Opening " << ProtName << " for writing " << endl;
+        std::cerr << " Opening " << ProtName << " for writing " << std::endl;
         f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
     }
 #ifdef MPI_ON
@@ -317,7 +300,7 @@ void Domain::writeProtection() {
     MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
     if (m_myPe == 0)
-        cerr << "Protection written" << endl;
+        std::cerr << "Protection written" << std::endl;
 }
 
 void Domain::readProtectionHeader(const int f) {
@@ -346,7 +329,7 @@ void Domain::readProtectionHeader(const int f) {
     headerLength = headerLength * pageSize;
 
     if (m_myPe == 0) {
-        cerr << "Opening protection" << endl;
+        std::cerr << "Opening protection" << std::endl;
         lseek(f, 0, SEEK_SET);
         // Read magic number
         byt = read(f, magicR.t, sizeof(magicR));
