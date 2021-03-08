@@ -1,97 +1,31 @@
+# Makefile for DPCPP
+
+
 SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
 OBJS=$(patsubst %.cpp,%.o,$(SRCS)) cclock.o
-OPENMP=O
-PNG=O
-MPI=O
-HOST=$(shell uname -n | sed 's/[0-9]//g')
-ARCHEXT=std
-NODEFAULT=no
 
-# INCS+=-I$(HOME)/vecadv/advisor_xe/include
+
+OPENMP=N
+PNG=O
+MPI=N
+HOST=$(shell uname -n | sed 's/[0-9]//g')
+ARCHEXT=dpcpp
+NODEFAULT=no
+DPCPP=O
+DBG=O
+
 
 DEFS+=$(DEFSEXT)
 
 # for compiler selection
 include make.compil
 
-ifeq ($(PI),O)
-include make.pi
+ifeq ($(DPCPP),O)
+include make.dpcpp
 NODEFAULT=yes
 endif
 
-ifeq ($(ARM),O)
-include make.arm
-NODEFAULT=yes
-endif
-
-ifeq ($(ATOM),O)
-include make.atom
-NODEFAULT=yes
-endif
-
-ifeq ($(MIC),O)
-include make.mic
-NODEFAULT=yes
-endif
-
-ifeq ($(SSE),O)
-include make.sse
-NODEFAULT=yes
-endif
-
-ifeq ($(KNL),O)
-# Knights Landing using AVX512 with specificities of KNL
-include make.knl
-NODEFAULT=yes
-endif
-
-ifeq ($(AVX3),O)
-# Skylake Xeon and beyond
-include make.avx3
-NODEFAULT=yes
-endif
-
-ifeq ($(AVX512),O)
-# Skylake Xeon and beyond
-include make.avx3
-NODEFAULT=yes
-endif
-
-ifeq ($(AVX2),O)
-include make.avx2
-NODEFAULT=yes
-endif
-
-ifeq ($(AVX),O)
-include make.avx
-NODEFAULT=yes
-endif
-
-ifeq ($(CRAY),O)
-include make.cray
-NODEFAULT=yes
-endif
-
-ifeq ($(THX2),O)
-include make.thx2
-NODEFAULT=yes
-endif
-
-ifeq ($(EPYC),O)
-include make.epyc
-NODEFAULT=yes
-endif
-
-ifeq ($(SVE),O)
-include make.sve
-NODEFAULT=yes
-endif
-
-ifeq ($(GEN9),O)
-include make.gen9
-NODEFAULT=yes
-endif
 
 ifeq ($(NODEFAULT),no)
 # capture the default case where no arch indication has been given to make
@@ -102,7 +36,7 @@ endif
 
 CFLAGS+=$(DEFS)
 
-include make.opts
+# include make.opts
 
 ifeq ($(PNG),O)
 LIBS+=-lpng 
@@ -111,9 +45,7 @@ endif
 CFLAGS+=$(INCS)
 
 PTH=
-ifeq ($(OPENMP),O)
-PTH=-L/usr/lib64 -lpthread
-endif
+
 
 hydroc: $(OBJS)
 	$(CXX) $(CFLAGS) $(OPTIM) $(OBJS) $(STATICOPT) $(LDFLAGS) $(LIBS) $(PTH) -lm -lrt -o hydroc 

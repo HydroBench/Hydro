@@ -125,9 +125,7 @@ int32_t Domain::tileFromMorton(int32_t t) {
     int32_t it = t;
     int32_t m = m_mortonIdx[t];
     int32_t x, y;
-    // int rc = (*m_morton).idxFromMorton(x, y, m);
-    // assert(rc == true);
-    // i = (*m_morton) (x, y);
+
     int32_t mortonH = (m_ny + m_tileSize - 1) / m_tileSize;
     int32_t mortonW = (m_nx + m_tileSize - 1) / m_tileSize;
     it = 0;
@@ -218,6 +216,7 @@ real_t Domain::computeTimeStep() {
         }
 
         // we have to wait here that all tiles are ready to update uold
+
 #pragma omp parallel for private(t) SCHEDULE
         for (t = 0; t < m_nbtiles; t++) {
             compTStask2(t, 0, 0);
