@@ -7,9 +7,7 @@
 #include <mpi.h>
 #endif
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 
 #include <iomanip>
 #include <cmath>
@@ -34,7 +32,7 @@ void Domain::changeDirection() {
 
     // reverse the shared storage direction of the threads
 #pragma omp parallel for SCHEDULE
-    for (int32_t i = 0; i < m_numThreads; i++) {
+    for (int32_t i = 0; i < m_nbWorkItems; i++) {
         m_buffers[i]->swapStorageDims();
     }
     swapScan();
@@ -282,15 +280,10 @@ void Domain::compute() {
     }
 
     memset(vtkprt, 0, 64);
-
-#ifdef _OPENMP
     if (m_myPe == 0 && m_stats > 0) {
-        std::cout << "Hydro: OpenMP max threads " << omp_get_max_threads() << std::endl;
-        // std::cout << "Hydro: OpenMP num threads " << omp_get_num_threads() << std::endl;
-        std::cout << "Hydro: OpenMP num procs   " << omp_get_num_procs() << std::endl;
-        std::cout << "Hydro: OpenMP " << Schedule << std::endl;
+        
     }
-#endif
+
 #ifdef MPI_ON
     if (m_myPe == 0 && m_stats > 0) {
         if (m_nProc == 1)
@@ -557,8 +550,7 @@ void Domain::compute() {
     }
     {
         // get the threads timers values and add them to our timer
-        for (int32_t i = 0; i < m_numThreads; i++) {
-
+        for (int32_t i = 0; i < m_nbWorkItems; i++) {
             // m_threadTimers[i].print();
             m_mainTimer += m_threadTimers[i];
         }
@@ -578,7 +570,7 @@ void Domain::compute() {
             double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
             double seenParallel = 0;
             for (int32_t i = 0; i < TILEOMP; ++i) {
-                m_mainTimer.div(Fname_t(i), m_numThreads);
+                m_mainTimer.div(Fname_t(i), m_nbWorkItems);
                 seenParallel += m_mainTimer.get(Fname_t(i));
             }
             double efficiency = 100.0 * seenParallel / elapsParallelOMP;

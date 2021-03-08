@@ -8,9 +8,6 @@
 #include <mpi.h>
 #endif
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 
 void Domain::boundary_init() {
@@ -18,6 +15,7 @@ void Domain::boundary_init() {
     double start, end, startio, elaps;
     start = Custom_Timer::dcclock();
     int sign;
+    
 #ifdef MPI_ON
     MPI_Request requests[4];
     MPI_Status status[4];

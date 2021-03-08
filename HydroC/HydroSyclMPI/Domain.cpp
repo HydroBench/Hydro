@@ -6,9 +6,12 @@
 #endif
 
 
-
 //
 #include "Domain.hpp"
+
+#ifdef _SYCL
+#include <CL/sycl.hpp>
+#endif
 
 #include <unistd.h>
 
@@ -71,20 +74,23 @@ Domain::Domain(int argc, char **argv) {
     m_recvbufld = 0;  // receive left or down
     m_sendbufru = 0;  // send right or up
     m_sendbufld = 0;  // send left or down
-    m_numThreads = 1; // runs serially by default
+#ifdef _SYCL    
+    m_syclQueue = 0;
+#endif
+
+    m_nbWorkItems = 1; // runs serially by default
     m_fakeRead = 0;
     m_fakeReadSize = 3000000;
     m_tasked = 0;
     m_taskeddep = 0;
     m_nDumpline = -1;
-#ifdef MPI_ON
-    MPI_Init(&argc, &argv);
-#endif
 
-    initMPI();
+    initParallelMode(argc, argv); // May modify argc and argv!
+
     if (m_myPe == 0 && m_stats > 0) {
         int src = system("cpupower frequency-info | egrep 'CPU frequency|steps'");
     }
+
     double tRemain = m_tr.timeRemainAll();
     if (tRemain <= 1) {
         // useless run which can be harmful to files
@@ -97,6 +103,7 @@ Domain::Domain(int argc, char **argv) {
         abort();
 #endif
     }
+
     m_timeGuard = 900;
     if (tRemain < 30000)
         m_timeGuard = 900;
@@ -150,7 +157,7 @@ Domain::~Domain() {
     if (m_localDt)
         free(m_localDt);
 
-    for (int32_t i = 0; i < m_numThreads; i++) {
+    for (int32_t i = 0; i < m_nbWorkItems; i++) {
         delete m_buffers[i];
     }
     delete[] m_buffers;
@@ -159,14 +166,18 @@ Domain::~Domain() {
     if (m_morton)
         delete m_morton;
     if (m_timerLoops) {
-        for (int32_t i = 0; i < m_numThreads; i++) {
+        for (int32_t i = 0; i < m_nbWorkItems; i++) {
             delete[] m_timerLoops[i];
         }
         delete[] m_timerLoops;
     }
     if (m_inputFile)
         free(m_inputFile);
-    // std::cerr << "End ~Domain " << getMype() << std::endl;
+#ifdef _SYCL
+    if (m_syclQueue)
+        delete m_syclQueue;
+#endif       
+    
 }
 
 void Domain::domainDecompose() {
@@ -665,6 +676,7 @@ void Domain::setTiles() {
         int thMax, thMin, thCur;
         tileSize = 60;
         m_tileSize = tileSize;
+
 #ifdef _OPENMP
         nTh = omp_get_max_threads();
         m_nbtiles = 1;
@@ -827,29 +839,31 @@ void Domain::setTiles() {
 #ifdef _OPENMP
     m_numThreads = omp_get_max_threads();
 #else
-    m_numThreads = 1;
+    m_nbWorkItems = 1;
 #endif
-    m_timerLoops = new double *[m_numThreads + 1];
+    m_timerLoops = new double *[m_nbWorkItems + 1];
+
 #ifdef _OPENMP
 #pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
 #endif
-    for (int32_t i = 0; i < m_numThreads; i++) {
+
+    for (int32_t i = 0; i < m_nbWorkItems; i++) {
         m_timerLoops[i] = new double[LOOP_END];
         assert(m_timerLoops[i] != 0);
         memset(m_timerLoops[i], 0, LOOP_END * sizeof(double));
     }
 
     int32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
-    m_buffers = new ThreadBuffers *[m_numThreads];
+    m_buffers = new ThreadBuffers *[m_nbWorkItems];
     assert(m_buffers != 0);
 
-    m_threadTimers = new Timers[m_numThreads];
+    m_threadTimers = new Timers[m_nbWorkItems];
     assert(m_threadTimers != 0);
 
 #ifdef _OPENMP
 #pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
 #endif
-    for (int32_t i = 0; i < m_numThreads; i++) {
+    for (int32_t i = 0; i < m_nbWorkItems; i++) {
         // #pragma omp critical
         // {
         //    std::cerr << i << " attendu " << myThread() << std::endl << flush;
@@ -887,8 +901,12 @@ void Domain::setTiles() {
     // exit(0);
 }
 
-void Domain::initMPI() {
+void Domain::initParallelMode(int & argc, char ** & argv) {
+
 #ifdef MPI_ON
+
+    MPI_init(&argc, &argv);
+
     int nproc, mype;
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Comm_rank(MPI_COMM_WORLD, &mype);
@@ -897,6 +915,17 @@ void Domain::initMPI() {
 #else
     m_myPe = 0;
     m_nProc = 1;
+#endif
+
+#ifdef _SYCL
+    sycl::default_selector device_selector;
+    sycl::queue q(device_selector );
+    if (m_myPe == 0 && m_stats > 0)
+     std::cout << "DPC++ execution " << std::endl;
+
+    m_syclQueue = new sycl::queue;
+    * m_syclQueue = q;
+    
 #endif
 }
 

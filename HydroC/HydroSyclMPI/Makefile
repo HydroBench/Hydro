@@ -56,7 +56,7 @@ ifeq ($(STATIC),O)
 endif
 
 
-include $(DEPS)
+#include $(DEPS)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(CFLAGS) $(OPTIM) $< -o $@ 

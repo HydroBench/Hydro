@@ -10,8 +10,8 @@
 #include "Tile.hpp"
 #include "TimeLimit.hpp"
 
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef _SYCL
+#include <CL/sycl.hpp>
 #endif
 
 #if WITHPNG > 0
@@ -22,6 +22,8 @@
 class Domain {
   private:
     // variables to protect between runs
+
+
     Soa *m_uold;                // on the full domain
     real_t m_tcur, m_dt;        //=
     int32_t m_globNx, m_globNy; // global size of the simulation //=
@@ -40,7 +42,12 @@ class Domain {
     Tile **m_tiles;       //=
     int32_t m_nbtiles;    //=
     int32_t m_tileSize;   //=
-    int32_t m_numThreads; // nb of threads available
+    
+#ifdef _SYCL
+    sycl::queue * m_syclQueue;   // The type is not necessary here, it is just a pointer
+#endif
+
+    int32_t m_nbWorkItems; // nb of threads available
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
     Matrix2<int32_t> *m_morton;
@@ -120,9 +127,12 @@ class Domain {
     void domainDecompose();
     void setTiles();
     void printSummary();
-    void initMPI();
-    void endMPI();
+
+    void initParallelMode(int & argc, char  ** & argv);
+
+    void endParallelMode();
     void boundary_init();
+
     void boundary_process();
     real_t computeTimeStep();
     void compTStask1(int32_t t);
@@ -208,9 +218,7 @@ class Domain {
     void compute();
     int32_t myThread() {
         int32_t r = 0;
-#ifdef _OPENMP
-        r = omp_get_thread_num();
-#endif
+
         return r;
     }
 };

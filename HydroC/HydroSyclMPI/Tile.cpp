@@ -21,9 +21,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 
 //
 
@@ -34,16 +32,12 @@ Tile::Tile() {
     m_ExtraLayer = 2;
     m_scan = X_SCAN;
     m_uold = 0;
-#ifdef _OPENMP
-    omp_init_lock(&m_lock);
-#endif
+
 }
 
 
 Tile::~Tile() {
-#ifdef _OPENMP
-    omp_destroy_lock(&m_lock);
-#endif
+
     delete m_u;
     delete m_flux;
 }
@@ -119,7 +113,7 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS) {
         real_t t1;
         dlft = m_slope_type * (qS[i] - qS[i - 1]);
         drgt = m_slope_type * (qS[i + 1] - qS[i]);
-        dcen = half * (dlft + drgt) * ov_slope_type;
+        dcen = my_half * (dlft + drgt) * ov_slope_type;
         dsgn = (dcen > 0) ? one : -one; // sign(one, dcen);
 
         llftrgt = ((dlft * drgt) <= zero);
@@ -263,8 +257,8 @@ void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, rea
         rOcc = r / cc;
         OrOcc = cc / r;
         dprcc = dp / (r * cc);
-        alpham = half * (dprcc - du) * rOcc;
-        alphap = half * (dprcc + du) * rOcc;
+        alpham = my_half * (dprcc - du) * rOcc;
+        alphap = my_half * (dprcc + du) * rOcc;
         alpha0r = dr - dp / csq;
         alpha0v = dv;
         upcc = u + cc;
@@ -277,10 +271,10 @@ void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, rea
         spminus = (umcc >= zeror) ? (project) : umccx + one;
         spplus = (upcc >= zeror) ? (project) : upccx + one;
         spzero = (u >= zeror) ? (project) : ux + one;
-        apright = -half * spplus * alphap;
-        amright = -half * spminus * alpham;
-        azrright = -half * spzero * alpha0r;
-        azv1right = -half * spzero * alpha0v;
+        apright = -my_half * spplus * alphap;
+        amright = -my_half * spminus * alpham;
+        azrright = -my_half * spzero * alpha0r;
+        azv1right = -my_half * spzero * alpha0v;
 
         pqxpIDS[i] = r + (apright + amright + azrright);
         pqxpIUS[i] = u + (apright - amright) * OrOcc;
@@ -291,10 +285,10 @@ void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, rea
         spminus = (umcc <= zerol) ? (-project) : umccx - one;
         spplus = (upcc <= zerol) ? (-project) : upccx - one;
         spzero = (u <= zerol) ? (-project) : ux - one;
-        apleft = -half * spplus * alphap;
-        amleft = -half * spminus * alpham;
-        azrleft = -half * spzero * alpha0r;
-        azv1left = -half * spzero * alpha0v;
+        apleft = -my_half * spplus * alphap;
+        amleft = -my_half * spminus * alpham;
+        azrleft = -my_half * spzero * alpha0r;
+        azv1left = -my_half * spzero * alpha0v;
 
         pqxmIDS[i] = r + (apleft + amleft + azrleft);
         pqxmIUS[i] = u + (apleft - amleft) * OrOcc;
@@ -357,7 +351,7 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
         // Transverse momentum 1
         fluxIVS[i] = massDensity * qgdnvIVS[i];
         // Total energy
-        real_t ekin = half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) + Square(qgdnvIVS[i]));
+        real_t ekin = my_half * qgdnvIDS[i] * (Square(qgdnvIUS[i]) + Square(qgdnvIVS[i]));
         real_t etot = qgdnvIPS[i] * entho + ekin;
         fluxIPS[i] = qgdnvIUS[i] * (etot + qgdnvIPS[i]);
     }
@@ -671,7 +665,7 @@ void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal
         qIDS[i] = std::max(qIDS[i], m_smallr);
         qIUS[i] = uoldIUS[i + m_offx] / qIDS[i];
         qIVS[i] = uoldIVS[i + m_offx] / qIDS[i];
-        eken = half * (Square(qIUS[i]) + Square(qIVS[i]));
+        eken = my_half * (Square(qIUS[i]) + Square(qIVS[i]));
         tmp = uoldIPS[i + m_offx] / qIDS[i] - eken;
         qIPS[i] = tmp;
         eS[i] = tmp;
@@ -780,7 +774,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
         qiu = uIUS[i] / qid;
         qiv = uIVS[i] / qid;
 
-        eken = half * (Square(qiu) + Square(qiv));
+        eken = my_half * (Square(qiu) + Square(qiv));
 
         qip = uIPS[i] / qid - eken;
         qIUS[i] = qiu;
@@ -915,7 +909,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         real_t wl_i = sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
 
         real_t ustar_i =
-            half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
+            my_half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
 
         real_t left = ustar_i > 0;
 
@@ -951,7 +945,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         real_t scr_i =
             std::max((real_t)(spout_i - spin_i), (real_t)(m_smallc + std::abs(spout_i + spin_i)));
 
-        real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
+        real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
 
         int addSpout = spout_i < zero;
@@ -1050,7 +1044,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         wr_i = sqrt(crI * (one + gamma6 * (pstarI - prI) / prI));
         wl_i = sqrt(clI * (one + gamma6 * (pstarI - plI) / plI));
 
-        real_t ustar_i = half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
+        real_t ustar_i = my_half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
         double left = (double)(ustar_i > 0);
 
@@ -1083,7 +1077,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         real_t scr_i =
             std::max((real_t)(spout_i - spin_i), (real_t)(m_smallc + std::abs(spout_i + spin_i)));
 
-        real_t frac_i = (one + (spout_i + spin_i) / scr_i) * half;
+        real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
 
         int addSpout = spout_i < zero;
