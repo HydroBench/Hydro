@@ -1,22 +1,12 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#include <float.h>
-#include <malloc.h>
-#include <strings.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-//
 #include "Options.hpp"
 #include "ThreadBuffers.hpp"
+
+
+
+//
 
 using namespace std;
 
@@ -32,16 +22,17 @@ inline void *memsetth(void *s, int c, size_t n) {
 
 ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     int32_t lgx, lgy, lgmax;
+
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
-    lgmax = lgx;
-    if (lgmax < lgy)
-        lgmax = lgy;
-
+    
+    lgmax = std::max(lgx, lgy);
+   
     m_q = new Soa(NB_VAR, lgx, lgy);
     m_qxm = new Soa(NB_VAR, lgx, lgy);
     m_qxp = new Soa(NB_VAR, lgx, lgy);
     m_dq = new Soa(NB_VAR, lgx, lgy);
+
     m_qleft = new Soa(NB_VAR, lgx, lgy);
     m_qright = new Soa(NB_VAR, lgx, lgy);
     m_qgdnv = new Soa(NB_VAR, lgx, lgy);
@@ -60,12 +51,14 @@ ThreadBuffers::ThreadBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t y
     m_rr = AlignedAllocReal(lgmax);
     m_goon = AlignedAllocLong(lgmax);
 #endif
+
     m_pl = AlignedAllocReal(lgmax);
     m_sgnm = AlignedAllocReal(lgmax);
 
     // remplit la mémoire pour forcer l'allocation
     memsetth(m_sgnm, 0, lgmax * sizeof(real_t));
     memsetth(m_pl, 0, lgmax * sizeof(real_t));
+
 #if RIEMANNINREGS == 0
     memsetth(m_pstar, 0, lgmax * sizeof(real_t));
     memsetth(m_rl, 0, lgmax * sizeof(real_t));

@@ -144,27 +144,28 @@ int32_t Domain::tileFromMorton(int32_t t) {
 
 void Domain::compTStask1(int32_t tile) {
     // int lockStep = 0;
-    int32_t i = tile;
-    int32_t thN = 0;
+    int32_t tile_idx = tile;
+   
+    
 #if WITH_TIMERS == 1
     double startT = Custom_Timer::dcclock(), endT;
-    thN = myThread();
+    int32_t thN = myThread();
 #endif
+
     if (m_withMorton) {
-        i = m_mortonIdx[tile];
-        assert(i >= 0);
-        assert(i < m_nbtiles);
+        tile_idx = m_mortonIdx[tile];
+        assert(tile_idx >= 0);
+        assert(tile_idx < m_nbtiles);
     }
-    m_tiles[i]->setBuffers(m_buffers[myThread()]);
-    m_tiles[i]->setTcur(m_tcur);
-    m_tiles[i]->setDt(m_dt);
-    // std::cerr << i << " demarre " << std::endl; std::cerr.flush();
-    // lockStep = 1;
-    // m_tiles[i]->notProcessed();
-    m_tiles[i]->gatherconserv(); // input uold      output u
-    // m_tiles[i]->doneProcessed(lockStep);
-    m_tiles[i]->godunov();
-    // m_tiles[i]->doneProcessed(lockStep);
+
+    m_tiles[tile_idx]->setBuffers(m_buffers[myThread()]);
+    m_tiles[tile_idx]->setTcur(m_tcur);
+    m_tiles[tile_idx]->setDt(m_dt);
+    
+    m_tiles[tile_idx]->gatherconserv(); // input uold      output u
+   
+    m_tiles[tile_idx]->godunov();
+   
 #if WITH_TIMERS == 1
     endT = Custom_Timer::dcclock();
     (m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
@@ -172,27 +173,28 @@ void Domain::compTStask1(int32_t tile) {
 }
 
 void Domain::compTStask2(int32_t tile, int32_t mydep, int32_t mine) {
-    int32_t i = tile;
+    int32_t tile_idx = tile;
+
 #if WITH_TIMERS == 1
     int32_t thN = 0;
     double startT = Custom_Timer::dcclock(), endT;
     thN = myThread();
 #endif
     if (m_withMorton) {
-        i = m_mortonIdx[tile];
-        assert(i >= 0);
-        assert(i < m_nbtiles);
+        tile_idx = m_mortonIdx[tile];
+        assert(tile_idx >= 0);
+        assert(tile_idx < m_nbtiles);
     }
-    m_tiles[i]->setBuffers(m_buffers[myThread()]);
-    m_tiles[i]->updateconserv(); // input u, flux       output uold
-    // if (pass == 1) {
-    m_localDt[i] = m_tiles[i]->computeDt();
-    //}
+    m_tiles[tile_idx]->setBuffers(m_buffers[myThread()]);
+    m_tiles[tile_idx]->updateconserv(); // input u, flux       output uold
+  
+    m_localDt[tile_idx] = m_tiles[tile_idx]->computeDt();
+ 
 #if WITH_TIMERS == 1
     endT = Custom_Timer::dcclock();
     (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
-    // char txt[256]; sprintf(txt, "%03d prev %03d done\n", mine, mydep); std::cerr << txt;
+ 
 }
 
 real_t Domain::computeTimeStep() {
@@ -477,6 +479,7 @@ void Domain::compute() {
     end = Custom_Timer::dcclock();
     m_nbRun++;
     m_elapsTotal += (end - start);
+
     // TODO: temporaire a equiper de mesure de temps
     if (m_checkPoint) {
         double start, end;

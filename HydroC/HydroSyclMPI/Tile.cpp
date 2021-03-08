@@ -989,8 +989,6 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                               Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS,
                               Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS,
                               Preal_t sgnm) {
-// #pragma message "riemannOnRowInRegs actif"
-
 #pragma omp simd
 
     for (int32_t i = xmin; i < xmax; i++) {
@@ -1125,10 +1123,12 @@ void Tile::riemann() {
     Matrix2<real_t> &qgdnvIU = *(*m_qgdnv)(IU_VAR);
     Matrix2<real_t> &qgdnvIP = *(*m_qgdnv)(IP_VAR);
     Matrix2<real_t> &qgdnvIV = *(*m_qgdnv)(IV_VAR);
+
     Matrix2<real_t> &qleftID = *(*m_qleft)(ID_VAR);
     Matrix2<real_t> &qleftIU = *(*m_qleft)(IU_VAR);
     Matrix2<real_t> &qleftIP = *(*m_qleft)(IP_VAR);
     Matrix2<real_t> &qleftIV = *(*m_qleft)(IV_VAR);
+
     Matrix2<real_t> &qrightID = *(*m_qright)(ID_VAR);
     Matrix2<real_t> &qrightIU = *(*m_qright)(IU_VAR);
     Matrix2<real_t> &qrightIP = *(*m_qright)(IP_VAR);
@@ -1145,16 +1145,18 @@ void Tile::riemann() {
         real_t *qgdnvIUS = qgdnvIU.getRow(s);
         real_t *qgdnvIPS = qgdnvIP.getRow(s);
         real_t *qgdnvIVS = qgdnvIV.getRow(s);
+
         real_t *qleftIDS = qleftID.getRow(s);
         real_t *qleftIUS = qleftIU.getRow(s);
         real_t *qleftIPS = qleftIP.getRow(s);
         real_t *qleftIVS = qleftIV.getRow(s);
+        
         real_t *qrightIDS = qrightID.getRow(s);
         real_t *qrightIUS = qrightIU.getRow(s);
         real_t *qrightIPS = qrightIP.getRow(s);
         real_t *qrightIVS = qrightIV.getRow(s);
 
-        // #pragma message "==> riemannOnRowInRegs selectionne"
+
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
                            qrightIPS, qrightIVS, m_sgnm);
