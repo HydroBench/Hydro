@@ -4,16 +4,13 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include "Morton.hpp"
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <ostream>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include "Morton.hpp"
 
 class Volume {
   protected:

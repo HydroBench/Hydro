@@ -4,9 +4,7 @@
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 
 #include <cmath>
 

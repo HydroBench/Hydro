@@ -12,19 +12,12 @@
 #include "Utilities.hpp"
 
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 
 class Tile {
   private:
     Tile *m_voisin[4];
     int32_t m_hasBeenProcessed;
 
-#ifdef _OPENMP
-    omp_lock_t m_lock;
-#endif
 
     // ThreadBuffers *m_myBuffers; // the link to our ThreadBuffers Not needed [jcw]
     Timers *m_threadTimers;     // one Timers per thread
@@ -203,9 +196,7 @@ class Tile {
 
     int32_t myThread() {
         int32_t r = 0;
-#ifdef _OPENMP
-        r = omp_get_thread_num();
-#endif
+
         return r;
     }
     // for checkpoint / restart
