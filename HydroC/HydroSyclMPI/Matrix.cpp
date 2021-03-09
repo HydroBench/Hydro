@@ -94,17 +94,11 @@ template <typename T> Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), 
 
 template <typename T> void Matrix2<T>::fill(T v) {
     int32_t i, j;
-#ifdef _OPENMP
-    int embedded = 0; // to make it openmp proof
-#endif
 
-#ifdef _OPENMP
-    embedded = omp_in_parallel();
-#endif
+
+
     T *tmp = _arr;
-#ifdef _OPENMP
-#pragma omp parallel for shared(tmp) private(i, j) if (!embedded) SCHEDULE
-#endif
+
     for (j = 0; j < _h; j++) {
         // #pragma simd
         for (i = 0; i < _w; i++) {

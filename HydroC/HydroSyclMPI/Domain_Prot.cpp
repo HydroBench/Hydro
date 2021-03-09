@@ -1,6 +1,8 @@
 
 #include "Domain.hpp"
 
+#include "ParallelInfo.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
@@ -130,9 +132,10 @@ long Domain::protectTiles(const protectionMode_t mode, const int f) {
 }
 
 void Domain::writeProtectionVars(const int f) {
+    int myPe = ParallelInfo::mype();
     TextMarker_t magic, offmark, protmark, endprot;
-    sprintf(protmark.t, "HYDROC BEGPROT %06d", m_myPe);
-    sprintf(endprot.t, "HYDROC ENDPROT %06d", m_myPe);
+    sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
+    sprintf(endprot.t, "HYDROC ENDPROT %06d", myPe);
 
     // Write of protection marker
     int byt = 0;
@@ -144,10 +147,11 @@ void Domain::writeProtectionVars(const int f) {
 
 void Domain::readProtectionVars(const int f) {
     int byt = 0;
+    int myPe = ParallelInfo::mype();
     TextMarker_t protmark, endprot;
     TextMarker_t protmarkR, endprotR;
-    sprintf(protmark.t, "HYDROC BEGPROT %06d", m_myPe);
-    sprintf(endprot.t, "HYDROC ENDPROT %06d", m_myPe);
+    sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
+    sprintf(endprot.t, "HYDROC ENDPROT %06d", myPe);
 
     // read of protection marker
     byt = read(f, protmarkR.t, sizeof(protmarkR));
@@ -163,6 +167,9 @@ void Domain::readProtectionVars(const int f) {
 }
 
 void Domain::writeProtectionHeader(const int f) {
+
+    int myPe = ParallelInfo::mype();
+    int nProc = ParallelInfo::nb_procs();
 #ifdef MPI_ON
     MPI_Request *requests;
     MPI_Status *status;
@@ -170,15 +177,15 @@ void Domain::writeProtectionHeader(const int f) {
     int err = 0, reqcnt = 0;
 #endif
     long l = 0, byt = 0;
-    long *lgrs = (long *)calloc(m_nProc, sizeof(long));
-    long *offsets = (long *)calloc(m_nProc, sizeof(long));
+    long *lgrs = (long *)calloc(nProc, sizeof(long));
+    long *offsets = (long *)calloc(nProc, sizeof(long));
     long myOffset = 0;
     TextMarker_t magic, offmark, protmark, endprot;
     long headerLength = 0;
 
     sprintf(magic.t, "HYDROC CHECKPOINT");
-    sprintf(endprot.t, "HYDROC ENDPROT %06d", m_myPe);
-    sprintf(protmark.t, "HYDROC BEGPROT %06d", m_myPe);
+    sprintf(endprot.t, "HYDROC ENDPROT %06d", myPe);
+    sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
     sprintf(offmark.t, "HYDROC OFFSETS TABLE");
 
     l += sizeof(endprot);
@@ -190,7 +197,7 @@ void Domain::writeProtectionHeader(const int f) {
 
     headerLength += sizeof(magic);
     headerLength += sizeof(offmark);
-    headerLength += sizeof(long) * m_nProc;
+    headerLength += sizeof(long) * nProc;
     headerLength = (headerLength + pageSize - 1) / pageSize; // nb of pages needed for the header.
     headerLength = headerLength * pageSize;
 
@@ -236,13 +243,13 @@ void Domain::writeProtectionHeader(const int f) {
         free(status);
     }
 #endif
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         lseek(f, 0, SEEK_SET);
         // Write of magic number
         byt = write(f, magic.t, sizeof(magic));
         // Write of offset marker
         byt = write(f, offmark.t, sizeof(offmark));
-        byt = write(f, offsets, sizeof(long) * m_nProc);
+        byt = write(f, offsets, sizeof(long) * nProc);
     }
     lseek(f, myOffset, SEEK_SET);
     free(offsets);
@@ -267,7 +274,8 @@ void Domain::writeProtection() {
     int f = -1;
     errno = 0;
 
-    if (m_myPe == 0) {
+    int myPe = ParallelInfo::mype();
+    if (myPe == 0) {
         saveProtection();
         std::cerr << " Opening " << ProtName << " for writing " << std::endl;
         f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
@@ -275,8 +283,8 @@ void Domain::writeProtection() {
 #ifdef MPI_ON
     MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
-    if (m_nProc > 1) {
-        if (m_myPe > 0) {
+    if (ParallelInfo::nb_procs() > 1) {
+        if (myPe > 0) {
             f = open(ProtName, O_LARGEFILE | O_RDWR | O_CREAT, S_IRWXU);
         }
     }
@@ -297,7 +305,7 @@ void Domain::writeProtection() {
 #ifdef MPI_ON
     MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
-    if (m_myPe == 0)
+    if (myPe == 0)
         std::cerr << "Protection written" << std::endl;
 }
 
@@ -309,24 +317,27 @@ void Domain::readProtectionHeader(const int f) {
     int err = 0, reqcnt = 0;
 #endif
     int byt = 0;
-    long *offsets = (long *)calloc(m_nProc, sizeof(long));
     long myOffset = 0;
     TextMarker_t magic, offmark, protmark, endmark;
     TextMarker_t magicR, offmarkR, protmarkR;
     long headerLength = 0;
 
+    int myPe = ParallelInfo::mype();
+    int nProc = ParallelInfo::nb_procs();
+    long *offsets = (long *)calloc(nProc, sizeof(long));
+
     sprintf(magic.t, "HYDROC CHECKPOINT");
     sprintf(offmark.t, "HYDROC OFFSETS TABLE");
-    sprintf(protmark.t, "HYDROC BEGPROT %06d", m_myPe);
-    sprintf(endmark.t, "HYDROC ENDPROT %06d", m_myPe);
+    sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
+    sprintf(endmark.t, "HYDROC ENDPROT %06d", myPe);
 
     headerLength += sizeof(magic);
     headerLength += sizeof(offmark);
-    headerLength += sizeof(long) * m_nProc;
+    headerLength += sizeof(long) * ParallelInfo::nb_procs();
     headerLength = (headerLength + pageSize - 1) / pageSize; // nb of pages needed for the header.
     headerLength = headerLength * pageSize;
 
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         std::cerr << "Opening protection" << std::endl;
         lseek(f, 0, SEEK_SET);
         // Read magic number
@@ -335,7 +346,7 @@ void Domain::readProtectionHeader(const int f) {
         // Read offset marker
         byt = read(f, offmarkR.t, sizeof(offmarkR));
         assert(strcmp(offmarkR.t, offmark.t) == 0); // crude protection corruption detection
-        byt = read(f, offsets, sizeof(long) * m_nProc);
+        byt = read(f, offsets, sizeof(long) * nProc);
     }
     // by default we have only one proc.
     myOffset = offsets[0];
@@ -370,7 +381,7 @@ bool Domain::isStopped() {
 }
 
 bool Domain::StopComputation() {
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         int f = open("STOP", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
         if (f < 0) {
             perror("StopComputation");
@@ -393,14 +404,14 @@ void Domain::readProtection() {
     int f = -1;
     errno = 0;
 
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         f = open(ProtName, O_LARGEFILE | O_RDONLY, S_IRWXU);
     }
-    if (m_nProc > 1) {
+    if (ParallelInfo::nb_procs() > 1) {
 #ifdef MPI_ON
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
-        if (m_myPe > 0) {
+        if (ParallelInfo::mype() > 0) {
             f = open(ProtName, O_LARGEFILE | O_RDWR);
         }
     }

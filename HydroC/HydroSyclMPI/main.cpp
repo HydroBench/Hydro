@@ -1,4 +1,5 @@
 #include "Domain.hpp"
+#include "ParallelInfo.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-    if (domain->getMype() == 0)
+    if (ParallelInfo::mype() == 0)
         cout << "Hydro: done." << endl;
 
 #ifdef MPI_ON

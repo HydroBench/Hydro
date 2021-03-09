@@ -3,10 +3,10 @@
 #include "FakeRead.hpp"
 #include "cclock.hpp"
 
+#include "ParallelInfo.hpp"
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
-
 
 
 #include <iomanip>
@@ -259,20 +259,21 @@ void Domain::compute() {
     double ecartCellPerSec = 0;
     long nbTotCelSec = 0;
     FakeRead *reader = 0;
+    int myPe = ParallelInfo::mype();
 
-    if (m_myPe == 0 && m_fakeRead) {
+    if (myPe == 0 && m_fakeRead) {
         fprintf(stderr, "HydroC: Creating fake paging file(s) ...\n");
     }
     start = Custom_Timer::dcclock();
     if (m_fakeRead)
-        reader = new FakeRead(m_fakeReadSize, m_myPe);
+        reader = new FakeRead(m_fakeReadSize, myPe);
 #ifdef MPI_ON
     if (m_nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
     end = Custom_Timer::dcclock();
 
-    if (m_myPe == 0 && m_fakeRead) {
+    if (myPe == 0 && m_fakeRead) {
         char txt[64];
         double elaps = end - start;
         Custom_Timer::convertToHuman(txt, elaps);
@@ -280,12 +281,12 @@ void Domain::compute() {
     }
 
     memset(vtkprt, 0, 64);
-    if (m_myPe == 0 && m_stats > 0) {
+    if (myPe == 0 && m_stats > 0) {
         
     }
 
 #ifdef MPI_ON
-    if (m_myPe == 0 && m_stats > 0) {
+    if (myPe == 0 && m_stats > 0) {
         if (m_nProc == 1)
             std::cout << "Hydro: MPI is present with " << m_nProc << " rank" << std::endl;
         else
@@ -299,7 +300,7 @@ void Domain::compute() {
         start = Custom_Timer::dcclock();
         readProtection();
         end = Custom_Timer::dcclock();
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             char txt[256];
             double elaps = (end - start);
             Custom_Timer::convertToHuman(txt, elaps);
@@ -314,7 +315,7 @@ void Domain::compute() {
         computeDt();
         m_dt /= 2.0;
         assert(m_dt > 1.e-15);
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             std::cout << " Initial dt " << std::setiosflags(std::ios::scientific) << std::setprecision(5) << m_dt
                  << std::endl;
             ;
@@ -405,7 +406,7 @@ void Domain::compute() {
         // TODO
         // #pragma message "Bandwidth monitoring to do properly"
         m_mainTimer.set(BOUNDINITBW, 0);
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             int64_t totCell = int64_t(m_globNx) * int64_t(m_globNy);
             double cellPerSec = totCell / elpasstep / 1000000;
             char ftxt[32];
@@ -445,7 +446,7 @@ void Domain::compute() {
 
         {
             int needToStopGlob = false;
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 double reste = m_tr.timeRemain();
                 int needToStop = false;
                 if (reste < m_timeGuard) {
@@ -457,7 +458,7 @@ void Domain::compute() {
             MPI_Bcast(&needToStopGlob, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
             if (needToStopGlob) {
-                if (m_myPe == 0) {
+                if (myPe == 0) {
                     std::cerr << " Hydro stops by time limit " << m_tr.timeRemain() << " < "
                          << m_timeGuard << std::endl;
                 }
@@ -466,7 +467,7 @@ void Domain::compute() {
                 break;
             }
         }
-        // std::cout << "suivant"<< m_myPe<< endl; std::cout.flush();
+        // std::cout << "suivant"<< myPe<< endl; std::cout.flush();
     } // while (m_tcur < m_tend)
     end = Custom_Timer::dcclock();
     m_nbRun++;
@@ -482,7 +483,7 @@ void Domain::compute() {
         }
         writeProtection();
         end = Custom_Timer::dcclock();
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             char txt[256];
             double elaps = (end - start);
             Custom_Timer::convertToHuman(txt, elaps);
@@ -508,7 +509,7 @@ void Domain::compute() {
     m_maxrss = myusage.ru_maxrss;
     m_ixrss = myusage.ru_ixrss;
 
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         char timeHuman[256];
         long maxMemUsed = getMemUsed();
         double elaps = (end - start);
@@ -523,8 +524,8 @@ void Domain::compute() {
 #endif
         // printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
         printf(" maxMatrix %.3f MB", float(Matrix2<double>::getMax() / mega));
-        if (getNbpe() > 1) {
-            printf(" maxMatrixTot %.3f GB", float(Matrix2<double>::getMax() * getNbpe() / giga));
+        if (ParallelInfo::nb_procs() > 1) {
+            printf(" maxMatrixTot %.3f GB", float(Matrix2<double>::getMax() * ParallelInfo::nb_procs() / giga));
         }
         printf("\n");
         Custom_Timer::convertToHuman(timeHuman, m_elapsTotal);
@@ -559,14 +560,14 @@ void Domain::compute() {
         m_mainTimer.set(BOUNDINITBW, 0);
         m_mainTimer.getStats(); // all processes involved
         // std::cout << std::endl;
-        if (m_myPe == 0 && m_stats > 0) {
+        if (myPe == 0 && m_stats > 0) {
 #ifdef MPI_ON
             m_mainTimer.printStats();
 #else
             m_mainTimer.print();
 #endif
         }
-        if (m_myPe == 0 && m_stats > 0) {
+        if (myPe == 0 && m_stats > 0) {
             double elapsParallelOMP = m_mainTimer.get(ALLTILECMP);
             double seenParallel = 0;
             for (int32_t i = 0; i < TILEOMP; ++i) {
@@ -590,7 +591,7 @@ void Domain::compute() {
 
     if (reader)
         delete reader;
-    // std::cerr << "End compute " << m_myPe << std::endl;
+    // std::cerr << "End compute " << myPe << std::endl;
 }
 
 // EOF

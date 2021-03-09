@@ -1,10 +1,11 @@
+
+#include "Domain.hpp"
+#include "ParallelInfo.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
 
-
-
-#include "Domain.hpp"
 
 #include <sys/stat.h>
 
@@ -150,12 +151,14 @@ void Domain::vtkfile(int step) {
     FILE *fic, *vf;
     int i, j, nv;
 
+    int myPe = ParallelInfo::mype();
+    int nProc = ParallelInfo::nb_procs();
     // First step : create the directory structure ONLY using PE0
 #ifdef MPI_ON
     if (m_nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
-    vtknm(vfrname, m_myPe, step); // create the directory structure
+    vtknm(vfrname, myPe, step); // create the directory structure
     // if (H.mype == 0) fprintf(stderr, "%s\n", vfrname);
 #ifdef MPI_ON
     if (m_nProc > 1)
@@ -163,7 +166,7 @@ void Domain::vtkfile(int step) {
 #endif
 
     // Write a domain per PE
-    sprintf(name, "%s/Hydro_%05d_%04d.vtr", vfrname, m_myPe, step);
+    sprintf(name, "%s/Hydro_%05d_%04d.vtr", vfrname, myPe, step);
     fic = fopen(name, "w");
     if (fic == NULL) {
         fprintf(stderr, "Ouverture du fichier %s impossible\n", name);
@@ -289,7 +292,7 @@ void Domain::vtkfile(int step) {
     if (m_nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         sprintf(name, "outputvtk_%05d.pvtr", step);
         sprintf(name, "%s/Hydro_%04d.pvtr", vfrname, step);
         vf = fopen(name, "w");
@@ -337,10 +340,10 @@ void Domain::vtkfile(int step) {
         fprintf(vf, "  <PDataArray type=\"Float32\" format=\"ascii\" "
                     "NumberOfComponents=\"1\"/>\n");
         fprintf(vf, " </PCoordinates>\n");
-        for (i = 0; i < m_nProc; i++) {
+        for (i = 0; i < nProc; i++) {
             int box[8];
             memset(box, 0, 8 * sizeof(int));
-            CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, box, i);
+            CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, box, i);
             sprintf(name, "Hydro_%05d_%04d.vtr", i, step);
             fprintf(vf, " <Piece Extent=\"%d %d %d %d %d %d\" Source=\"%s\"/>\n", box[XMIN_D],
                     box[XMAX_D], box[YMIN_D], box[YMAX_D], 0, 1, name);

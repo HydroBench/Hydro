@@ -459,10 +459,12 @@ void Tile::updateconserv() {
     Matrix2<real_t> &uoldIP = *(*m_uold)(IP_VAR);
     Matrix2<real_t> &uoldIV = *(*m_uold)(IV_VAR);
     Matrix2<real_t> &uoldIU = *(*m_uold)(IU_VAR);
+
     Matrix2<real_t> &fluxIV = *(*m_flux)(IV_VAR);
     Matrix2<real_t> &fluxIU = *(*m_flux)(IU_VAR);
     Matrix2<real_t> &fluxIP = *(*m_flux)(IP_VAR);
     Matrix2<real_t> &fluxID = *(*m_flux)(ID_VAR);
+
     Matrix2<real_t> &uID = *(*m_u)(ID_VAR);
     Matrix2<real_t> &uIP = *(*m_u)(IP_VAR);
     Matrix2<real_t> &uIV = *(*m_u)(IV_VAR);

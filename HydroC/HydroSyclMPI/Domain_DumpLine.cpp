@@ -1,5 +1,6 @@
 
 #include "Domain.hpp"
+#include "ParallelInfo.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -98,7 +99,7 @@ void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
 
 void Domain::dumpLineArray(FILE *f, Matrix2<real_t> &p, char *name, char *ext) {
     char fname[256];
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         sprintf(fname, "%s%s_%06d_%s.lst", "DUMPLINE", name, m_iter, ext);
         f = fopen(fname, "w");
         fprintf(f, "#  X     %s\n", name);
@@ -117,8 +118,8 @@ void Domain::dumpLine(void) {
     char ext[256];
     char *pvar;
 
-    if (m_myPe == 0) {
-        if (m_nProc > 1) {
+    if (ParallelInfo::mype() == 0) {
+        if (ParallelInfo::nb_procs() > 1) {
             strcpy(ext, "PAR");
         } else {
             strcpy(ext, "SEQ");

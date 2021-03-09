@@ -18,8 +18,6 @@ class Tile {
     Tile *m_voisin[4];
     int32_t m_hasBeenProcessed;
 
-
-    // ThreadBuffers *m_myBuffers; // the link to our ThreadBuffers Not needed [jcw]
     Timers *m_threadTimers;     // one Timers per thread
     int m_prt;
 
@@ -34,6 +32,7 @@ class Tile {
     // Godunov variables and arrays
     real_t m_tcur, m_dt, m_dx;
     Soa *m_uold;
+
     // work arrays private to a tile
     Soa *m_u;    // NXT, NYT
     Soa *m_flux; // NX + 1, NY + 1

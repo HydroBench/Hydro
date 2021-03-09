@@ -1,20 +1,16 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
-#ifdef MPI_ON
-#include <mpi.h>
-#endif
 
+
+#include "ParallelInfo.hpp"
 
 //
 #include "Domain.hpp"
 
-#ifdef _SYCL
-#include <CL/sycl.hpp>
-#endif
+
 
 #include <unistd.h>
-
 
 Domain::Domain(int argc, char **argv) {
     // default values
@@ -70,13 +66,11 @@ Domain::Domain(int argc, char **argv) {
     m_smallr = 1e-10;
     m_iorder = 2;
     m_slope_type = 1.;
-    m_recvbufru = 0;  // receive right or up
-    m_recvbufld = 0;  // receive left or down
-    m_sendbufru = 0;  // send right or up
-    m_sendbufld = 0;  // send left or down
-#ifdef _SYCL    
-    m_syclQueue = 0;
-#endif
+    m_recvbufru = 0; // receive right or up
+    m_recvbufld = 0; // receive left or down
+    m_sendbufru = 0; // send right or up
+    m_sendbufld = 0; // send left or down
+
 
     m_nbWorkItems = 1; // runs serially by default
     m_fakeRead = 0;
@@ -85,16 +79,19 @@ Domain::Domain(int argc, char **argv) {
     m_taskeddep = 0;
     m_nDumpline = -1;
 
-    initParallelMode(argc, argv); // May modify argc and argv!
+    ParallelInfo::init(argc, argv, m_stats!=0);
 
-    if (m_myPe == 0 && m_stats > 0) {
+    int myPe = ParallelInfo::mype();
+    
+
+    if (myPe == 0 && m_stats > 0) {
         int src = system("cpupower frequency-info | egrep 'CPU frequency|steps'");
     }
 
     double tRemain = m_tr.timeRemainAll();
     if (tRemain <= 1) {
         // useless run which can be harmful to files
-        if (m_myPe == 0 && m_stats > 0) {
+        if (myPe == 0 && m_stats > 0) {
             std::cerr << "HydroC: allocated time too short " << tRemain << "s" << std::endl;
         }
 #ifdef MPI_ON
@@ -114,9 +111,9 @@ Domain::Domain(int argc, char **argv) {
     if (tRemain < 60)
         m_timeGuard = 20;
 
-    if (m_myPe == 0 && m_stats > 0) {
+    if (myPe == 0 && m_stats > 0) {
         std::cout << "HydroC: allocated time " << m_tr.getTimeAllocated() << "s"
-             << " time guard " << m_timeGuard << "s" << std::endl;
+                  << " time guard " << m_timeGuard << "s" << std::endl;
         std::cout.flush();
     }
 
@@ -126,13 +123,12 @@ Domain::Domain(int argc, char **argv) {
 
     createTestCase(); // will be overwritten if in the middle of test case
 
-    
     if ((m_nOutput > 0) || (m_dtOutput > 0)) {
         vtkOutput(m_nvtk);
         m_nvtk++;
     }
     setTiles();
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         printSummary();
     }
 }
@@ -173,11 +169,7 @@ Domain::~Domain() {
     }
     if (m_inputFile)
         free(m_inputFile);
-#ifdef _SYCL
-    if (m_syclQueue)
-        delete m_syclQueue;
-#endif       
-    
+
 }
 
 void Domain::domainDecompose() {
@@ -196,8 +188,10 @@ void Domain::domainDecompose() {
     m_box[DOWN_D] = -1;
     m_box[UP_D] = -1;
 
-    if (m_nProc > 1) {
-        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, m_box, m_myPe);
+    int nProc = ParallelInfo::nb_procs();
+    int myPe = ParallelInfo::mype();
+    if (nProc > 1) {
+        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, m_box, myPe);
 
         m_nx = m_box[XMAX_D] - m_box[XMIN_D];
         m_ny = m_box[YMAX_D] - m_box[YMIN_D];
@@ -219,8 +213,8 @@ void Domain::domainDecompose() {
         if (m_prt) {
             std::cout << m_globNx << " ";
             std::cout << m_globNy << " ";
-            std::cout << m_nProc << " ";
-            std::cout << m_myPe << " - ";
+            std::cout << nProc << " ";
+            std::cout << myPe << " - ";
             std::cout << m_nx << " ";
             std::cout << m_ny << " - ";
             std::cout << m_box[LEFT_D] << " ";
@@ -251,7 +245,7 @@ void Domain::domainDecompose() {
 }
 
 void Domain::printSummary() {
-    if (m_myPe == 0 && m_stats > 0) {
+    if (ParallelInfo::mype() == 0 && m_stats > 0) {
         printf("|+=+=+=+=+=+=+=\n");
         printf("|    GlobNx=     %d\n", m_globNx);
         printf("|    GlobNy=     %d\n", m_globNy);
@@ -349,7 +343,7 @@ void Domain::readInput() {
     }
 
 #ifdef WITHBCAST
-    if (m_myPe == 0)
+    if (ParallelInfo::mype() == 0)
 #endif
     {
         fd = fopen(m_inputFile, "r");
@@ -506,8 +500,8 @@ void Domain::readInput() {
                     m_scheme = SCHEME_COLLELA;
                 } else {
                     std::cerr << "Scheme name <%s> is unknown, should be one of "
-                            "[muscl,plmde,collela]\n"
-                         << pval << std::endl;
+                                 "[muscl,plmde,collela]\n"
+                              << pval << std::endl;
                     abort();
                 }
                 continue;
@@ -670,63 +664,59 @@ void Domain::setTiles() {
     m_nbtiles = 0;
     tileSize = m_tileSize;
 
+    int myPe = ParallelInfo::mype();
+
     if (tileSize <= 0) {
         int nTh = 1, nbT = 0, tsMin, tsMax, remMin, remain;
-        int tsCur;
-        int thMax, thMin, thCur;
+        
+        int thMax, thCur;
         tileSize = 60;
         m_tileSize = tileSize;
 
-#ifdef _OPENMP
-        nTh = omp_get_max_threads();
+        nTh = ParallelInfo::nb_workers();
+
+        
         m_nbtiles = 1;
         tsMin = 58;
         tsMax = 256;
-        // we want at least TILE_PER_THREAD tiles per thread.
-        while (this->nbTile(tsMax) < (nTh * TILE_PER_THREAD))
-            tsMax--;
-        if (tsMax < tsMin)
-            tsMax = tsMin;
 
-        tsCur = tsMin;
-        thMin = this->nbTile(tsMin) % nTh;
-        while (tsCur < tsMax) {
-            // std::cout << std::endl;
-            // std::cout << tsMin << " " << tsCur << " " << tsMax << std::endl;
-            thCur = this->nbTile(tsCur) % nTh;
+        // we want at least TILE_PER_THREAD tiles per thread.
+        while (nbTiles_fromsize(tsMax) < (nTh * TILE_PER_THREAD))
+            tsMax--;
+
+        tsMax = std::max(tsMin, tsMax);
+        
+        int thMin = nbTiles_fromsize(tsMin) % nTh;
+        int tsCur;
+        for (tsCur = tsMin; tsCur < tsMax; tsCur++) {
+            thCur = nbTiles_fromsize(tsCur) % nTh;
             if (thCur == 0) {
-                // std::cout << " trouve : " << tsCur << " " << thCur << std::endl;
                 tsMin = tsCur;
-                thMin = thCur;
                 break;
             }
             if (thCur < thMin) {
                 tsMin = tsCur;
-                // std::cout << " New min : " << tsMin << " " << thMin << std::endl;
             }
-            tsCur++;
         }
         if (tsCur >= tsMax)
             tsCur = tsMin;
         tileSize = tsCur;
         m_tileSize = tileSize;
-        m_nbtiles = this->nbTile(tileSize);
+
+        m_nbtiles = this->nbTiles_fromsize(tileSize);
         // std::cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles
         // % nTh) << std::endl;
 
-#endif
-        if (m_myPe == 0 && m_stats > 0)
-            std::cout << "Computing tilesize to " << tileSize << " R=" << (float)m_nbtiles / (float)nTh
-                 << std::endl;
+        if (myPe == 0 && m_stats > 0)
+            std::cout << "Computing tilesize to " << tileSize
+                      << " R=" << (float)m_nbtiles / (float)nTh << std::endl;
     } else {
-        if (m_myPe == 0 && m_stats > 0)
+        if (myPe == 0 && m_stats > 0)
             std::cout << "Forcing tilesize to " << tileSize << std::endl;
     }
 
+    m_nbtiles = this->nbTiles_fromsize(tileSize);
 
-
-    m_nbtiles = this->nbTile(tileSize);
-    ;
     mortonH = (m_ny + tileSize - 1) / tileSize;
     mortonW = (m_nx + tileSize - 1) / tileSize;
 
@@ -756,7 +746,7 @@ void Domain::setTiles() {
             temp[m_mortonIdx[i]] = tt++;
         }
         // compacter le tableau
-        
+
         for (int32_t i = 0, t = 0; i < maxim; i++) {
             if (temp[i] != -1)
                 m_mortonIdx[t++] = temp[i];
@@ -837,7 +827,7 @@ void Domain::setTiles() {
 
 // Create the shared buffers
 #ifdef _OPENMP
-    m_numThreads = omp_get_max_threads();
+    m_nbWorkItems = omp_get_max_threads();
 #else
     m_nbWorkItems = 1;
 #endif
@@ -881,12 +871,13 @@ void Domain::setTiles() {
             i = m_mortonIdx[t];
         m_tiles[i]->setTimers(m_threadTimers);
         m_tiles[i]->initTile(m_uold);
-        m_tiles[i]->setMpi(m_nProc, m_myPe);
+        m_tiles[i]->setMpi(ParallelInfo::nb_procs(), ParallelInfo::mype());
         m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann,
                              m_iorder, m_scheme);
         m_tiles[i]->setScan(X_SCAN);
     }
-    if (m_myPe == 0 && m_stats > 0) {
+
+    if (ParallelInfo::mype() == 0 && m_stats > 0) {
         char hostn[1024];
         char cpuName[1024];
         memset(hostn, 0, 1024);
@@ -901,32 +892,6 @@ void Domain::setTiles() {
     // exit(0);
 }
 
-void Domain::initParallelMode(int & argc, char ** & argv) {
 
-#ifdef MPI_ON
-
-    MPI_init(&argc, &argv);
-
-    int nproc, mype;
-    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mype);
-    m_nProc = nproc;
-    m_myPe = mype;
-#else
-    m_myPe = 0;
-    m_nProc = 1;
-#endif
-
-#ifdef _SYCL
-    sycl::default_selector device_selector;
-    sycl::queue q(device_selector );
-    if (m_myPe == 0 && m_stats > 0)
-     std::cout << "DPC++ execution " << std::endl;
-
-    m_syclQueue = new sycl::queue;
-    * m_syclQueue = q;
-    
-#endif
-}
 
 // EOF

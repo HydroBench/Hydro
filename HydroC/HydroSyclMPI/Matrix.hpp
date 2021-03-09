@@ -11,7 +11,6 @@
 #include <cstring>
 #include <ostream>
 
-
 class Volume {
   protected:
     static long _volume;
@@ -23,7 +22,6 @@ class Volume {
 
 template <typename T> class Matrix2;
 template <typename T> std::ostream &operator<<(std::ostream &, const Matrix2<T> &);
-
 template <typename T> class Matrix2 : private Volume {
   private:
     static const int _nbloc = 1024;

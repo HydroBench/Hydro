@@ -1,6 +1,8 @@
 #include "Domain.hpp"
 #include "cclock.hpp"
 
+#include "ParallelInfo.hpp"
+
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -94,7 +96,7 @@ void Domain::pngProcess(void) {
         m_shrink++;
     }
 
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
         imgSizeX = (m_globNx / m_shrink);
         imgSizeY = (m_globNy / m_shrink);
@@ -112,7 +114,7 @@ void Domain::pngProcess(void) {
     m_buffer = new uint8_t[mySize];
     assert(m_buffer != 0);
     memset(m_buffer, 0, mySize * sizeof(*m_buffer));
-    if (m_nProc == 1) {
+    if (ParallelInfo::nb_procs() == 1) {
         getMaxVarValues(&ipmax, &idmax, &iuvmax);
         getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
@@ -449,7 +451,7 @@ void Domain::pngWriteFile(char *name) {
     imgSizeY = m_globNy / m_shrink;
 
     // Open image file
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         char *imPrefix = getenv("HYDROC_IMG_PREFIX");
         char imgname[1024];
         strcpy(imgname, name);
@@ -537,7 +539,7 @@ void Domain::pngCloseFile(void) {
     int32_t y;
     int imgSizeX, imgSizeY;
 #if WITHPNG == 0
-    if (m_myPe == 0) {
+    if (ParallelInfo::mype() == 0) {
         fclose(m_fp);
         m_fp = 0;
     }

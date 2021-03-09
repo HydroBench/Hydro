@@ -3,6 +3,7 @@
 //
 //
 #include "Domain.hpp"
+#include "ParallelInfo.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -14,6 +15,9 @@
 void Domain::createTestCase() {
     int32_t xmin, xmax, ymin, ymax;
     int32_t i, j, x, y;
+
+    int nProc = ParallelInfo::nb_procs();
+    int myPe = ParallelInfo::mype();
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -54,7 +58,7 @@ void Domain::createTestCase() {
         }
 
     if (m_testcase == 0) {
-        if (m_nProc == 1) {
+        if (nProc == 1) {
             x = (xmax - xmin) / 2 + m_ExtraLayer * 0;
             y = (ymax - ymin) / 2 + m_ExtraLayer * 0;
             uoldIP(x, y) = one / m_dx / m_dx;
@@ -69,7 +73,7 @@ void Domain::createTestCase() {
                 y = y - m_box[YMIN_D] + m_ExtraLayer;
                 uoldIP(x, y) = one / m_dx / m_dx;
                 if (m_stats > 0)
-                    printf("Centered test case : [%d] %d %d\n", m_myPe, x, y);
+                    printf("Centered test case : [%d] %d %d\n", myPe, x, y);
             }
         }
     }
@@ -77,7 +81,7 @@ void Domain::createTestCase() {
     if (m_testcase == 1) {
         x = m_ExtraLayer;
         y = m_ExtraLayer;
-        if (m_nProc == 1) {
+        if (nProc == 1) {
             uoldIP(x, y) = one / m_dx / m_dx;
             if (m_stats > 0)
                 printf("Lower corner test case : %d %d\n", x, y);
@@ -86,13 +90,13 @@ void Domain::createTestCase() {
                 (y < m_box[YMAX_D])) {
                 uoldIP(x, y) = one / m_dx / m_dx;
                 if (m_stats > 0)
-                    printf("Lower corner test case : [%d] %d %d\n", m_myPe, x, y);
+                    printf("Lower corner test case : [%d] %d %d\n", myPe, x, y);
             }
         }
     }
 
     if (m_testcase == 2) {
-        if (m_nProc == 1) {
+        if (nProc == 1) {
             x = m_ExtraLayer;
             y = m_ExtraLayer;
             for (j = y; j < ymax; j++) {

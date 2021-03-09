@@ -1,9 +1,10 @@
 # Makefile for DPCPP
 
 
-SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp
+SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp ThreadBuffers.cpp Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp FakeRead.cpp main.cpp Timers.cpp ParallelInfo.cpp cclock.cpp
+
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
-OBJS=$(patsubst %.cpp,%.o,$(SRCS)) cclock.o
+OBJS=$(patsubst %.cpp,%.o,$(SRCS)) 
 
 
 OPENMP=N
@@ -56,7 +57,7 @@ ifeq ($(STATIC),O)
 endif
 
 
-#include $(DEPS)
+include $(DEPS)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(CFLAGS) $(OPTIM) $< -o $@ 
@@ -64,14 +65,11 @@ endif
 %.o: %.c
 	$(CC) -c -O3 $< -o $@ 
 
-ifeq ($(CRAY),O)
-%.d: %.cpp
-	touch $@
-else
 %.d: %.cpp
 	@echo "Generating $@"
 	@$(CXX) -M $(DEFS) $(CFLAGS) $< | sed 's+ + \\\n+g' | egrep -v '/usr|/ccc/produc|/cea/prod' | egrep -v '^.\\$$' | egrep -v '^\\$$' > $@
-endif
+
+
 clean:
 	rm -rf *.o hydroc *~ toto *.optrpt
 

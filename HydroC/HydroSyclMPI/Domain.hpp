@@ -10,9 +10,7 @@
 #include "Tile.hpp"
 #include "TimeLimit.hpp"
 
-#ifdef _SYCL
-#include <CL/sycl.hpp>
-#endif
+
 
 #if WITHPNG > 0
 #include <png.h>
@@ -43,10 +41,6 @@ class Domain {
     int32_t m_nbtiles;    //=
     int32_t m_tileSize;   //=
     
-#ifdef _SYCL
-    sycl::queue * m_syclQueue;   // The type is not necessary here, it is just a pointer
-#endif
-
     int32_t m_nbWorkItems; // nb of threads available
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
@@ -81,7 +75,7 @@ class Domain {
     godunovScheme_t m_scheme; //=
 
     //
-    int32_t m_myPe, m_nProc; //=
+    
 
     // working arrays
     real_t *m_recvbufru; // receive right or up  //=
@@ -128,9 +122,7 @@ class Domain {
     void setTiles();
     void printSummary();
 
-    void initParallelMode(int & argc, char  ** & argv);
 
-    void endParallelMode();
     void boundary_init();
 
     void boundary_process();
@@ -163,12 +155,12 @@ class Domain {
     int32_t pack_arrayh(int32_t yoffset, real_t *buffer);
     int32_t unpack_arrayh(int32_t yoffset, real_t *buffer);
 
-    int32_t nbTile(int32_t tileSize) {
-        int nbtC = 0;
+    int32_t nbTiles_fromsize(int32_t tileSize) {
+        
         int nbtx = (m_nx + tileSize - 1) / tileSize;
         int nbty = (m_ny + tileSize - 1) / tileSize;
-        nbtC = nbtx * nbty;
-        return nbtC;
+        
+        return nbtx*nbty;
     }
 
     Domain(void){}; // default constructor.
@@ -213,8 +205,7 @@ class Domain {
     // destructor
     ~Domain();
     bool isStopped();
-    int getMype() { return m_myPe; };
-    int getNbpe() { return m_nProc; };
+   
     void compute();
     int32_t myThread() {
         int32_t r = 0;
