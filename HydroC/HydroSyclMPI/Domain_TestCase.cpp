@@ -21,8 +21,9 @@ void Domain::createTestCase() {
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-#pragma omp single
-    { m_uold = new Soa(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1)); }
+
+    m_uold = new Soa(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1)); 
+    
 
     Matrix2<real_t> &uoldIP = *(*m_uold)(IP_VAR);
     Matrix2<real_t> &uoldID = *(*m_uold)(ID_VAR);
@@ -39,19 +40,19 @@ void Domain::createTestCase() {
             uoldID(i, j) = one;
         }
 
-#pragma nofusion
+
     for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++)
         for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
             uoldIU(i, j) = zero;
         }
 
-#pragma nofusion
+
     for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++)
         for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
             uoldIV(i, j) = zero;
         }
 
-#pragma nofusion
+
     for (j = ymin + m_ExtraLayer; j < ymax - m_ExtraLayer; j++)
         for (i = xmin + m_ExtraLayer; i < xmax - m_ExtraLayer; i++) {
             uoldIP(i, j) = 1e-5;

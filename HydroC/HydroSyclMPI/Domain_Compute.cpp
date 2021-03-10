@@ -2,8 +2,8 @@
 #include "Domain.hpp"
 #include "FakeRead.hpp"
 #include "cclock.hpp"
-
 #include "ParallelInfo.hpp"
+
 #ifdef MPI_ON
 #include <mpi.h>
 #endif

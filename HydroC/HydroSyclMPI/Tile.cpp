@@ -4,9 +4,7 @@
 
 #include "Options.hpp"
 
-#if USEINTRINSICS != 0
-#include "arch.hpp"
-#endif
+
 
 #include "Tile.hpp"
 #include "Timers.hpp"
@@ -27,19 +25,24 @@
 
 Tile::Tile() {
     for (int32_t i = 0; i < NEIGHBOUR_TILE; i++) {
-        m_voisin[i] = 0;
+        m_voisin[i] = nullptr;
     }
     m_ExtraLayer = 2;
     m_scan = X_SCAN;
-    m_uold = 0;
+
+    m_uold = nullptr;
+    m_u = nullptr;
+    m_flux = nullptr;
 
 }
 
 
 Tile::~Tile() {
 
-    delete m_u;
-    delete m_flux;
+    if (m_u != nullptr)
+        delete m_u;
+    if (m_flux != nullptr)
+        delete m_flux;
 }
 
 void Tile::setNeighbourTile(tileNeighbour_t type, Tile *tile) { m_voisin[type] = tile; }
@@ -57,8 +60,8 @@ void Tile::initTile(Soa *uold) {
     
     assert(lgx > 0);
     assert(lgy > 0);
-    m_u = new Soa(NB_VAR, lgx, lgy);
-    m_flux = new Soa(NB_VAR, lgx, lgy);
+    m_u = new Soa(NB_VAR, lgx, lgy, true);
+    m_flux = new Soa(NB_VAR, lgx, lgy, true);
 }
 
 void Tile::swapStorageDims() {
@@ -72,10 +75,6 @@ void Tile::swapStorageDims() {
     }
 }
 
-void Tile::setMpi(int32_t nproc, int32_t mype) {
-    m_nproc = nproc;
-    m_mype = mype;
-}
 
 void Tile::initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type,
                     int32_t niter_riemann, int32_t order, int32_t scheme) {
@@ -1324,23 +1323,23 @@ void Tile::setVoisins(Tile *left, Tile *right, Tile *up, Tile *down) {
     m_voisin[RIGHT_TILE] = right;
 }
 
-void Tile::setBuffers(ThreadBuffers *buf) {
+void Tile::setBuffers(DeviceBuffers *buf) {
     assert(buf != 0);
-    auto & myThreadBuffers = buf;
+    auto & myDeviceBuffers = buf;
 
-    m_q = myThreadBuffers->getQ();           // NXT, NYT
-    m_qxm = myThreadBuffers->getQXM();       // NXT, NYT
-    m_qxp = myThreadBuffers->getQXP();       // NXT, NYT
-    m_dq = myThreadBuffers->getDQ();         // NXT, NYT
-    m_qleft = myThreadBuffers->getQLEFT();   // NX + 1, NY + 1
-    m_qright = myThreadBuffers->getQRIGHT(); // NX + 1, NY + 1
-    m_qgdnv = myThreadBuffers->getQGDNV();   // NX + 1, NY + 1
-    m_c = myThreadBuffers->getC();           // NXT, NYT
-    m_e = myThreadBuffers->getE();           // NXT, NYT
+    m_q = myDeviceBuffers->getQ();           // NXT, NYT
+    m_qxm = myDeviceBuffers->getQXM();       // NXT, NYT
+    m_qxp = myDeviceBuffers->getQXP();       // NXT, NYT
+    m_dq = myDeviceBuffers->getDQ();         // NXT, NYT
+    m_qleft = myDeviceBuffers->getQLEFT();   // NX + 1, NY + 1
+    m_qright = myDeviceBuffers->getQRIGHT(); // NX + 1, NY + 1
+    m_qgdnv = myDeviceBuffers->getQGDNV();   // NX + 1, NY + 1
+    m_c = myDeviceBuffers->getC();           // NXT, NYT
+    m_e = myDeviceBuffers->getE();           // NXT, NYT
 
     // work arrays for a single row/column
-    m_sgnm = myThreadBuffers->getSGNM();
-    m_pl = myThreadBuffers->getPL();
+    m_sgnm = myDeviceBuffers->getSGNM();
+    m_pl = myDeviceBuffers->getPL();
 
 
 }

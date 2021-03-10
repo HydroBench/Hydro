@@ -6,7 +6,9 @@
 //
 
 #ifndef PARALLEL_INFO_H
-#define PARALLEL_INFO_H
+#define PARALLEL_INFO_H be
+
+class ParallelInfoOpaque; // To be less opaque in implementation !
 
 
 class ParallelInfo {
@@ -15,7 +17,7 @@ class ParallelInfo {
     int m_nWorkers;
     bool m_verbosity;
 
-    void *m_syclQueue;
+    ParallelInfoOpaque *m_opaque;
 
   protected:
     ParallelInfo() {
@@ -23,7 +25,7 @@ class ParallelInfo {
         m_myPe = 0;
         m_nProc = 1;
         m_nWorkers = 1;
-        m_syclQueue = nullptr;
+        m_opaque = nullptr;
 
     }
 
@@ -42,6 +44,8 @@ class ParallelInfo {
 
     static void init(int & argc, char  ** &argv, bool verbose=true);
     static void end();
+
+    static ParallelInfoOpaque * extraInfos() { return GetInstance().m_opaque;}
 };
 
 #endif // PARALLEL_INFO_H

@@ -1,12 +1,14 @@
 #include "ParallelInfo.hpp"
+#include "ParallelInfoOpaque.hpp"
 
-#ifdef _MPI
+#ifdef MPI_ON
 #include <mpi.h>
 #endif
 
 #ifdef _SYCL
 #include <CL/sycl.hpp>
 #endif
+
 
 void ParallelInfo::init(int &argc, char **&argv, bool verbosity )
 
@@ -41,8 +43,9 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity )
     if (inst.m_myPe == 0 && inst.m_verbosity)
         std::cerr << "DPC++ execution " << std::endl;
 
-    inst.m_syclQueue = static_cast<void *>(new sycl::queue);
-    * (static_cast<sycl::queue *>(inst.m_syclQueue)) = q;
+    inst.m_opaque = new ParallelInfoOpaque;
+    inst.m_opaque->m_queue = q;
+   
 
     auto device = q.get_device();
     auto max_block_size = device.get_info<sycl::info::device::max_work_group_size>();

@@ -6,7 +6,7 @@
 //
 #include "EnumDefs.hpp"
 #include "Soa.hpp"
-#include "ThreadBuffers.hpp"
+#include "DeviceBuffers.hpp"
 #include "Tile.hpp"
 #include "TimeLimit.hpp"
 
@@ -45,7 +45,7 @@ class Domain {
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
     Matrix2<int32_t> *m_morton;
-    ThreadBuffers **m_buffers; // shared buffers for all threads
+    DeviceBuffers **m_buffers; // shared buffers for all threads
 
     long m_maxrss, m_ixrss; // memory usage;
 

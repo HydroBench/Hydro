@@ -52,9 +52,7 @@ template <typename T> class Matrix2 : private Volume {
     // copy operator
     Matrix2(const Matrix2 &m);
 
-    // assignment operator
-    Matrix2 &operator=(const Matrix2 &rhs);
-
+ 
     // access through ()
     // lhs
     T &operator()(int32_t x, int32_t y) { return _arr[Mat2Index(x, y)]; };
@@ -89,7 +87,7 @@ template <typename T> class Matrix2 : private Volume {
     };
     int32_t *listMortonIdx(void);
     void Copy(const Matrix2 &src);
-    void InsertMatrix(const Matrix2 &src, int32_t x0, int32_t y0);
+    
     long getLengthByte();
     void read(const int f);
     void write(const int f);

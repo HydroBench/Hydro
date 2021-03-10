@@ -6,8 +6,8 @@
 //
 #include "EnumDefs.hpp"
 #include "Options.hpp"
-#include "Soa.hpp"
-#include "ThreadBuffers.hpp"
+#include "SoaDevice.hpp"
+#include "DeviceBuffers.hpp"
 #include "Timers.hpp"
 #include "Utilities.hpp"
 
@@ -34,12 +34,12 @@ class Tile {
     Soa *m_uold;
 
     // work arrays private to a tile
-    Soa *m_u;    // NXT, NYT
-    Soa *m_flux; // NX + 1, NY + 1
+    SoaDevice<real_t> *m_u;    // NXT, NYT
+    SoaDevice<real_t> *m_flux; // NX + 1, NY + 1
 
     // work arrays for a tile which can be shared across threads
-    Soa *m_q, *m_qxm, *m_qxp, *m_dq;   // NXT, NYT
-    Soa *m_qleft, *m_qright, *m_qgdnv; // NX + 1, NY + 1
+    SoaDevice<real_t> *m_q, *m_qxm, *m_qxp, *m_dq;   // NXT, NYT
+    SoaDevice<real_t> *m_qleft, *m_qright, *m_qgdnv; // NX + 1, NY + 1
     Matrix2<real_t> *m_c, *m_e;        // NXT, NYT
 
     // work arrays for a single row/column
@@ -53,8 +53,7 @@ class Tile {
     int32_t m_scheme;
     int32_t m_boundary_right, m_boundary_left, m_boundary_down, m_boundary_up;
 
-    // mpi
-    int32_t m_nproc, m_mype;
+    
     // working arrays
     Preal_t m_recvbufru; // receive right or up
     Preal_t m_recvbufld; // receive left or down
@@ -184,7 +183,7 @@ class Tile {
     void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
                    real_t dx);
     void setVoisins(Tile *left, Tile *right, Tile *up, Tile *down);
-    void setBuffers(ThreadBuffers *buf);
+    void setBuffers(DeviceBuffers *buf);
     void setTimers(Timers *tm) {
         assert(tm != 0);
         m_threadTimers = tm;

@@ -844,7 +844,7 @@ void Domain::setTiles() {
     }
 
     int32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
-    m_buffers = new ThreadBuffers *[m_nbWorkItems];
+    m_buffers = new DeviceBuffers *[m_nbWorkItems];
     assert(m_buffers != 0);
 
     m_threadTimers = new Timers[m_nbWorkItems];
@@ -858,7 +858,7 @@ void Domain::setTiles() {
         // {
         //    std::cerr << i << " attendu " << myThread() << std::endl << flush;
         // }
-        m_buffers[i] = new ThreadBuffers(0, tileSizeTot, 0, tileSizeTot);
+        m_buffers[i] = new DeviceBuffers(0, tileSizeTot, 0, tileSizeTot);
         assert(m_buffers[myThread()] != 0);
     }
 // std::cerr << "Buffer cree" << std::endl;
@@ -869,9 +869,9 @@ void Domain::setTiles() {
         i = t;
         if (m_withMorton)
             i = m_mortonIdx[t];
+
         m_tiles[i]->setTimers(m_threadTimers);
         m_tiles[i]->initTile(m_uold);
-        m_tiles[i]->setMpi(ParallelInfo::nb_procs(), ParallelInfo::mype());
         m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann,
                              m_iorder, m_scheme);
         m_tiles[i]->setScan(X_SCAN);

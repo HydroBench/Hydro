@@ -8,17 +8,19 @@
 #include "Matrix.hpp"
 #include "precision.hpp"
 
+
+//Soa is a container of m_nbElem Matrix2x2 of dimension w,h
+
 class Soa {
   private:
     Matrix2<real_t> **m_tab;
     int32_t m_nbElem;
+    bool m_device; // True is allocated on device
 
-    // section of forbidden usages
-    Soa(void){}; // default constructor. make it private if needed.
-    // copy operator
-    Soa(const Soa &obj){};
-    // assignment operator
-    Soa &operator=(Soa &rhs) { return rhs; };
+    
+    Soa() = delete;
+    Soa( Soa &obj) = delete;
+    Soa &operator=(Soa &rhs) = delete;
 
   protected:
   public:

@@ -17,13 +17,7 @@
 #include <mpi.h>
 #endif
 
-#if USEMKL == 1
-#include <mkl.h>
-#endif
 
-#ifdef WITHHBW
-#include <hbwmalloc.h>
-#endif
 
 
 long Volume::_volume = 0;
@@ -45,18 +39,7 @@ template <typename T> void Matrix2<T>::allocate(void) {
     _org = _arr;
 // #pragma message "C++ NEW usage activated"
 #endif
-#ifdef WITHHBW
-    _arr = 0;
-    int rc = hbw_posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
-    if (_arr == 0) {
-        // fallback to DDR
-        cerr << __FILE__ << " Falling back to DDR4" << endl;
-        rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
-        assert(rc == 0);
-    }
-    _org = _arr;
-// #pragma message "HBW memory usage activated"
-#endif
+
 #ifdef WITHPOSIX
     // #pragma message "posix_memalign activated"
     int rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
@@ -95,8 +78,6 @@ template <typename T> Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), 
 template <typename T> void Matrix2<T>::fill(T v) {
     int32_t i, j;
 
-
-
     T *tmp = _arr;
 
     for (j = 0; j < _h; j++) {
@@ -134,15 +115,6 @@ Matrix2<T>::Matrix2(const Matrix2<T> &m) : _w(m._w), _h(m._h), _arr(0), _org(0) 
     memcpy(_arr, m._arr, _w * _h * sizeof(T));
 }
 
-template <typename T> Matrix2<T> &Matrix2<T>::operator=(const Matrix2<T> &rhs) {
-
-    _w = (rhs._w);
-    _h = (rhs._h);
-    allocate();
-    assert(_arr != 0);
-    memcpy(_arr, rhs._arr, _w * _h * sizeof(T));
-    return *this;
-}
 
 template <typename T> int32_t *Matrix2<T>::listMortonIdx(void) {
     // int32_t x, y;
@@ -203,16 +175,7 @@ template <typename T> void Matrix2<T>::putFullCol(int32_t x, int32_t offY, T *th
     aux_putFullCol(x, l, offY, theCol, _arr);
 }
 
-template <typename T> void Matrix2<T>::InsertMatrix(const Matrix2 &src, int32_t x0, int32_t y0) {
-    int32_t srcX = src.getW();
-    int32_t srcY = src.getH();
-    for (int32_t j = 0; j < srcY; j++) {
-        // #pragma simd
-        for (int32_t i = 0; i < srcX; i++) {
-            _arr[Mat2Index(i + x0, j + y0)] = src._arr[Mat2Index(i, j)];
-        }
-    }
-}
+
 
 template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix2<T> &mat) {
     int32_t srcX = mat.getW();
