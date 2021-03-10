@@ -10,7 +10,7 @@
 #include "Tile.hpp"
 #include "TimeLimit.hpp"
 
-
+#include <vector>
 
 #if WITHPNG > 0
 #include <png.h>
@@ -37,7 +37,7 @@ class Domain {
     TimeLimit m_tr;
     int m_prt;
     int32_t m_stats;      // print various stats
-    Tile **m_tiles;       //=
+    std::vector<Tile> m_tiles;       //=
     int32_t m_nbtiles;    //=
     int32_t m_tileSize;   //=
     
@@ -45,7 +45,7 @@ class Domain {
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
     Matrix2<int32_t> *m_morton;
-    DeviceBuffers **m_buffers; // shared buffers for all threads
+    std::vector<DeviceBuffers> m_buffers; // shared buffers for all threads
 
     long m_maxrss, m_ixrss; // memory usage;
 
@@ -170,7 +170,7 @@ class Domain {
         else
             m_scan = X_SCAN;
     }
-    int32_t tileFromMorton(int32_t t);
+    
     void pngWriteFile(char *name);
     void pngProcess(void);
     void pngCloseFile(void);

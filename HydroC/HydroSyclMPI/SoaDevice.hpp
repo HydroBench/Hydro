@@ -9,6 +9,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ostream>
+
+template <typename T> class Array1D;
+template <typename T> class Array2D;
+template <typename T> class SoaDevice;
+
+template <typename T> std::ostream &operator<<(std::ostream &, const Array1D<T> &);
+template <typename T> std::ostream &operator<<(std::ostream &, const Array2D<T> &);
+template <typename T> std::ostream &operator<<(std::ostream &, const SoaDevice<T> &);
+
 
 template <typename S> class Array1D {
     S * m_data;
@@ -21,6 +31,7 @@ public:
     S & operator() (int32_t idx) { return m_data[idx];}
     S operator() (int32_t idx) const  { return m_data[idx];}
 
+    friend std::ostream &operator<<(std::ostream &, const Array1D<S>&);
 };
 
 template <typename S> class Array2D {
@@ -40,6 +51,9 @@ template <typename S> class Array2D {
     void swapDimOnly() { std::swap(m_w, m_h); }
     S &operator()(int32_t i, int32_t j) { return m_data[j * m_w + i]; }
     S operator()(int32_t i, int32_t j) const { return m_data[j * m_w + i]; }
+    S * getRow(int row) { return &m_data[row * m_w];}
+
+    friend std::ostream & operator<<(std::ostream &, const Array2D<S> &);
 };
 
 template <typename T> class SoaDevice {

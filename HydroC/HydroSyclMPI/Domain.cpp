@@ -2,13 +2,10 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
-
 #include "ParallelInfo.hpp"
 
 //
 #include "Domain.hpp"
-
-
 
 #include <unistd.h>
 
@@ -59,7 +56,6 @@ Domain::Domain(int argc, char **argv) {
     m_dtOutput = 0;
     m_scan = X_SCAN;
     m_scheme = SCHEME_MUSCL;
-    m_tiles = 0;
     m_localDt = 0;
     m_gamma = 1.4;
     m_smallc = 1e-10;
@@ -71,7 +67,6 @@ Domain::Domain(int argc, char **argv) {
     m_sendbufru = 0; // send right or up
     m_sendbufld = 0; // send left or down
 
-
     m_nbWorkItems = 1; // runs serially by default
     m_fakeRead = 0;
     m_fakeReadSize = 3000000;
@@ -79,10 +74,9 @@ Domain::Domain(int argc, char **argv) {
     m_taskeddep = 0;
     m_nDumpline = -1;
 
-    ParallelInfo::init(argc, argv, m_stats!=0);
+    ParallelInfo::init(argc, argv, m_stats != 0);
 
     int myPe = ParallelInfo::mype();
-    
 
     if (myPe == 0 && m_stats > 0) {
         int src = system("cpupower frequency-info | egrep 'CPU frequency|steps'");
@@ -135,13 +129,8 @@ Domain::Domain(int argc, char **argv) {
 
 Domain::~Domain() {
     delete m_uold;
-    if (m_tiles) {
-        for (int32_t i = 0; i < m_nbtiles; i++) {
-            if (m_tiles[i])
-                delete m_tiles[i];
-        }
-        delete[] m_tiles;
-    }
+    m_tiles.resize(0);
+
     if (m_recvbufru)
         free(m_recvbufru);
     if (m_recvbufld)
@@ -153,10 +142,8 @@ Domain::~Domain() {
     if (m_localDt)
         free(m_localDt);
 
-    for (int32_t i = 0; i < m_nbWorkItems; i++) {
-        delete m_buffers[i];
-    }
-    delete[] m_buffers;
+    m_buffers.resize(0);
+
     delete[] m_threadTimers;
     delete[] m_mortonIdx;
     if (m_morton)
@@ -169,7 +156,6 @@ Domain::~Domain() {
     }
     if (m_inputFile)
         free(m_inputFile);
-
 }
 
 void Domain::domainDecompose() {
@@ -668,14 +654,13 @@ void Domain::setTiles() {
 
     if (tileSize <= 0) {
         int nTh = 1, nbT = 0, tsMin, tsMax, remMin, remain;
-        
+
         int thMax, thCur;
         tileSize = 60;
         m_tileSize = tileSize;
 
         nTh = ParallelInfo::nb_workers();
 
-        
         m_nbtiles = 1;
         tsMin = 58;
         tsMax = 256;
@@ -685,7 +670,7 @@ void Domain::setTiles() {
             tsMax--;
 
         tsMax = std::max(tsMin, tsMax);
-        
+
         int thMin = nbTiles_fromsize(tsMin) % nTh;
         int tsCur;
         for (tsCur = tsMin; tsCur < tsMax; tsCur++) {
@@ -757,7 +742,6 @@ void Domain::setTiles() {
     }
     //
 
-    m_tiles = new Tile *[m_nbtiles];
 #ifdef _OPENMP
 #pragma omp parallel for private(i) if (m_numa) SCHEDULE
 #endif
@@ -765,7 +749,7 @@ void Domain::setTiles() {
         i = t;
         if (m_withMorton)
             i = m_mortonIdx[t];
-        m_tiles[i] = new Tile;
+        m_tiles.push_back(Tile());
     }
 
     m_nbtiles = 0;
@@ -781,8 +765,8 @@ void Domain::setTiles() {
             if (offx + tileSizeX >= m_nx)
                 tileSizeX = m_nx - offx;
             assert(tileSizeX <= tileSize);
-            m_tiles[m_nbtiles]->setPrt(m_prt);
-            m_tiles[m_nbtiles++]->setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
+            m_tiles[m_nbtiles].setPrt(m_prt);
+            m_tiles[m_nbtiles++].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
             if (m_prt) {
                 std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
                 std::cout << " ofx " << offx << " offy " << offy;
@@ -801,27 +785,22 @@ void Domain::setTiles() {
             Tile *pright = 0, *pleft = 0, *pup = 0, *pdown = 0;
             if (i < (mortonW - 1)) {
                 tright = (*m_morton)(i + 1, j);
-                pright = m_tiles[tright];
+                pright = &m_tiles[tright];
             }
             if (i > 0) {
                 tleft = (*m_morton)(i - 1, j);
-                pleft = m_tiles[tleft];
+                pleft = &m_tiles[tleft];
             }
             if (j < (mortonH - 1)) {
                 tup = (*m_morton)(i, j + 1);
-                pup = m_tiles[tup];
+                pup = &m_tiles[tup];
             }
             if (j > 0) {
                 tdown = (*m_morton)(i, j - 1);
-                pdown = m_tiles[tdown];
+                pdown = &m_tiles[tdown];
             }
-            // std::cerr << t << " : ";
-            // std::cerr << tleft << " ";
-            // std::cerr << tright << " ";
-            // std::cerr << tup << " ";
-            // std::cerr << tdown << " ";
-            // std::cerr << std::endl;
-            m_tiles[t]->setVoisins(pleft, pright, pup, pdown);
+
+            m_tiles[t].setVoisins(pleft, pright, pup, pdown);
         }
     }
 
@@ -844,37 +823,27 @@ void Domain::setTiles() {
     }
 
     int32_t tileSizeTot = tileSize + 2 * m_ExtraLayer;
-    m_buffers = new DeviceBuffers *[m_nbWorkItems];
-    assert(m_buffers != 0);
 
     m_threadTimers = new Timers[m_nbWorkItems];
     assert(m_threadTimers != 0);
 
-#ifdef _OPENMP
-#pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
-#endif
     for (int32_t i = 0; i < m_nbWorkItems; i++) {
-        // #pragma omp critical
-        // {
-        //    std::cerr << i << " attendu " << myThread() << std::endl << flush;
-        // }
-        m_buffers[i] = new DeviceBuffers(0, tileSizeTot, 0, tileSizeTot);
-        assert(m_buffers[myThread()] != 0);
+
+        m_buffers.push_back(DeviceBuffers(0, tileSizeTot, 0, tileSizeTot));
     }
-// std::cerr << "Buffer cree" << std::endl;
-#ifdef _OPENMP
-#pragma omp parallel for private(i) if (m_numa) SCHEDULE
-#endif
+
     for (int32_t t = 0; t < m_nbtiles; t++) {
         i = t;
         if (m_withMorton)
             i = m_mortonIdx[t];
 
-        m_tiles[i]->setTimers(m_threadTimers);
-        m_tiles[i]->initTile(m_uold);
-        m_tiles[i]->initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann,
-                             m_iorder, m_scheme);
-        m_tiles[i]->setScan(X_SCAN);
+        m_tiles[i].setTimers(m_threadTimers);
+        m_tiles[i].initTile();
+
+        m_tiles[i].initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann,
+                            m_iorder, m_scheme);
+
+        m_tiles[i].setScan(X_SCAN);
     }
 
     if (ParallelInfo::mype() == 0 && m_stats > 0) {
@@ -891,7 +860,5 @@ void Domain::setTiles() {
     }
     // exit(0);
 }
-
-
 
 // EOF

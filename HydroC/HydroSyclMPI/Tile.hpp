@@ -7,11 +7,12 @@
 #include "EnumDefs.hpp"
 #include "Options.hpp"
 #include "SoaDevice.hpp"
+#include "Soa.hpp"
 #include "DeviceBuffers.hpp"
 #include "Timers.hpp"
 #include "Utilities.hpp"
 
-
+#include <CL/sycl.hpp>
 
 class Tile {
   private:
@@ -26,13 +27,13 @@ class Tile {
     int32_t m_offx, m_offy; // offset of the tile in the domain
     int32_t m_gnx, m_gny;   // total domain size
     int32_t m_ExtraLayer;
+    
     // convenient variables
     godunovDir_t m_scan; // direction of the scan
 
     // Godunov variables and arrays
     real_t m_tcur, m_dt, m_dx;
-    Soa *m_uold;
-
+    
     // work arrays private to a tile
     SoaDevice<real_t> *m_u;    // NXT, NYT
     SoaDevice<real_t> *m_flux; // NX + 1, NY + 1
@@ -40,7 +41,7 @@ class Tile {
     // work arrays for a tile which can be shared across threads
     SoaDevice<real_t> *m_q, *m_qxm, *m_qxp, *m_dq;   // NXT, NYT
     SoaDevice<real_t> *m_qleft, *m_qright, *m_qgdnv; // NX + 1, NY + 1
-    Matrix2<real_t> *m_c, *m_e;        // NXT, NYT
+    Array2D<real_t> *m_c, *m_e;        // NXT, NYT
 
     // work arrays for a single row/column
     real_t *m_sgnm; //
@@ -113,8 +114,8 @@ class Tile {
                             Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS);
     void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax,
-                            real_t dtdx, Matrix2<real_t> &uoldID, Matrix2<real_t> &uoldIP,
-                            Matrix2<real_t> &uoldIV, Matrix2<real_t> &uoldIU, Preal_t fluxIVS,
+                            real_t dtdx, Array2D<real_t> &uoldID, Array2D<real_t> &uoldIP,
+                            Array2D<real_t> &uoldIV, Array2D<real_t> &uoldIU, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
                             Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
 
@@ -156,13 +157,11 @@ class Tile {
 
     void setNeighbourTile(tileNeighbour_t type, Tile *tile);
     Tile *getNeighbourTile(tileNeighbour_t type) { return m_voisin[type]; }
-    void initTile(Soa *uold);
+    void initTile();
     void initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type,
                   int32_t niter_riemann, int32_t order, int32_t scheme);
-    void setMpi(int32_t nproc, int32_t mype);
+    
 
-    void boundary_init();    // fait
-    void boundary_process(); // fait
     void swapStorageDims();
     void swapScan() {
         if (m_scan == X_SCAN)
@@ -192,6 +191,7 @@ class Tile {
     void doneProcessed(int step) { m_hasBeenProcessed = step; };
     int32_t isProcessed(int step) { return m_hasBeenProcessed == step; };
 
+#if 0
     int32_t myThread() {
         int32_t r = 0;
 
@@ -201,6 +201,8 @@ class Tile {
     long getLengthByte();
     void read(const int f);
     void write(const int f);
+#endif
+
 };
 #endif
 // EOF

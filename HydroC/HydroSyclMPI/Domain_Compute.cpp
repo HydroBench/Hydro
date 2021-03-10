@@ -1,39 +1,36 @@
 
 #include "Domain.hpp"
 #include "FakeRead.hpp"
-#include "cclock.hpp"
 #include "ParallelInfo.hpp"
+#include "cclock.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
 
-
-#include <iomanip>
 #include <cmath>
+#include <iomanip>
 
-#include <unistd.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #ifndef LIGHTSYNC
 #define LIGHTSYNC 0
 #endif
 
-
 void Domain::changeDirection() {
 
-    // reverse the private storage direction of the tile
-#pragma omp parallel for SCHEDULE
+    // reverse the private storage direction of the tiles
+
     for (int32_t i = 0; i < m_nbtiles; i++) {
-        m_tiles[i]->swapScan();
-        m_tiles[i]->swapStorageDims();
+        m_tiles[i].swapScan();
+        m_tiles[i].swapStorageDims();
     }
 
     // reverse the shared storage direction of the threads
-#pragma omp parallel for SCHEDULE
     for (int32_t i = 0; i < m_nbWorkItems; i++) {
-        m_buffers[i]->swapStorageDims();
+        m_buffers[i].swapStorageDims();
     }
     swapScan();
 }
@@ -41,43 +38,19 @@ void Domain::changeDirection() {
 void Domain::computeDt() {
     real_t dt;
 
-    if ((m_tasked == 0) && (m_taskeddep == 0)) {
 #pragma omp parallel for SCHEDULE
-        for (int32_t t = 0; t < m_nbtiles; t++) {
-            int32_t i = t;
-            if (m_withMorton) {
-                i = m_mortonIdx[t];
-                assert(i >= 0);
-                assert(i < m_nbtiles);
-            }
-            m_tiles[i]->setBuffers(m_buffers[myThread()]);
-            m_tiles[i]->setTcur(m_tcur);
-            m_tiles[i]->setDt(m_dt);
-            m_localDt[i] = m_tiles[i]->computeDt();
+    for (int32_t t = 0; t < m_nbtiles; t++) {
+        int32_t i = t;
+        if (m_withMorton) {
+            i = m_mortonIdx[t];
+            assert(i >= 0);
+            assert(i < m_nbtiles);
         }
-    } else {
+        m_tiles[i].setBuffers(&m_buffers[myThread()]);
+        m_tiles[i].setTcur(m_tcur);
+        m_tiles[i].setDt(m_dt);
 
-#pragma omp parallel
-        {
-#pragma omp single nowait
-            {
-                for (int32_t t = 0; t < m_nbtiles; t++) {
-#pragma omp task
-                    {
-                        int32_t i = t;
-                        if (m_withMorton) {
-                            i = m_mortonIdx[t];
-                            assert(i >= 0);
-                            assert(i < m_nbtiles);
-                        }
-                        m_tiles[i]->setBuffers(m_buffers[myThread()]);
-                        m_tiles[i]->setTcur(m_tcur);
-                        m_tiles[i]->setDt(m_dt);
-                        m_localDt[i] = m_tiles[i]->computeDt();
-                    }
-                }
-            }
-        }
+        m_localDt[i] = m_tiles[i].computeDt();
     }
 
     dt = m_localDt[0];
@@ -119,30 +92,10 @@ real_t Domain::reduceMaxAndBcast(real_t dt) {
     return dtmax;
 }
 
-int32_t Domain::tileFromMorton(int32_t t) {
-    int32_t it = t;
-    int32_t m = m_mortonIdx[t];
-    int32_t x, y;
-
-    int32_t mortonH = (m_ny + m_tileSize - 1) / m_tileSize;
-    int32_t mortonW = (m_nx + m_tileSize - 1) / m_tileSize;
-    it = 0;
-    for (int32_t j = 0; j < mortonH; j++) {
-        for (int32_t i = 0; i < mortonW; i++) {
-            if (m == morton2(i, j))
-                return it;
-            it++;
-        }
-    }
-
-    return it;
-}
-
 void Domain::compTStask1(int32_t tile) {
     // int lockStep = 0;
     int32_t tile_idx = tile;
-   
-    
+
 #if WITH_TIMERS == 1
     double startT = Custom_Timer::dcclock(), endT;
     int32_t thN = myThread();
@@ -154,14 +107,14 @@ void Domain::compTStask1(int32_t tile) {
         assert(tile_idx < m_nbtiles);
     }
 
-    m_tiles[tile_idx]->setBuffers(m_buffers[myThread()]);
-    m_tiles[tile_idx]->setTcur(m_tcur);
-    m_tiles[tile_idx]->setDt(m_dt);
-    
-    m_tiles[tile_idx]->gatherconserv(); // input uold      output u
-   
-    m_tiles[tile_idx]->godunov();
-   
+    m_tiles[tile_idx].setBuffers(&m_buffers[myThread()]);
+    m_tiles[tile_idx].setTcur(m_tcur);
+    m_tiles[tile_idx].setDt(m_dt);
+
+    m_tiles[tile_idx].gatherconserv(); // input uold      output u
+
+    m_tiles[tile_idx].godunov();
+
 #if WITH_TIMERS == 1
     endT = Custom_Timer::dcclock();
     (m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
@@ -181,16 +134,15 @@ void Domain::compTStask2(int32_t tile, int32_t mydep, int32_t mine) {
         assert(tile_idx >= 0);
         assert(tile_idx < m_nbtiles);
     }
-    m_tiles[tile_idx]->setBuffers(m_buffers[myThread()]);
-    m_tiles[tile_idx]->updateconserv(); // input u, flux       output uold
-  
-    m_localDt[tile_idx] = m_tiles[tile_idx]->computeDt();
- 
+    m_tiles[tile_idx].setBuffers(&m_buffers[myThread()]);
+    m_tiles[tile_idx].updateconserv(); // input u, flux       output uold
+
+    m_localDt[tile_idx] = m_tiles[tile_idx].computeDt();
+
 #if WITH_TIMERS == 1
     endT = Custom_Timer::dcclock();
     (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
- 
 }
 
 real_t Domain::computeTimeStep() {
@@ -282,7 +234,6 @@ void Domain::compute() {
 
     memset(vtkprt, 0, 64);
     if (myPe == 0 && m_stats > 0) {
-        
     }
 
 #ifdef MPI_ON
@@ -316,8 +267,8 @@ void Domain::compute() {
         m_dt /= 2.0;
         assert(m_dt > 1.e-15);
         if (myPe == 0) {
-            std::cout << " Initial dt " << std::setiosflags(std::ios::scientific) << std::setprecision(5) << m_dt
-                 << std::endl;
+            std::cout << " Initial dt " << std::setiosflags(std::ios::scientific)
+                      << std::setprecision(5) << m_dt << std::endl;
             ;
         }
     }
@@ -460,7 +411,7 @@ void Domain::compute() {
             if (needToStopGlob) {
                 if (myPe == 0) {
                     std::cerr << " Hydro stops by time limit " << m_tr.timeRemain() << " < "
-                         << m_timeGuard << std::endl;
+                              << m_timeGuard << std::endl;
                 }
                 std::cout.flush();
                 std::cerr.flush();
@@ -525,7 +476,8 @@ void Domain::compute() {
         // printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
         printf(" maxMatrix %.3f MB", float(Matrix2<double>::getMax() / mega));
         if (ParallelInfo::nb_procs() > 1) {
-            printf(" maxMatrixTot %.3f GB", float(Matrix2<double>::getMax() * ParallelInfo::nb_procs() / giga));
+            printf(" maxMatrixTot %.3f GB",
+                   float(Matrix2<double>::getMax() * ParallelInfo::nb_procs() / giga));
         }
         printf("\n");
         Custom_Timer::convertToHuman(timeHuman, m_elapsTotal);

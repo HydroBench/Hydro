@@ -4,8 +4,6 @@
 
 #include "Options.hpp"
 
-
-
 #include "Tile.hpp"
 #include "Timers.hpp"
 #include "cclock.hpp"
@@ -19,8 +17,6 @@
 #include <cstdlib>
 #include <cstring>
 
-
-
 //
 
 Tile::Tile() {
@@ -30,12 +26,9 @@ Tile::Tile() {
     m_ExtraLayer = 2;
     m_scan = X_SCAN;
 
-    m_uold = nullptr;
     m_u = nullptr;
     m_flux = nullptr;
-
 }
-
 
 Tile::~Tile() {
 
@@ -47,7 +40,7 @@ Tile::~Tile() {
 
 void Tile::setNeighbourTile(tileNeighbour_t type, Tile *tile) { m_voisin[type] = tile; }
 
-void Tile::initTile(Soa *uold) {
+void Tile::initTile() {
     int32_t xmin, xmax, ymin, ymax;
     int32_t lgx, lgy;
 
@@ -55,26 +48,17 @@ void Tile::initTile(Soa *uold) {
 
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
-    //
-    m_uold = uold;
-    
+
     assert(lgx > 0);
     assert(lgy > 0);
-    m_u = new Soa(NB_VAR, lgx, lgy, true);
-    m_flux = new Soa(NB_VAR, lgx, lgy, true);
+    m_u = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_flux = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
 }
 
 void Tile::swapStorageDims() {
-#pragma novector
-    for (int32_t i = 0; i < NB_VAR; i++) {
-        Matrix2<real_t> *m;
-        m = (*m_u)(i);
-        m->swapDimOnly();
-        m = (*m_flux)(i);
-        m->swapDimOnly();
-    }
+    m_u->swapDimOnly();
+    m_flux->swapDimOnly();
 }
-
 
 void Tile::initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type,
                     int32_t niter_riemann, int32_t order, int32_t scheme) {
@@ -118,18 +102,20 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS) {
         llftrgt = ((dlft * drgt) <= zero);
         t1 = std::min(std::abs(dlft), std::abs(drgt));
         dqS[i] = dsgn * std::min((one - llftrgt) * t1, std::abs(dcen));
-
     }
 }
 
 void Tile::slope() {
     int32_t xmin, xmax, ymin, ymax;
     double start, end;
+
+#if 0   
     start = Custom_Timer::dcclock();
+#endif
 
     for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
-        Matrix2<real_t> &q = *(*m_q)(nbv);
-        Matrix2<real_t> &dq = *(*m_dq)(nbv);
+        auto &q = (*m_q)(nbv);
+        auto &dq = (*m_dq)(nbv);
 
         getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -139,38 +125,44 @@ void Tile::slope() {
             slopeOnRow(xmin, xmax, qS, dqS);
         }
     }
-    Matrix2<real_t> &q = *(*m_q)(IP_VAR);
+    auto &q = (*m_q)(IP_VAR);
     if (m_prt)
         std::cout << "Tile q slope" << q;
 
-    Matrix2<real_t> &dq = *(*m_dq)(IP_VAR);
+    auto &dq = (*m_dq)(IP_VAR);
     if (m_prt)
         std::cout << "Tile dq slope" << dq;
-
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(SLOPE, elaps);
+#endif
 } // slope
 
 void Tile::trace() {
     int32_t xmin, xmax, ymin, ymax;
+
+ #if 0   
     double start, end;
+
     start = Custom_Timer::dcclock();
-    Matrix2<real_t> &qID = *(*m_q)(ID_VAR);
-    Matrix2<real_t> &qIV = *(*m_q)(IV_VAR);
-    Matrix2<real_t> &qIU = *(*m_q)(IU_VAR);
-    Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
-    Matrix2<real_t> &dqID = *(*m_dq)(ID_VAR);
-    Matrix2<real_t> &dqIV = *(*m_dq)(IV_VAR);
-    Matrix2<real_t> &dqIU = *(*m_dq)(IU_VAR);
-    Matrix2<real_t> &dqIP = *(*m_dq)(IP_VAR);
-    Matrix2<real_t> &pqxmID = *(*m_qxm)(ID_VAR);
-    Matrix2<real_t> &pqxmIP = *(*m_qxm)(IP_VAR);
-    Matrix2<real_t> &pqxmIV = *(*m_qxm)(IV_VAR);
-    Matrix2<real_t> &pqxmIU = *(*m_qxm)(IU_VAR);
-    Matrix2<real_t> &pqxpID = *(*m_qxp)(ID_VAR);
-    Matrix2<real_t> &pqxpIP = *(*m_qxp)(IP_VAR);
-    Matrix2<real_t> &pqxpIV = *(*m_qxp)(IV_VAR);
-    Matrix2<real_t> &pqxpIU = *(*m_qxp)(IU_VAR);
+#endif
+
+    auto &qID = (*m_q)(ID_VAR);
+    auto &qIV = (*m_q)(IV_VAR);
+    auto &qIU = (*m_q)(IU_VAR);
+    auto &qIP = (*m_q)(IP_VAR);
+    auto &dqID = (*m_dq)(ID_VAR);
+    auto &dqIV = (*m_dq)(IV_VAR);
+    auto &dqIU = (*m_dq)(IU_VAR);
+    auto &dqIP = (*m_dq)(IP_VAR);
+    auto &pqxmID = (*m_qxm)(ID_VAR);
+    auto &pqxmIP = (*m_qxm)(IP_VAR);
+    auto &pqxmIV = (*m_qxm)(IV_VAR);
+    auto &pqxmIU = (*m_qxm)(IU_VAR);
+    auto &pqxpID = (*m_qxp)(ID_VAR);
+    auto &pqxpIP = (*m_qxp)(IP_VAR);
+    auto &pqxpIV = (*m_qxp)(IV_VAR);
+    auto &pqxpIU = (*m_qxp)(IU_VAR);
 
     real_t zerol = zero, zeror = zero, project = zero;
     real_t dtdx = m_dt / m_dx;
@@ -222,9 +214,11 @@ void Tile::trace() {
 
     if (m_prt)
         std::cout << "Tile pqxpIP Trace" << pqxpIP;
-
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(TRACE, elaps);
+#endif
+
 } // trace
 
 void Tile::traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, real_t zerol,
@@ -308,16 +302,19 @@ void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqri
 
 void Tile::qleftr() {
     int32_t xmin, xmax, ymin, ymax;
+
+#if 0    
     double start, end;
     start = Custom_Timer::dcclock();
+#endif
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t v = 0; v < NB_VAR; v++) {
-        Matrix2<real_t> &pqleft = *(*m_qleft)(v);
-        Matrix2<real_t> &pqright = *(*m_qright)(v);
-        Matrix2<real_t> &pqxm = *(*m_qxm)(v);
-        Matrix2<real_t> &pqxp = *(*m_qxp)(v);
+        auto &pqleft = (*m_qleft)(v);
+        auto &pqright = (*m_qright)(v);
+        auto &pqxm = (*m_qxm)(v);
+        auto &pqxp = (*m_qxp)(v);
         for (int32_t s = ymin; s < ymax; s++) {
             Preal_t pqleftS = pqleft.getRow(s);
             Preal_t pqrightS = pqright.getRow(s);
@@ -326,16 +323,17 @@ void Tile::qleftr() {
             qleftrOnRow(xmin, xmax, pqleftS, pqrightS, pqxmS, pqxpS);
         }
     }
-    Matrix2<real_t> &pqleft = *(*m_qleft)(IP_VAR);
+    auto &pqleft = (*m_qleft)(IP_VAR);
     if (m_prt)
         std::cout << "Tile qleft qleftr" << pqleft;
 
-    Matrix2<real_t> &pqright = *(*m_qright)(IP_VAR);
+    auto &pqright = (*m_qright)(IP_VAR);
     if (m_prt)
         std::cout << "Tile qright qleftr" << pqright;
-
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(QLEFTR, elaps);
+#endif    
 }
 
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
@@ -358,16 +356,19 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
 
 void Tile::compflx() {
     int32_t xmin, xmax, ymin, ymax;
+ #if 0   
     double start, end;
     start = Custom_Timer::dcclock();
-    Matrix2<real_t> &qgdnvID = *(*m_qgdnv)(ID_VAR);
-    Matrix2<real_t> &qgdnvIU = *(*m_qgdnv)(IU_VAR);
-    Matrix2<real_t> &qgdnvIP = *(*m_qgdnv)(IP_VAR);
-    Matrix2<real_t> &qgdnvIV = *(*m_qgdnv)(IV_VAR);
-    Matrix2<real_t> &fluxIV = *(*m_flux)(IV_VAR);
-    Matrix2<real_t> &fluxIU = *(*m_flux)(IU_VAR);
-    Matrix2<real_t> &fluxIP = *(*m_flux)(IP_VAR);
-    Matrix2<real_t> &fluxID = *(*m_flux)(ID_VAR);
+#endif
+
+    auto &qgdnvID = (*m_qgdnv)(ID_VAR);
+    auto &qgdnvIU = (*m_qgdnv)(IU_VAR);
+    auto &qgdnvIP = (*m_qgdnv)(IP_VAR);
+    auto &qgdnvIV = (*m_qgdnv)(IV_VAR);
+    auto &fluxIV = (*m_flux)(IV_VAR);
+    auto &fluxIU = (*m_flux)(IU_VAR);
+    auto &fluxIP = (*m_flux)(IP_VAR);
+    auto &fluxID = (*m_flux)(ID_VAR);
 
     real_t entho = 1.0 / (m_gamma - one);
 
@@ -388,9 +389,11 @@ void Tile::compflx() {
     }
     if (m_prt)
         std::cout << "Tile fluxIP compflx" << fluxIP;
-
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPFLX, elaps);
+#endif
+
 } // compflx
 
 template <typename LOOP_BODY> void forall(int32_t begin, int32_t end, LOOP_BODY body) {
@@ -404,8 +407,6 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t u
                               Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
                               Preal_t fluxIUS, Preal_t fluxIPS) {
 
-
-
 #pragma omp simd
     for (int32_t i = xmin; i < xmax; i++) {
         uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
@@ -413,14 +414,13 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t u
         uoldIUS[i + m_offx] = uIUS[i] + (fluxIUS[i - 2] - fluxIUS[i - 1]) * dtdx;
         uoldIPS[i + m_offx] = uIPS[i] + (fluxIPS[i - 2] - fluxIPS[i - 1]) * dtdx;
     }
-
 }
 
 void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax,
-                              real_t dtdx, Matrix2<real_t> &uoldID, Matrix2<real_t> &uoldIP,
-                              Matrix2<real_t> &uoldIV, Matrix2<real_t> &uoldIU, Preal_t fluxIVS,
-                              Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
-                              Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
+                              real_t dtdx, Array2D<real_t> &uoldID, Array2D<real_t> &uoldIP, Array2D<real_t> &uoldIV, 
+                              Array2D<real_t> &uoldIU,
+                              Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS,
+                              Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
 
 #pragma omp simd
     for (int32_t j = xmin; j < xmax; j++) {
@@ -428,20 +428,17 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymi
     }
     uoldID.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
 
-
 #pragma omp simd
     for (int32_t j = xmin; j < xmax; j++) {
         pl[j] = uIUS[j] + (fluxIUS[j - 2] - fluxIUS[j - 1]) * dtdx;
     }
     uoldIV.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
 
-
 #pragma omp simd
     for (int32_t j = xmin; j < xmax; j++) {
         pl[j] = uIVS[j] + (fluxIVS[j - 2] - fluxIVS[j - 1]) * dtdx;
     }
     uoldIU.putFullCol(s + m_offx, xmin + m_offy, &pl[xmin], (xmax - xmin));
-
 
 #pragma omp simd
     for (int32_t j = xmin; j < xmax; j++) {
@@ -451,23 +448,28 @@ void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymi
 }
 
 void Tile::updateconserv() {
+
+#if 0
     double start, end;
     start = Custom_Timer::dcclock();
+#endif
+
     int32_t xmin, xmax, ymin, ymax;
-    Matrix2<real_t> &uoldID = *(*m_uold)(ID_VAR);
-    Matrix2<real_t> &uoldIP = *(*m_uold)(IP_VAR);
-    Matrix2<real_t> &uoldIV = *(*m_uold)(IV_VAR);
-    Matrix2<real_t> &uoldIU = *(*m_uold)(IU_VAR);
 
-    Matrix2<real_t> &fluxIV = *(*m_flux)(IV_VAR);
-    Matrix2<real_t> &fluxIU = *(*m_flux)(IU_VAR);
-    Matrix2<real_t> &fluxIP = *(*m_flux)(IP_VAR);
-    Matrix2<real_t> &fluxID = *(*m_flux)(ID_VAR);
+    auto &uoldID = (*m_uold)(ID_VAR);
+    auto &uoldIP = (*m_uold)(IP_VAR);
+    auto &uoldIV = (*m_uold)(IV_VAR);
+    auto &uoldIU = (*m_uold)(IU_VAR);
 
-    Matrix2<real_t> &uID = *(*m_u)(ID_VAR);
-    Matrix2<real_t> &uIP = *(*m_u)(IP_VAR);
-    Matrix2<real_t> &uIV = *(*m_u)(IV_VAR);
-    Matrix2<real_t> &uIU = *(*m_u)(IU_VAR);
+    auto &fluxIV = (*m_flux)(IV_VAR);
+    auto &fluxIU = (*m_flux)(IU_VAR);
+    auto &fluxIP = (*m_flux)(IP_VAR);
+    auto &fluxID = (*m_flux)(ID_VAR);
+
+    auto &uID = (*m_u)(ID_VAR);
+    auto &uIP = (*m_u)(IP_VAR);
+    auto &uIV = (*m_u)(IV_VAR);
+    auto &uIU = (*m_u)(IU_VAR);
     real_t dtdx = m_dt / m_dx;
     if (m_prt)
         std::cout << "dtdx " << dtdx << std::endl;
@@ -475,11 +477,12 @@ void Tile::updateconserv() {
     getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
     if (m_prt) {
         std::cout << "scan " << m_scan << std::endl
-             << "Tile uoldIP input updateconserv" << uoldIP << "Tile fluxID input updateconserv"
-             << fluxID << "Tile fluxIU input updateconserv" << fluxIU
-             << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
-             << "Tile uIU updateconserv" << uIU << "Tile uIV updateconserv" << uIV
-             << "Tile uIP updateconserv" << uIP;
+                  << "Tile uoldIP input updateconserv" << uoldIP
+                  << "Tile fluxID input updateconserv" << fluxID
+                  << "Tile fluxIU input updateconserv" << fluxIU
+                  << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
+                  << "Tile uIU updateconserv" << uIU << "Tile uIV updateconserv" << uIV
+                  << "Tile uIP updateconserv" << uIP;
     }
     if (m_scan == X_SCAN) {
         for (int32_t s = ymin; s < ymax; s++) {
@@ -512,16 +515,17 @@ void Tile::updateconserv() {
 
             updateconservYscan(s, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP, uoldIV, uoldIU,
                                fluxIVS, fluxIUS, fluxIPS, fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
-
-        
         }
     }
     if (m_prt) {
         std::cout << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
-             << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
+                  << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
     }
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(UPDCVAR, elaps);
+#endif
+
 } // updateconserv
 
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax, Preal_t uIDS, Preal_t uIUS, Preal_t uIVS,
@@ -553,22 +557,26 @@ void Tile::gatherconservYscan() {}
 
 void Tile::gatherconserv() {
     int32_t xmin, xmax, ymin, ymax;
+ #if 0   
     double start, end;
     start = Custom_Timer::dcclock();
-    Matrix2<real_t> &uID = *(*m_u)(ID_VAR);
-    Matrix2<real_t> &uIP = *(*m_u)(IP_VAR);
-    Matrix2<real_t> &uIV = *(*m_u)(IV_VAR);
-    Matrix2<real_t> &uIU = *(*m_u)(IU_VAR);
-    Matrix2<real_t> &uoldID = *(*m_uold)(ID_VAR);
-    Matrix2<real_t> &uoldIP = *(*m_uold)(IP_VAR);
-    Matrix2<real_t> &uoldIV = *(*m_uold)(IV_VAR);
-    Matrix2<real_t> &uoldIU = *(*m_uold)(IU_VAR);
+#endif
+
+    auto &uID = (*m_u)(ID_VAR);
+    auto &uIP = (*m_u)(IP_VAR);
+    auto &uIV = (*m_u)(IV_VAR);
+    auto &uIU = (*m_u)(IU_VAR);
+
+    auto &uoldID = (*m_uold)(ID_VAR);
+    auto &uoldIP = (*m_uold)(IP_VAR);
+    auto &uoldIV = (*m_uold)(IV_VAR);
+    auto &uoldIU = (*m_uold)(IU_VAR);
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (m_prt) {
         std::cout << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
-             << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
+                  << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
     }
 
     if (m_scan == X_SCAN) {
@@ -590,17 +598,17 @@ void Tile::gatherconserv() {
             uIU.putFullCol(j, 0, uoldIV.getRow(j + m_offy) + m_offx, (ymax - ymin));
             uIV.putFullCol(j, 0, uoldIU.getRow(j + m_offy) + m_offx, (ymax - ymin));
             uIP.putFullCol(j, 0, uoldIP.getRow(j + m_offy) + m_offx, (ymax - ymin));
-
-        
         }
     }
     if (m_prt) {
         std::cout << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
-             << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
+                  << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
     }
-
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(GATHCVAR, elaps);
+#endif
+
 } // gatherconserv
 
 void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS,
@@ -633,11 +641,13 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 
 void Tile::eos(tileSpan_t span) {
     int32_t xmin, xmax, ymin, ymax;
+#if 0
     double start, end;
     start = Custom_Timer::dcclock();
+#endif
 
-    Matrix2<real_t> &qID = *(*m_q)(ID_VAR);
-    Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
+    auto &qID = (*m_q)(ID_VAR);
+    auto &qIP = (*m_q)(IP_VAR);
 
     real_t smallp = Square(m_smallc) / m_gamma;
 
@@ -653,8 +663,11 @@ void Tile::eos(tileSpan_t span) {
     if (m_prt) {
         std::cout << "Tile qIP eos" << qIP << "Tile c eos" << *m_c;
     }
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(EOS, elaps);
+#endif
+
 } // eos
 
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS,
@@ -685,17 +698,20 @@ void Tile::compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32
 
 real_t Tile::compute_dt() {
     int32_t xmin, xmax, ymin, ymax;
+ #if 0   
     double start, end;
     start = Custom_Timer::dcclock();
+#endif
     real_t dt = 0, cournox, cournoy, tmp1 = 0, tmp2 = 0;
-    Matrix2<real_t> &uoldID = *(*m_uold)(ID_VAR);
-    Matrix2<real_t> &uoldIP = *(*m_uold)(IP_VAR);
-    Matrix2<real_t> &uoldIV = *(*m_uold)(IV_VAR);
-    Matrix2<real_t> &uoldIU = *(*m_uold)(IU_VAR);
-    Matrix2<real_t> &qID = *(*m_q)(ID_VAR);
-    Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
-    Matrix2<real_t> &qIV = *(*m_q)(IV_VAR);
-    Matrix2<real_t> &qIU = *(*m_q)(IU_VAR);
+    auto &uoldID = *(*m_uold)(ID_VAR);
+    auto &uoldIP = *(*m_uold)(IP_VAR);
+    auto &uoldIV = *(*m_uold)(IV_VAR);
+    auto &uoldIU = *(*m_uold)(IU_VAR);
+
+    auto &qID = (*m_q)(ID_VAR);
+    auto &qIP = (*m_q)(IP_VAR);
+    auto &qIV = (*m_q)(IV_VAR);
+    auto &qIU = (*m_q)(IU_VAR);
     godunovDir_t oldScan = m_scan;
 
     if (m_scan == Y_SCAN) {
@@ -727,13 +743,18 @@ real_t Tile::compute_dt() {
                               uoldIPS, eS);
     }
     // stop timer here to avoid counting EOS twice
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPDT, elaps);
+#endif
 
     eos(TILE_INTERIOR); // needs    qID, e    returns    c, qIP
 
     // resume timing
+#if 0
     start = Custom_Timer::dcclock();
+#endif
+
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIVS = qIV.getRow(s);
         real_t *qIUS = qIU.getRow(s);
@@ -752,9 +773,11 @@ real_t Tile::compute_dt() {
 
     if (m_prt)
         std::cerr << "tile dt " << dt << std::endl;
-
+#if 0
     elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPDT, elaps);
+#endif
+
     return dt;
 } // compute_dt
 
@@ -763,8 +786,8 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
                           const Preal_t uIUS, Preal_t eS) {
 
 #if ALIGNED > 0
-// #pragma message "constprimOnRow aligned"
-// #pragma vector aligned
+    // #pragma message "constprimOnRow aligned"
+    // #pragma vector aligned
 
 #endif
     for (int32_t i = xmin; i < xmax; i++) {
@@ -788,17 +811,20 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 
 void Tile::constprim() {
     int32_t xmin, xmax, ymin, ymax;
+ #if 0   
     double start, end;
     start = Custom_Timer::dcclock();
-    Matrix2<real_t> &qID = *(*m_q)(ID_VAR);
-    Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
-    Matrix2<real_t> &qIV = *(*m_q)(IV_VAR);
-    Matrix2<real_t> &qIU = *(*m_q)(IU_VAR);
+#endif
 
-    Matrix2<real_t> &uID = *(*m_u)(ID_VAR);
-    Matrix2<real_t> &uIP = *(*m_u)(IP_VAR);
-    Matrix2<real_t> &uIV = *(*m_u)(IV_VAR);
-    Matrix2<real_t> &uIU = *(*m_u)(IU_VAR);
+    auto &qID = (*m_q)(ID_VAR);
+    auto &qIP = (*m_q)(IP_VAR);
+    auto &qIV = (*m_q)(IV_VAR);
+    auto &qIU = (*m_q)(IU_VAR);
+
+    auto &uID = (*m_u)(ID_VAR);
+    auto &uIP = (*m_u)(IP_VAR);
+    auto &uIV = (*m_u)(IV_VAR);
+    auto &uIU = (*m_u)(IU_VAR);
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -818,8 +844,11 @@ void Tile::constprim() {
         std::cout << "Tile qIP constprim" << qIP << "Tile e constprim" << *m_e;
     }
 
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(CONSTPRIM, elaps);
+#endif
+
 } // constprim
 
 void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp,
@@ -831,7 +860,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
                         Preal_t cr) {
 // #pragma message "riemannOnRow actif"
 #if ALIGNED > 0
-// #pragma vector aligned
+    // #pragma vector aligned
 
 #endif
     for (int32_t i = xmin; i < xmax; i++) {
@@ -841,7 +870,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
     // Precompute values for this slice
     // #pragma ivdep
 #if ALIGNED > 0
-// #pragma vector aligned
+    // #pragma vector aligned
 
 #endif
 
@@ -872,7 +901,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 
     for (int32_t iter = 0; iter < m_niter_riemann; iter++) {
 #if ALIGNED > 0
-// #pragma vector aligned
+        // #pragma vector aligned
 
 #endif
         for (int32_t i = xmin; i < xmax; i++) {
@@ -900,7 +929,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         }
     } // iter_riemann
 #if ALIGNED > 0
-// #pragma vector aligned
+    // #pragma vector aligned
 
 #endif
 
@@ -1112,22 +1141,25 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
 void Tile::riemann() {
     int32_t xmin, xmax, ymin, ymax;
+#if 0   
     double start, end;
     start = Custom_Timer::dcclock();
-    Matrix2<real_t> &qgdnvID = *(*m_qgdnv)(ID_VAR);
-    Matrix2<real_t> &qgdnvIU = *(*m_qgdnv)(IU_VAR);
-    Matrix2<real_t> &qgdnvIP = *(*m_qgdnv)(IP_VAR);
-    Matrix2<real_t> &qgdnvIV = *(*m_qgdnv)(IV_VAR);
+#endif 
 
-    Matrix2<real_t> &qleftID = *(*m_qleft)(ID_VAR);
-    Matrix2<real_t> &qleftIU = *(*m_qleft)(IU_VAR);
-    Matrix2<real_t> &qleftIP = *(*m_qleft)(IP_VAR);
-    Matrix2<real_t> &qleftIV = *(*m_qleft)(IV_VAR);
+    auto &qgdnvID = (*m_qgdnv)(ID_VAR);
+    auto &qgdnvIU = (*m_qgdnv)(IU_VAR);
+    auto &qgdnvIP = (*m_qgdnv)(IP_VAR);
+    auto &qgdnvIV = (*m_qgdnv)(IV_VAR);
 
-    Matrix2<real_t> &qrightID = *(*m_qright)(ID_VAR);
-    Matrix2<real_t> &qrightIU = *(*m_qright)(IU_VAR);
-    Matrix2<real_t> &qrightIP = *(*m_qright)(IP_VAR);
-    Matrix2<real_t> &qrightIV = *(*m_qright)(IV_VAR);
+    auto &qleftID = (*m_qleft)(ID_VAR);
+    auto &qleftIU = (*m_qleft)(IU_VAR);
+    auto &qleftIP = (*m_qleft)(IP_VAR);
+    auto &qleftIV = (*m_qleft)(IV_VAR);
+
+    auto &qrightID = (*m_qright)(ID_VAR);
+    auto &qrightIU = (*m_qright)(IU_VAR);
+    auto &qrightIP = (*m_qright)(IP_VAR);
+    auto &qrightIV = (*m_qright)(IV_VAR);
 
     real_t smallp = Square(m_smallc) / m_gamma;
     real_t gamma6 = (m_gamma + one) / (two * m_gamma);
@@ -1145,140 +1177,33 @@ void Tile::riemann() {
         real_t *qleftIUS = qleftIU.getRow(s);
         real_t *qleftIPS = qleftIP.getRow(s);
         real_t *qleftIVS = qleftIV.getRow(s);
-        
+
         real_t *qrightIDS = qrightID.getRow(s);
         real_t *qrightIUS = qrightIU.getRow(s);
         real_t *qrightIPS = qrightIP.getRow(s);
         real_t *qrightIVS = qrightIV.getRow(s);
 
-
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
                            qrightIPS, qrightIVS, m_sgnm);
-
     }
 
     if (m_prt) {
         std::cout << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
-             << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
+                  << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
     }
 
+#if 0
     double elaps = Custom_Timer::dcclock() - start;
-
     m_threadTimers[myThread()].add(RIEMANN, elaps);
+#endif
+
 } // riemann
 
-void Tile::boundary_init() {
-    int32_t size, ivar, i, j, i0, j0;
-
-    if (m_scan == X_SCAN) {
-        size = pack_arrayv(m_ExtraLayer, m_sendbufld);
-        size = pack_arrayv(m_nx, m_sendbufru);
-    } // X_SCAN
-
-    if (m_scan == Y_SCAN) {
-        size = pack_arrayh(m_ExtraLayer, m_sendbufld);
-        size = pack_arrayh(m_ny, m_sendbufru);
-    } // Y_SCAN
-}
-
-void Tile::boundary_process() {
-    int32_t size, ivar, i, j, i0, j0;
-
-    if (m_scan == X_SCAN) {
-        if (m_voisin[RIGHT_TILE] != 0) {
-            size = unpack_arrayv(m_nx + m_ExtraLayer, m_voisin[RIGHT_TILE]->m_sendbufld);
-        }
-        if (m_voisin[LEFT_TILE] != 0) {
-            size = unpack_arrayv(0, m_voisin[LEFT_TILE]->m_sendbufru);
-        }
-    } // X_SCAN
-
-    if (m_scan == Y_SCAN) {
-        if (m_voisin[DOWN_TILE] != 0) {
-            unpack_arrayh(0, m_voisin[DOWN_TILE]->m_sendbufld);
-        }
-        if (m_voisin[UP_TILE] != 0) {
-            unpack_arrayh(m_ny + m_ExtraLayer, m_voisin[UP_TILE]->m_sendbufru);
-        }
-    } // Y_SCAN
-    Matrix2<real_t> &uold = *(*m_uold)(IP_VAR);
-    if (m_prt)
-        std::cout << "Tile uold boundary process" << uold;
-}
-
-int32_t Tile::pack_arrayv(int32_t xoffset, Preal_t buffer) {
-    int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
-    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-
-    for (ivar = 0; ivar < NB_VAR; ivar++) {
-        Matrix2<real_t> &uold = *(*m_uold)(ivar);
-        for (j = ymin; j < ymax; j++) {
-            // #pragma ivdep
-            for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
-                buffer[p++] = uold(i + m_offx, j + m_offy);
-            }
-        }
-    }
-    return p;
-}
-
-int32_t Tile::unpack_arrayv(int32_t xoffset, Preal_t buffer) {
-    int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
-    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-
-    for (ivar = 0; ivar < NB_VAR; ivar++) {
-        Matrix2<real_t> &uold = *(*m_uold)(ivar);
-        for (j = ymin; j < ymax; j++) {
-            // #pragma ivdep
-            for (i = xoffset; i < xoffset + m_ExtraLayer; i++) {
-                uold(i + m_offx, j + m_offy) = buffer[p++];
-            }
-        }
-    }
-    return p;
-}
-
-int32_t Tile::pack_arrayh(int32_t yoffset, Preal_t buffer) {
-    int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
-    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-
-    for (ivar = 0; ivar < NB_VAR; ivar++) {
-        Matrix2<real_t> &uold = *(*m_uold)(ivar);
-        for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
-            // #pragma ivdep
-            for (i = xmin; i < xmax; i++) {
-                buffer[p++] = uold(i + m_offx, j + m_offy);
-            }
-        }
-    }
-    return p;
-}
-
-int32_t Tile::unpack_arrayh(int32_t yoffset, Preal_t buffer) {
-    int32_t xmin, xmax, ymin, ymax;
-    int32_t ivar, i, j, p = 0;
-    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-
-    for (ivar = 0; ivar < NB_VAR; ivar++) {
-        Matrix2<real_t> &uold = *(*m_uold)(ivar);
-        for (j = yoffset; j < yoffset + m_ExtraLayer; j++) {
-            // #pragma ivdep
-            for (i = xmin; i < xmax; i++) {
-                uold(i + m_offx, j + m_offy) = buffer[p++];
-            }
-        }
-    }
-    return p;
-}
-
 void Tile::godunov() {
-    Matrix2<real_t> &uold = *(*m_uold)(IP_VAR);
-    Matrix2<real_t> &uIP = *(*m_u)(IP_VAR);
-    Matrix2<real_t> &qIP = *(*m_q)(IP_VAR);
+    auto &uold = *(*m_uold)(IP_VAR);
+    auto &uIP = (*m_u)(IP_VAR);
+    auto &qIP = (*m_q)(IP_VAR);
 
     if (m_prt)
         std::cout << "= = = = = = = =  = =" << std::endl;
@@ -1325,7 +1250,7 @@ void Tile::setVoisins(Tile *left, Tile *right, Tile *up, Tile *down) {
 
 void Tile::setBuffers(DeviceBuffers *buf) {
     assert(buf != 0);
-    auto & myDeviceBuffers = buf;
+    auto &myDeviceBuffers = buf;
 
     m_q = myDeviceBuffers->getQ();           // NXT, NYT
     m_qxm = myDeviceBuffers->getQXM();       // NXT, NYT
@@ -1340,10 +1265,9 @@ void Tile::setBuffers(DeviceBuffers *buf) {
     // work arrays for a single row/column
     m_sgnm = myDeviceBuffers->getSGNM();
     m_pl = myDeviceBuffers->getPL();
-
-
 }
 
+#if 0
 long Tile::getLengthByte() { return m_u->getLengthByte() + m_flux->getLengthByte(); }
 
 void Tile::read(const int f) {
@@ -1355,5 +1279,6 @@ void Tile::write(const int f) {
     m_u->write(f);
     m_flux->write(f);
 }
+#endif
 
 // EOF
