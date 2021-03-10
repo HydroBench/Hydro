@@ -28,7 +28,7 @@ template <typename T> Array2D<T>::~Array2D() {
 }
 
 template <typename T> Array1D<T>::Array1D(int32_t lgr)  {
-    m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue;)
+    m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue);
 }
 template <typename T> Array1D<T>::~Array1D() {
     sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
