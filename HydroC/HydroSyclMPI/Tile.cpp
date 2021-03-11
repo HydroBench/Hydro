@@ -36,7 +36,7 @@ Tile::~Tile() {
 
 
 // This is on Host, since we allocate the device space here
-void Tile::initTile(sycl::queue & queue) {
+void Tile::initTile() {
     int32_t xmin, xmax, ymin, ymax;
     int32_t lgx, lgy;
 
@@ -47,8 +47,8 @@ void Tile::initTile(sycl::queue & queue) {
  
     // I am on the Host, I can call a global variable !
     
-    m_u =  SoaDevice<real_t>(NB_VAR, lgx, lgy, queue);
-    m_flux =  SoaDevice<real_t>(NB_VAR, lgx, lgy, queue);
+    m_u =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_flux =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
 }
 
 void Tile::swapStorageDims() {
@@ -401,8 +401,8 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t u
 }
 
 void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax,
-                              real_t dtdx, Array2D<real_t> &uoldID, Array2D<real_t> &uoldIP, Array2D<real_t> &uoldIV, 
-                              Array2D<real_t> &uoldIU,
+                              real_t dtdx, RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP, RArray2D<real_t> &uoldIV, 
+                              RArray2D<real_t> &uoldIU,
                               Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS,
                               Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
 
