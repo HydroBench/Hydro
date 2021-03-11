@@ -15,9 +15,7 @@ class Soa {
   private:
     Matrix2<real_t> **m_tab;
     int32_t m_nbElem;
-    bool m_device; // True is allocated on device
-
-    
+        
     Soa() = delete;
     Soa( Soa &obj) = delete;
     Soa &operator=(Soa &rhs) = delete;

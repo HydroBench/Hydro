@@ -3,7 +3,8 @@
 //
 #include "Options.hpp"
 #include "DeviceBuffers.hpp"
-
+#include "ParallelInfo.hpp"
+#include "ParallelInfoOpaque.hpp"
 #include <CL/sycl.hpp>
 
 //
@@ -28,51 +29,41 @@ DeviceBuffers::DeviceBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t y
     
     lgmax = std::max(lgx, lgy);
    
-    m_q = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_qxm = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_qxp = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_dq = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    sycl::queue & q = ParallelInfo::extraInfos()->m_queue;
 
-    m_qleft = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_qright = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_qgdnv = new SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_q =  SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_qxm =  SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_qxp = SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_dq =  SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_qleft =  SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_qright = SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
+    m_qgdnv =  SoaDevice<real_t>(NB_VAR, lgx, lgy,q);
 
-    m_c = new Array2D<real_t>(lgx, lgy);
-    m_e = new Array2D<real_t>(lgx, lgy);
+    m_c =  Array2D<real_t>(lgx, lgy,q);
+    m_e =  Array2D<real_t>(lgx, lgy,q);
 
-    m_sgnm = new Array1D<real_t>(lgmax);
-    m_pl = new Array1D<real_t>(lgmax);
+    m_sgnm =  Array1D<real_t>(lgmax,q);
+    m_pl =  Array1D<real_t>(lgmax,q);
 
 }
 
 DeviceBuffers::~DeviceBuffers() {
-    delete m_q;
-    delete m_qxm;
-    delete m_qxp;
-    delete m_dq;
-    delete m_qleft;
-    delete m_qright;
-    delete m_qgdnv;
-    delete m_c;
-    delete m_e;
-
-    delete m_sgnm;
-    delete m_pl;
-
+    // TODO: Somehow whe have to decide what to do at one point :-)
 }
 
 void DeviceBuffers::swapStorageDims() {
 
-    m_q->swapDimOnly();
-    m_qxm->swapDimOnly();
-    m_qxp->swapDimOnly();
-    m_dq->swapDimOnly();
-    m_qleft->swapDimOnly();
-    m_qright->swapDimOnly();
-    m_qgdnv->swapDimOnly();
 
-    m_c->swapDimOnly();
-    m_e->swapDimOnly();
+    m_q.swapDimOnly();
+    m_qxm.swapDimOnly();
+    m_qxp.swapDimOnly();
+    m_dq.swapDimOnly();
+    m_qleft.swapDimOnly();
+    m_qright.swapDimOnly();
+    m_qgdnv.swapDimOnly();
+
+    m_c.swapDimOnly();
+    m_e.swapDimOnly();
 }
 
 // EOF

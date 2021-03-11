@@ -9,6 +9,7 @@
 #include "DeviceBuffers.hpp"
 #include "Tile.hpp"
 #include "TimeLimit.hpp"
+#include "Tile_Shared_Variables.hpp"
 
 #include <vector>
 
@@ -23,6 +24,11 @@ class Domain {
 
 
     Soa *m_uold;                // on the full domain
+
+    // Tile shared variables   
+    TilesSharedVariables *m_ondevice;    
+
+
     real_t m_tcur, m_dt;        //=
     int32_t m_globNx, m_globNy; // global size of the simulation //=
     godunovDir_t m_scan;        //=
@@ -99,7 +105,7 @@ class Domain {
     png_structp m_png_ptr;
     png_infop m_info_ptr;
     png_bytep *m_row_pointers;
-    png_byte *m_buffer;
+    png_byte *²ffer;
 #else
     uint8_t *m_buffer;
 #endif

@@ -110,26 +110,7 @@ long Domain::protectArrays(const protectionMode_t mode, const int f) {
     return l;
 }
 
-long Domain::protectTiles(const protectionMode_t mode, const int f) {
-    long l = 0;
-    for (int32_t tile = 0; tile < m_nbtiles; tile++) {
-        switch (mode) {
-        case PROT_LENGTH:
-            l += m_tiles[tile]->getLengthByte();
-            break;
-        case PROT_WRITE:
-            m_tiles[tile]->write(f);
-            break;
-        case PROT_READ:
-            m_tiles[tile]->read(f);
-            break;
-        default:
-            std::cerr << "Checkpoint: unknown mode" << std::endl;
-            abort();
-        }
-    }
-    return l;
-}
+
 
 void Domain::writeProtectionVars(const int f) {
     int myPe = ParallelInfo::mype();

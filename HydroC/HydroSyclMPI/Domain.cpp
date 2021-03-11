@@ -2,10 +2,13 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
+#include "Domain.hpp"
+
 #include "ParallelInfo.hpp"
+#include "ParallelInfoOpaque.hpp"
+#include "Tile_Shared_Variables.hpp"
 
 //
-#include "Domain.hpp"
 
 #include <unistd.h>
 
@@ -36,6 +39,7 @@ Domain::Domain(int argc, char **argv) {
     m_ExtraLayer = 2;
     m_globNx = 128;
     m_globNy = 128;
+    m_tiles_on_device = nullptr;
     m_tileSize = 16;
     m_nbtiles = 1;
     m_dx = 0.05;
@@ -121,7 +125,9 @@ Domain::Domain(int argc, char **argv) {
         vtkOutput(m_nvtk);
         m_nvtk++;
     }
-    setTiles();
+    
+    setTiles();  // Must be defined after the createTestCase, i.e. m_uold should be defined
+
     if (myPe == 0) {
         printSummary();
     }
@@ -130,6 +136,9 @@ Domain::Domain(int argc, char **argv) {
 Domain::~Domain() {
     delete m_uold;
     m_tiles.resize(0);
+
+    if (m_tiles_on_device != nullptr)
+        sycl::free(m_tiles_on_device, ParallelInfo::extraInfos()->m_queue);
 
     if (m_recvbufru)
         free(m_recvbufru);
@@ -142,7 +151,6 @@ Domain::~Domain() {
     if (m_localDt)
         free(m_localDt);
 
-    m_buffers.resize(0);
 
     delete[] m_threadTimers;
     delete[] m_mortonIdx;
@@ -739,18 +747,17 @@ void Domain::setTiles() {
         // for (int32_t ir = 0; ir < m_nbtiles; ir++) std::cerr << temp[ir] << " "; std::cerr
         // << std::endl;
         delete[] temp;
+    } else {
+        for (int32_t i = 0; i < m_nbtiles; i++)
+            m_mortonIdx[i] = i;
     }
     //
 
-#ifdef _OPENMP
-#pragma omp parallel for private(i) if (m_numa) SCHEDULE
-#endif
     for (int32_t t = 0; t < m_nbtiles; t++) {
-        i = t;
-        if (m_withMorton)
-            i = m_mortonIdx[t];
         m_tiles.push_back(Tile());
     }
+
+    onHost.m_prt = m_prt;
 
     m_nbtiles = 0;
     offy = 0;
@@ -765,7 +772,7 @@ void Domain::setTiles() {
             if (offx + tileSizeX >= m_nx)
                 tileSizeX = m_nx - offx;
             assert(tileSizeX <= tileSize);
-            m_tiles[m_nbtiles].setPrt(m_prt);
+
             m_tiles[m_nbtiles++].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
             if (m_prt) {
                 std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
@@ -800,21 +807,15 @@ void Domain::setTiles() {
                 pdown = &m_tiles[tdown];
             }
 
-            m_tiles[t].setVoisins(pleft, pright, pup, pdown);
+            m_tiles[t].setVoisins(tleft, tright, tup, tdown);
         }
     }
 
-// Create the shared buffers
-#ifdef _OPENMP
-    m_nbWorkItems = omp_get_max_threads();
-#else
-    m_nbWorkItems = 1;
-#endif
-    m_timerLoops = new double *[m_nbWorkItems + 1];
+    // Create the shared buffers
 
-#ifdef _OPENMP
-#pragma omp parallel for private(i) if (m_numa) schedule(static, 1)
-#endif
+    m_nbWorkItems = ParallelInfo::nb_workers();
+
+    m_timerLoops = new double *[m_nbWorkItems + 1];
 
     for (int32_t i = 0; i < m_nbWorkItems; i++) {
         m_timerLoops[i] = new double[LOOP_END];
@@ -827,23 +828,13 @@ void Domain::setTiles() {
     m_threadTimers = new Timers[m_nbWorkItems];
     assert(m_threadTimers != 0);
 
-    for (int32_t i = 0; i < m_nbWorkItems; i++) {
 
-        m_buffers.push_back(DeviceBuffers(0, tileSizeTot, 0, tileSizeTot));
-    }
+    onHost.initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann, m_iorder,
+                    m_scheme);
+    onHost.setTimes(m_threadTimers);
 
     for (int32_t t = 0; t < m_nbtiles; t++) {
-        i = t;
-        if (m_withMorton)
-            i = m_mortonIdx[t];
-
-        m_tiles[i].setTimers(m_threadTimers);
-        m_tiles[i].initTile();
-
-        m_tiles[i].initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann,
-                            m_iorder, m_scheme);
-
-        m_tiles[i].setScan(X_SCAN);
+        m_tiles[i].initTile(ParallelInfo::extraInfos()->m_queue);
     }
 
     if (ParallelInfo::mype() == 0 && m_stats > 0) {
@@ -858,7 +849,55 @@ void Domain::setTiles() {
         getCPUName(cpuName);
         std::cout << "CPU name" << cpuName << std::endl;
     }
-    // exit(0);
+
+    // We create the corresponding Tiles on Device and also the TileShareVariables;
+
+
+    sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
+    m_tiles_on_device = sycl::malloc_device<Tile>(m_nbtiles, queue);
+
+
+    int32_t xmin, xmax, ymin, ymax;
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
+
+
+    onHost.m_uold =  SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1)); // so on Device !
+
+    std::vector<DeviceBuffers> temp_buffers;
+    for (int i = 0; i < m_nbWorkItems; i++)
+    {
+        temp_buffers.push_back(DeviceBuffers(0, tileSizeTot, 0, tileSizeTot));
+    }
+
+    onHost.m_device_buffers = sycl::malloc_device<DeviceBuffers>(m_nbWorkItems, queue);
+
+    onDevice = sycl::malloc_device<TilesSharedVariables>(1, queue);
+    for (int i = 0; i < m_nbtiles; i++)
+        m_tiles[i].setShared(onDevice);
+
+    queue.submit([&](sycl::handler &handler) {
+        handler.memcpy(m_tiles_on_device, m_tiles.data(), m_nbtiles * sizeof(Tile));
+    });
+
+    queue.submit(
+        [&](auto & handler) { handler.memcpy(onHost.m_device_buffers, temp_buffers.data(), sizeof(DeviceBuffers) * m_nbWorkItems);
+        }
+    );
+
+    queue.submit(
+        [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
+
+    auto theTiles = m_tiles_on_device;
+
+    queue.submit( [&] (sycl::handler & handler) 
+    {
+        auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
+        handler.parallel_for(global_range, [=] (sycl::nd_item<1> it) {
+            int idx = it.get_global_id();
+            theTiles[0].deviceShared()->m_device_buffers[idx].firstTouch();
+        });
+    });
+
 }
 
 // EOF
