@@ -38,6 +38,8 @@ class Domain {
     int m_prt;
     int32_t m_stats;      // print various stats
     std::vector<Tile> m_tiles;       //=
+    Tile * m_tiles_on_device;
+    
     int32_t m_nbtiles;    //=
     int32_t m_tileSize;   //=
     
@@ -45,7 +47,7 @@ class Domain {
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
     Matrix2<int32_t> *m_morton;
-    std::vector<DeviceBuffers> m_buffers; // shared buffers for all threads
+    
 
     long m_maxrss, m_ixrss; // memory usage;
 
