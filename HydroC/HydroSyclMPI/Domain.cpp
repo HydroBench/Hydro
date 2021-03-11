@@ -861,7 +861,7 @@ void Domain::setTiles() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
 
-    onHost.m_uold =  SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1)); // so on Device !
+    onHost.m_uold =  SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1), queue); // so on Device !
 
     std::vector<DeviceBuffers> temp_buffers;
     for (int i = 0; i < m_nbWorkItems; i++)

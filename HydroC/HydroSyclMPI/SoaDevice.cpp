@@ -21,7 +21,7 @@ template <typename T> SoaDevice<T>::~SoaDevice() {
 
 template <typename T>
 Array2D<T>::Array2D(int32_t w, int32_t h, sycl::queue & queue) : m_w(w), m_h(h), m_managed_alloc(true) {
-    m_data = sycl::malloc_device<T>(m_w * m_h, *m_queue);
+    m_data = sycl::malloc_device<T>(m_w * m_h, m_queue);
 }
 
 template <typename T> Array2D<T>::~Array2D() {

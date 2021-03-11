@@ -9,9 +9,7 @@
 #include <cmath>
 #include <iostream>
 
-#ifdef WITHHBW
-#include <hbwmalloc.h>
-#endif
+
 
 using namespace std;
 

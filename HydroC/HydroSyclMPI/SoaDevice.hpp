@@ -70,7 +70,7 @@ template <typename S> class Array2D {
     ~Array2D();
 
     SYCL_EXTERNAL
-    void swapDimOnly() { std::swap(m_w, m_h); }
+    void swapDimOnly() { int32_t t = m_w; m_w = m_h; m_h = t;}
 
     SYCL_EXTERNAL
     S &operator()(int32_t i, int32_t j) { return m_data[j * m_w + i]; }
