@@ -1,11 +1,16 @@
 //
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
-#include "Options.hpp"
+
 #include "DeviceBuffers.hpp"
-#include "ParallelInfo.hpp"
-#include "ParallelInfoOpaque.hpp"
+
+#include "precision.hpp"
+
 #include <CL/sycl.hpp>
+#include <cstdint>
+#include <algorithm>
+#include <iostream>
+
 
 //
 
@@ -30,8 +35,6 @@ DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     
     lgmax = std::max(lgx, lgy);
    
-    sycl::queue & q = ParallelInfo::extraInfos()->m_queue;
-
     m_q =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
     m_qxm =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
     m_qxp = SoaDevice<real_t>(NB_VAR, lgx, lgy);

@@ -26,3 +26,4 @@ HydroC/HydroCplusMPI/.vscode/c_cpp_properties.json
 HydroC/HydroSyclMPI/.vscode/settings.json
 HydroC/HydroSyclMPI/Timers.cpp
 HydroC/HydroSyclMPI/hydroc.dpcpp
+HydroC/HydroSyclMPI/hydroc.dpcpp
