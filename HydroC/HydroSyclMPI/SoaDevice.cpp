@@ -16,7 +16,8 @@ SoaDevice<T>::SoaDevice(int w, int h, int variables) : m_w(w), m_h(h), m_nbvaria
 
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
-    sycl::free(m_array,  ParallelInfo::extraInfos()->m_queue);
+    if (m_array != nullptr)
+     sycl::free(m_array,  ParallelInfo::extraInfos()->m_queue);
 }
 
 template <typename T>
@@ -34,10 +35,13 @@ template <typename T> Array1D<T>::Array1D(int32_t lgr)  {
     m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue);
 }
 template <typename T> Array1D<T>::~Array1D() {
-    sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
+    std::cerr << "Array1D destructeur " << m_data << std::endl;
+    if (m_data != nullptr)
+     sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
 }
 
 
+SYCL_EXTERNAL
 const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> & mat) {
 
     int32_t srcX = mat.getW();
@@ -55,7 +59,7 @@ const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> & m
 }
 
 
-
+SYCL_EXTERNAL
 const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> & mat) {
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();

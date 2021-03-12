@@ -31,8 +31,10 @@ class DeviceBuffers {
     
   protected:
   public:
+    DeviceBuffers() : m_out(nullptr) {}
     // basic constructor
-    DeviceBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
+    void init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
+    
     // destructor
     ~DeviceBuffers();
 

@@ -21,7 +21,8 @@ inline void *memsetth(void *s, int c, size_t n) {
     return s;
 }
 
-DeviceBuffers::DeviceBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
+void
+DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     int32_t lgx, lgy, lgmax;
 
     lgx = (xmax - xmin);
@@ -48,6 +49,7 @@ DeviceBuffers::DeviceBuffers(int32_t xmin, int32_t xmax, int32_t ymin, int32_t y
 }
 
 DeviceBuffers::~DeviceBuffers() {
+    std::cerr << "Device Buffers destructeur is called " << m_out << std::endl;
     // TODO: Somehow whe have to decide what to do at one point :-)
 }
 
