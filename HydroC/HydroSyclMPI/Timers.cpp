@@ -7,7 +7,6 @@
 //
 #include "Timers.hpp"
 
-
 Timers::Timers(void) {
     m_elaps = new double[LASTENTRY];
     m_vmin = new double[LASTENTRY];

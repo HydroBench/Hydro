@@ -6,9 +6,7 @@
 #include <mpi.h>
 #endif
 
-
 #include <sys/stat.h>
-
 
 typedef unsigned char byte_t;
 

@@ -4,12 +4,12 @@
 #ifndef DOMAIN_H
 #define DOMAIN_H
 //
+#include "DeviceBuffers.hpp"
 #include "EnumDefs.hpp"
 #include "Soa.hpp"
-#include "DeviceBuffers.hpp"
 #include "Tile.hpp"
-#include "TimeLimit.hpp"
 #include "Tile_Shared_Variables.hpp"
+#include "TimeLimit.hpp"
 
 #include <vector>
 
@@ -17,17 +17,14 @@
 #include <png.h>
 #endif
 
-
 class Domain {
   private:
     // variables to protect between runs
 
+    Soa *m_uold; // on the full domain
 
-    Soa *m_uold;                // on the full domain
-
-    // Tile shared variables   
-    TilesSharedVariables *m_ondevice;    
-
+    // Tile shared variables
+    TilesSharedVariables *m_ondevice;
 
     real_t m_tcur, m_dt;        //=
     int32_t m_globNx, m_globNy; // global size of the simulation //=
@@ -42,18 +39,17 @@ class Domain {
     // those variables are not protected to allow for modifications
     TimeLimit m_tr;
     int m_prt;
-    int32_t m_stats;      // print various stats
-    std::vector<Tile> m_tiles;       //=
-    Tile * m_tiles_on_device;
-    
-    int32_t m_nbtiles;    //=
-    int32_t m_tileSize;   //=
-    
+    int32_t m_stats; // print various stats
+    Tile *m_tiles;   //=
+    Tile *m_tiles_on_device;
+
+    int32_t m_nbtiles;  //=
+    int32_t m_tileSize; //=
+
     int32_t m_nbWorkItems; // nb of threads available
     int32_t m_withMorton;
     int32_t *m_mortonIdx;
     Matrix2<int32_t> *m_morton;
-    
 
     long m_maxrss, m_ixrss; // memory usage;
 
@@ -83,7 +79,6 @@ class Domain {
     godunovScheme_t m_scheme; //=
 
     //
-    
 
     // working arrays
     real_t *m_recvbufru; // receive right or up  //=
@@ -109,7 +104,7 @@ class Domain {
 #else
     uint8_t *m_buffer;
 #endif
-    
+
     int32_t m_shrink;
     int32_t m_shrinkSize;
     double m_timeGuard;
@@ -129,7 +124,6 @@ class Domain {
     void domainDecompose();
     void setTiles();
     void printSummary();
-
 
     void boundary_init();
 
@@ -164,11 +158,11 @@ class Domain {
     int32_t unpack_arrayh(int32_t yoffset, real_t *buffer);
 
     int32_t nbTiles_fromsize(int32_t tileSize) {
-        
+
         int nbtx = (m_nx + tileSize - 1) / tileSize;
         int nbty = (m_ny + tileSize - 1) / tileSize;
-        
-        return nbtx*nbty;
+
+        return nbtx * nbty;
     }
 
     Domain(void){}; // default constructor.
@@ -178,7 +172,7 @@ class Domain {
         else
             m_scan = X_SCAN;
     }
-    
+
     void pngWriteFile(char *name);
     void pngProcess(void);
     void pngCloseFile(void);
@@ -213,7 +207,7 @@ class Domain {
     // destructor
     ~Domain();
     bool isStopped();
-   
+
     void compute();
     int32_t myThread() {
         int32_t r = 0;

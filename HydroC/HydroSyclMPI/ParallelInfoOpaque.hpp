@@ -6,11 +6,9 @@
 
 #include <CL/sycl.hpp>
 
-
 class ParallelInfoOpaque {
-    public:
-        sycl::queue m_queue;
-}
-;
+  public:
+    sycl::queue m_queue;
+};
 
 #endif

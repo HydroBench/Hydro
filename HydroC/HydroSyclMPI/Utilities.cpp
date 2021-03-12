@@ -1,8 +1,6 @@
+#include "Utilities.hpp"
 #include "EnumDefs.hpp"
 #include "Options.hpp"
-#include "Utilities.hpp"
-
-
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -13,9 +11,8 @@
 #include <cstdlib>
 #include <cstring>
 
-
-#include <unistd.h>
 #include <malloc.h> // for memalign
+#include <unistd.h>
 
 void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, int *box,
                     int mype) {

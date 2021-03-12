@@ -5,7 +5,6 @@
 #define TIMELIMIT_H
 //
 
-
 class TimeLimit {
   private:
     double m_orgTime;

@@ -7,9 +7,10 @@
 #include "Tile.hpp"
 #include "Tile_Shared_Variables.hpp"
 
-
 #include "Timers.hpp"
 #include "cclock.hpp"
+
+#include <CL/sycl.hpp> // pour sycl::sqrt !
 
 #include <algorithm> // for min, max
 #include <cassert>
@@ -27,13 +28,9 @@ Tile::Tile() {
         m_voisin[i] = -1;
     }
     m_ExtraLayer = 2;
-    
 }
 
-Tile::~Tile() {
-    
-}
-
+Tile::~Tile() {}
 
 // This is on Host, since we allocate the device space here
 void Tile::initTile() {
@@ -44,18 +41,17 @@ void Tile::initTile() {
 
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
- 
+
     // I am on the Host, I can call a global variable !
-    
-    m_u =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
-    m_flux =  SoaDevice<real_t>(NB_VAR, lgx, lgy);
+
+    m_u = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_flux = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
 }
 
 void Tile::swapStorageDims() {
     m_u.swapDimOnly();
     m_flux.swapDimOnly();
-}  
-
+}
 
 void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
                      real_t dx) {
@@ -110,11 +106,11 @@ void Tile::slope() {
     }
     auto q = m_work->getQ()(IP_VAR);
     if (deviceShared()->m_prt)
-        cout()  << "Tile q slope" << q;
+        cout() << "Tile q slope" << q;
 
     auto dq = m_work->getDQ()(IP_VAR);
     if (deviceShared()->m_prt)
-        cout()  << "Tile dq slope" << dq;
+        cout() << "Tile dq slope" << dq;
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(SLOPE, elaps);
@@ -124,7 +120,7 @@ void Tile::slope() {
 void Tile::trace() {
     int32_t xmin, xmax, ymin, ymax;
 
- #if 0   
+#if 0   
     double start, end;
 
     start = Custom_Timer::dcclock();
@@ -193,10 +189,10 @@ void Tile::trace() {
                    pqxmIVS, pqxmIPS);
     }
     if (deviceShared()->m_prt)
-        cout()  << "Tile pqxmIP trace" << pqxmIP;
+        cout() << "Tile pqxmIP trace" << pqxmIP;
 
     if (deviceShared()->m_prt)
-        cout()  << "Tile pqxpIP Trace" << pqxpIP;
+        cout() << "Tile pqxpIP Trace" << pqxpIP;
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(TRACE, elaps);
@@ -308,15 +304,15 @@ void Tile::qleftr() {
     }
     auto pqleft = m_work->getQLEFT()(IP_VAR);
     if (deviceShared()->m_prt)
-        cout()  << "Tile qleft qleftr" << pqleft;
+        cout() << "Tile qleft qleftr" << pqleft;
 
     auto pqright = m_work->getQRIGHT()(IP_VAR);
     if (deviceShared()->m_prt)
-        cout()  << "Tile qright qleftr" << pqright;
+        cout() << "Tile qright qleftr" << pqright;
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(QLEFTR, elaps);
-#endif    
+#endif
 }
 
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
@@ -339,7 +335,7 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
 
 void Tile::compflx() {
     int32_t xmin, xmax, ymin, ymax;
- #if 0   
+#if 0   
     double start, end;
     start = Custom_Timer::dcclock();
 #endif
@@ -350,7 +346,7 @@ void Tile::compflx() {
     auto qgdnvIV = m_work->getQGDNV()(IV_VAR);
 
     auto fluxIV = (m_flux)(IV_VAR);
-    auto fluxIU =  (m_flux)(IU_VAR);
+    auto fluxIU = (m_flux)(IU_VAR);
     auto fluxIP = (m_flux)(IP_VAR);
     auto fluxID = (m_flux)(ID_VAR);
 
@@ -372,7 +368,7 @@ void Tile::compflx() {
                      fluxIPS, fluxIDS);
     }
     if (deviceShared()->m_prt)
-        cout()  << "Tile fluxIP compflx" << fluxIP;
+        cout() << "Tile fluxIP compflx" << fluxIP;
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
     m_threadTimers[myThread()].add(COMPFLX, elaps);
@@ -401,10 +397,10 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t u
 }
 
 void Tile::updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax,
-                              real_t dtdx, RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP, RArray2D<real_t> &uoldIV, 
-                              RArray2D<real_t> &uoldIU,
-                              Preal_t fluxIVS, Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS,
-                              Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
+                              real_t dtdx, RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP,
+                              RArray2D<real_t> &uoldIV, RArray2D<real_t> &uoldIU, Preal_t fluxIVS,
+                              Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
+                              Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
 
 #pragma omp simd
     for (int32_t j = xmin; j < xmax; j++) {
@@ -456,17 +452,16 @@ void Tile::updateconserv() {
     auto uIU = (m_u)(IU_VAR);
     real_t dtdx = m_dt / m_dx;
     if (deviceShared()->m_prt)
-        cout()  << "dtdx " << dtdx << "\n";
+        cout() << "dtdx " << dtdx << "\n";
 
     getExtendsDevice(TILE_INTERIOR, xmin, xmax, ymin, ymax);
     if (deviceShared()->m_prt) {
-        cout()  << "scan " << (int32_t) deviceShared()->m_scan << "\n"
-                  << "Tile uoldIP input updateconserv" << uoldIP
-                  << "Tile fluxID input updateconserv" << fluxID
-                  << "Tile fluxIU input updateconserv" << fluxIU
-                  << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
-                  << "Tile uIU updateconserv" << uIU << "Tile uIV updateconserv" << uIV
-                  << "Tile uIP updateconserv" << uIP;
+        cout() << "scan " << (int32_t)deviceShared()->m_scan << "\n"
+               << "Tile uoldIP input updateconserv" << uoldIP << "Tile fluxID input updateconserv"
+               << fluxID << "Tile fluxIU input updateconserv" << fluxIU
+               << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
+               << "Tile uIU updateconserv" << uIU << "Tile uIV updateconserv" << uIV
+               << "Tile uIP updateconserv" << uIP;
     }
     if (deviceShared()->m_scan == X_SCAN) {
         for (int32_t s = ymin; s < ymax; s++) {
@@ -502,8 +497,8 @@ void Tile::updateconserv() {
         }
     }
     if (deviceShared()->m_prt) {
-        cout()  << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
-                  << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
+        cout() << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
+               << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
     }
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
@@ -541,7 +536,7 @@ void Tile::gatherconservYscan() {}
 
 void Tile::gatherconserv() {
     int32_t xmin, xmax, ymin, ymax;
- #if 0   
+#if 0   
     double start, end;
     start = Custom_Timer::dcclock();
 #endif
@@ -559,8 +554,8 @@ void Tile::gatherconserv() {
     getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (deviceShared()->m_prt) {
-        cout()  << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
-                  << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
+        cout() << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
+               << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
     }
 
     if (deviceShared()->m_scan == X_SCAN) {
@@ -585,8 +580,8 @@ void Tile::gatherconserv() {
         }
     }
     if (deviceShared()->m_prt) {
-        cout()  << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
-                  << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
+        cout() << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
+               << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
     }
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
@@ -606,7 +601,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
             ;
             base = std::max(base, (real_t)(rho * smallp));
             qIPS[k] = base;
-            cS[k] = sqrt(deviceShared()->m_gamma * base * rrho);
+            cS[k] = sycl::sqrt(deviceShared()->m_gamma * base * rrho);
         }
     } else {
 
@@ -618,7 +613,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
             ;
             base = std::max(base, (real_t)(rho * smallp));
             qIPS[k] = base;
-            cS[k] = sqrt(deviceShared()->m_gamma * base * rrho);
+            cS[k] = sycl::sqrt(deviceShared()->m_gamma * base * rrho);
         }
     }
 }
@@ -633,19 +628,20 @@ void Tile::eos(tileSpan_t span) {
     auto qID = m_work->getQ()(ID_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
 
-    real_t smallp = Square(deviceShared()->m_smallc) / deviceShared()->m_gamma; // TODO: We can precompute that to remove some divs
+    real_t smallp = Square(deviceShared()->m_smallc) /
+                    deviceShared()->m_gamma; // TODO: We can precompute that to remove some divs
 
     getExtendsDevice(span, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIDS = qID.getRow(s);
-        real_t *eS =  m_work->getE().getRow(s);
+        real_t *eS = m_work->getE().getRow(s);
         real_t *qIPS = qIP.getRow(s);
         real_t *cS = m_work->getC().getRow(s);
         eosOnRow(xmin, xmax, smallp, qIDS, eS, qIPS, cS);
     }
     if (deviceShared()->m_prt) {
-        cout()  << "Tile qIP eos" << qIP << "Tile c eos" << m_work->getC();
+        cout() << "Tile qIP eos" << qIP << "Tile c eos" << m_work->getC();
     }
 #if 0
     double elaps = Custom_Timer::dcclock() - start;
@@ -682,7 +678,7 @@ void Tile::compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32
 
 real_t Tile::compute_dt() {
     int32_t xmin, xmax, ymin, ymax;
- #if 0   
+#if 0   
     double start, end;
     start = Custom_Timer::dcclock();
 #endif
@@ -748,7 +744,8 @@ real_t Tile::compute_dt() {
     cournox = std::max(cournox, tmp1);
     cournoy = std::max(cournoy, tmp2);
 
-    dt = deviceShared()->m_cfl * m_dx / std::max(cournox, std::max(cournoy, deviceShared()->m_smallc));
+    dt = deviceShared()->m_cfl * m_dx /
+         std::max(cournox, std::max(cournoy, deviceShared()->m_smallc));
 
     if (deviceShared()->m_scan != oldScan) {
         deviceShared()->swapScan();
@@ -795,7 +792,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 
 void Tile::constprim() {
     int32_t xmin, xmax, ymin, ymax;
- #if 0   
+#if 0   
     double start, end;
     start = Custom_Timer::dcclock();
 #endif
@@ -825,7 +822,7 @@ void Tile::constprim() {
         constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
     if (deviceShared()->m_prt) {
-        cout()  << "Tile qIP constprim" << qIP << "Tile e constprim" << m_work->getE();
+        cout() << "Tile qIP constprim" << qIP << "Tile e constprim" << m_work->getE();
     }
 
 #if 0
@@ -872,8 +869,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         cr[i] = deviceShared()->m_gamma * pr[i] * rr[i];
 
         // First guess
-        wl_i = sqrt(cl[i]);
-        wr_i = sqrt(cr[i]);
+        wl_i = sycl::sqrt(cl[i]);
+        wr_i = sycl::sqrt(cr[i]);
         pstar[i] = std::max(
             ((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), zero);
     }
@@ -892,8 +889,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
             if (go_on[i] > 0) {
                 real_t pst = pstar[i];
                 // Newton-Raphson iterations to find pstar at the required accuracy
-                real_t wwl = sqrt(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
-                real_t wwr = sqrt(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
+                real_t wwl = sycl::sqrt(cl[i] * (one + gamma6 * (pst - pl[i]) / pl[i]));
+                real_t wwr = sycl::sqrt(cr[i] * (one + gamma6 * (pst - pr[i]) / pr[i]));
                 real_t swwl = Square(wwl);
                 real_t ql = two * wwl * swwl / (swwl + cl[i]);
                 real_t qr = two * wwr * Square(wwr) / (Square(wwr) + cr[i]);
@@ -919,8 +916,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 
     for (int32_t i = xmin; i < xmax; i++) {
 
-        real_t wr_i = sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
-        real_t wl_i = sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
+        real_t wr_i = sycl::sqrt(cr[i] * (one + gamma6 * (pstar[i] - pr[i]) / pr[i]));
+        real_t wl_i = sycl::sqrt(cl[i] * (one + gamma6 * (pstar[i] - pl[i]) / pl[i]));
 
         real_t ustar_i =
             my_half * (ul[i] + (pl[i] - pstar[i]) / wl_i + ur[i] - (pr[i] - pstar[i]) / wr_i);
@@ -938,13 +935,13 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         po_i = left * pl[i] + (1 - left) * pr[i];
         wo_i = left * wl_i + (1 - left) * wr_i;
 
-        real_t co_i = sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
+        real_t co_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
         co_i = std::max(deviceShared()->m_smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
         rstar_i = std::max(rstar_i, deviceShared()->m_smallr);
 
-        real_t cstar_i = sqrt(std::abs(deviceShared()->m_gamma * pstar[i] / rstar_i));
+        real_t cstar_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * pstar[i] / rstar_i));
         cstar_i = std::max(deviceShared()->m_smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
@@ -956,8 +953,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
             spout_i = ushock_i;
         }
 
-        real_t scr_i =
-            std::max((real_t)(spout_i - spin_i), (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
+        real_t scr_i = std::max((real_t)(spout_i - spin_i),
+                                (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
@@ -1027,8 +1024,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         crI = deviceShared()->m_gamma * prI * rrI;
 
         // First guess
-        wl_i = sqrt(clI);
-        wr_i = sqrt(crI);
+        wl_i = sycl::sqrt(clI);
+        wr_i = sycl::sqrt(crI);
         pstarI =
             std::max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), zero);
         //  #pragma ivdep
@@ -1036,8 +1033,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
             if (goonI > 0) {
                 real_t pst = pstarI;
                 // Newton-Raphson iterations to find pstar at the required accuracy
-                real_t wwl = sqrt(clI * (one + gamma6 * (pst - plI) / plI));
-                real_t wwr = sqrt(crI * (one + gamma6 * (pst - prI) / prI));
+                real_t wwl = sycl::sqrt(clI * (one + gamma6 * (pst - plI) / plI));
+                real_t wwr = sycl::sqrt(crI * (one + gamma6 * (pst - prI) / prI));
                 real_t swwl = Square(wwl);
                 real_t ql = two * wwl * swwl / (swwl + clI);
                 real_t qr = two * wwr * Square(wwr) / (Square(wwr) + crI);
@@ -1055,8 +1052,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                 pstarI = pst;
             }
         }
-        wr_i = sqrt(crI * (one + gamma6 * (pstarI - prI) / prI));
-        wl_i = sqrt(clI * (one + gamma6 * (pstarI - plI) / plI));
+        wr_i = sycl::sqrt(crI * (one + gamma6 * (pstarI - prI) / prI));
+        wl_i = sycl::sqrt(clI * (one + gamma6 * (pstarI - plI) / plI));
 
         real_t ustar_i = my_half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
@@ -1070,13 +1067,13 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         po_i = left * plI + (one - left) * prI;
         wo_i = left * wl_i + (one - left) * wr_i;
 
-        real_t co_i = sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
+        real_t co_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
         co_i = std::max(deviceShared()->m_smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
         rstar_i = std::max(rstar_i, deviceShared()->m_smallr);
 
-        real_t cstar_i = sqrt(std::abs(deviceShared()->m_gamma * pstarI / rstar_i));
+        real_t cstar_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * pstarI / rstar_i));
         cstar_i = std::max(deviceShared()->m_smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
@@ -1088,8 +1085,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
             spout_i = ushock_i;
         }
 
-        real_t scr_i =
-            std::max((real_t)(spout_i - spin_i), (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
+        real_t scr_i = std::max((real_t)(spout_i - spin_i),
+                                (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
@@ -1128,7 +1125,7 @@ void Tile::riemann() {
 #if 0   
     double start, end;
     start = Custom_Timer::dcclock();
-#endif 
+#endif
 
     auto qgdnvID = m_work->getQGDNV()(ID_VAR);
     auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
@@ -1169,13 +1166,12 @@ void Tile::riemann() {
 
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
-                           qrightIPS, qrightIVS, 
-                           m_work->getSGNM());
+                           qrightIPS, qrightIVS, m_work->getSGNM());
     }
 
     if (deviceShared()->m_prt) {
-        cout()  << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
-                  << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
+        cout() << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
+               << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
     }
 
 #if 0
@@ -1191,17 +1187,23 @@ void Tile::godunov() {
     auto qIP = m_work->getQ()(IP_VAR);
 
     if (deviceShared()->m_prt)
-        cout()  << "= = = = = = = =  = =" << "\n";
+        cout() << "= = = = = = = =  = ="
+               << "\n";
     if (deviceShared()->m_prt)
-        cout()  << "      Godunov" << "\n";
+        cout() << "      Godunov"
+               << "\n";
     if (deviceShared()->m_prt)
-        cout()  << "= = = = = = = =  = =" << "\n";
+        cout() << "= = = = = = = =  = ="
+               << "\n";
     if (deviceShared()->m_prt)
-        cout()  << "\n" << " scan " << (int32_t) deviceShared()->m_scan << "\n";
+        cout() << "\n"
+               << " scan " << (int32_t)deviceShared()->m_scan << "\n";
     if (deviceShared()->m_prt)
-        cout()  << "\n" << " time " << m_tcur << "\n";
+        cout() << "\n"
+               << " time " << m_tcur << "\n";
     if (deviceShared()->m_prt)
-        cout()  << "\n" << " dt " << m_dt << "\n";
+        cout() << "\n"
+               << " dt " << m_dt << "\n";
 
     constprim();
     eos(TILE_FULL);
@@ -1216,7 +1218,7 @@ void Tile::godunov() {
 
     compflx();
     if (deviceShared()->m_prt)
-        cout()  << "Tile uold godunov apres compflx" << uold;
+        cout() << "Tile uold godunov apres compflx" << uold;
 }
 
 real_t Tile::computeDt() {
@@ -1234,9 +1236,7 @@ void Tile::setVoisins(int32_t left, int32_t right, int32_t up, int32_t down) {
 }
 
 SYCL_EXTERNAL
-void Tile::setBuffers(DeviceBuffers *buf) {
-   m_work = buf;
-}
+void Tile::setBuffers(DeviceBuffers *buf) { m_work = buf; }
 
 #if 0
 long Tile::getLengthByte() { return m_u->getLengthByte() + m_flux->getLengthByte(); }

@@ -8,14 +8,12 @@
 #include <mpi.h>
 #endif
 
-
-
 void Domain::boundary_init() {
     int32_t size, ivar, i, j, i0, j0;
     double start, end, startio, elaps;
     start = Custom_Timer::dcclock();
     int sign;
-    
+
 #ifdef MPI_ON
     MPI_Request requests[4];
     MPI_Status status[4];

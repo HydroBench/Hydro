@@ -39,8 +39,8 @@ class Tile {
     DeviceBuffers *m_work;
     // Shared variables for all tiles
 
-    const sycl::stream * m_cout;
-    TilesSharedVariables * m_onDevice;
+    const sycl::stream *m_cout;
+    TilesSharedVariables *m_onDevice;
     //
 
     // compute routines
@@ -182,18 +182,17 @@ class Tile {
 
     void initTile();
 
-
     SYCL_EXTERNAL
-    void setOut( const sycl::stream * out) { m_cout = out;}
+    void setOut(const sycl::stream *out) { m_cout = out; }
 
     // Has to be defined at the beginning of the kernel
     SYCL_EXTERNAL
-    const sycl::stream  cout () const { return *m_cout; }
+    const sycl::stream cout() const { return *m_cout; }
 
-    void setShared( TilesSharedVariables * ptr) { m_onDevice = ptr;}
+    void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 
     SYCL_EXTERNAL
-    TilesSharedVariables * deviceShared() { return m_onDevice;}
+    TilesSharedVariables *deviceShared() { return m_onDevice; }
 
     SYCL_EXTERNAL
     void swapStorageDims();

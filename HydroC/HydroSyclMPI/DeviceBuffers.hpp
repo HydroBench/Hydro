@@ -8,9 +8,8 @@
 #define DEVICEBUFFERS_H
 //
 #include "EnumDefs.hpp"
-#include "SoaDevice.hpp"
 #include "Matrix.hpp"
-
+#include "SoaDevice.hpp"
 
 #include "Utilities.hpp"
 
@@ -18,27 +17,26 @@
 
 class DeviceBuffers {
   private:
-    SoaDevice<real_t> m_q, m_qxm, m_qxp, m_dq;   // NXT, NYT
+    SoaDevice<real_t> m_q, m_qxm, m_qxp, m_dq;    // NXT, NYT
     SoaDevice<real_t> m_qleft, m_qright, m_qgdnv; // NX + 1, NY + 1
-    Array2D<real_t> m_c, m_e;        // NXT, NYT
+    Array2D<real_t> m_c, m_e;                     // NXT, NYT
 
     // work arrays for a single row/column
     Array1D<real_t> m_sgnm; //
     Array1D<real_t> m_pl;
-    
+
     // To be used as to be initialized at the beginning of the kernel
-    sycl::stream *m_out; 
-    
+    sycl::stream *m_out;
+
   protected:
   public:
     DeviceBuffers() : m_out(nullptr) {}
     // basic constructor
     void init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
-    
+
     // destructor
     ~DeviceBuffers();
 
-   
     SYCL_EXTERNAL
     void swapStorageDims();
 
@@ -66,13 +64,13 @@ class DeviceBuffers {
     SYCL_EXTERNAL
     Array2D<real_t> &getE() { return m_e; }
 
-    SYCL_EXTERNAL   
+    SYCL_EXTERNAL
     real_t *getSGNM() { return m_sgnm.data(); }
     SYCL_EXTERNAL
     real_t *getPL() { return m_pl.data(); }
 
     SYCL_EXTERNAL
-    sycl::stream * cout() { return m_out;}
+    sycl::stream *cout() { return m_out; }
 };
 #endif
 // EOF

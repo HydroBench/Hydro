@@ -6,19 +6,15 @@
 #include "Options.hpp"
 #include "Utilities.hpp"
 
-#include <iomanip>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
+#include <iomanip>
 
 #include <unistd.h>
-
 
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
-
-
-
 
 long Volume::_volume = 0;
 long Volume::_volumeMax = 0;
@@ -115,7 +111,6 @@ Matrix2<T>::Matrix2(const Matrix2<T> &m) : _w(m._w), _h(m._h), _arr(0), _org(0) 
     memcpy(_arr, m._arr, _w * _h * sizeof(T));
 }
 
-
 template <typename T> int32_t *Matrix2<T>::listMortonIdx(void) {
     // int32_t x, y;
     int32_t maxmorton = maxMorton();
@@ -174,8 +169,6 @@ void Matrix2<T>::aux_putFullCol(int32_t x, int32_t h, int32_t offY, T *__restric
 template <typename T> void Matrix2<T>::putFullCol(int32_t x, int32_t offY, T *theCol, int32_t l) {
     aux_putFullCol(x, l, offY, theCol, _arr);
 }
-
-
 
 template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix2<T> &mat) {
     int32_t srcX = mat.getW();

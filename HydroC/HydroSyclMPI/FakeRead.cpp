@@ -4,14 +4,12 @@
 
 #include "FakeRead.hpp"
 
-#include <cstdlib>
 #include <cassert>
+#include <cstdlib>
 
+#include <cerrno>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <cerrno>
-
-
 
 FakeRead::FakeRead(long fSize, int rank) {
     size_t n = 0;

@@ -3,19 +3,16 @@
 
 #include "ParallelInfo.hpp"
 
-
 #ifdef MPI_ON
 #include <mpi.h>
 #endif
-
 
 #if WITHPNG > 0
 #include <png.h>
 #endif
 
-#include <cstdarg>
 #include <cmath>
-
+#include <cstdarg>
 
 static void abort_(const char *s, ...) {
     va_list args;

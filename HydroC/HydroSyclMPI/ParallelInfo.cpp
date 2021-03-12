@@ -9,8 +9,7 @@
 #include <CL/sycl.hpp>
 #endif
 
-
-void ParallelInfo::init(int &argc, char **&argv, bool verbosity )
+void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
 
 {
     ParallelInfo &inst = GetInstance();
@@ -45,7 +44,6 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity )
 
     inst.m_opaque = new ParallelInfoOpaque;
     inst.m_opaque->m_queue = q;
-   
 
     auto device = q.get_device();
     auto max_block_size = device.get_info<sycl::info::device::max_work_group_size>();
@@ -54,8 +52,6 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity )
     if (max_EU_count != 1) {
         inst.m_nWorkers = max_EU_count * 4; // We oversubscribe the EU / Threads if CPU
     }
-
-    
 
     if (inst.m_verbosity) {
         std::cerr << "Running on " << device.get_info<sycl::info::device::name>() << std::endl;

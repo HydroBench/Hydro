@@ -7,11 +7,10 @@
 #include <mpi.h>
 #endif
 
-
 #include <cstdio>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 const long pageSize = 4 * 1024 * 1024;
 typedef struct _textMarker {
@@ -109,8 +108,6 @@ long Domain::protectArrays(const protectionMode_t mode, const int f) {
     lgrdstArr(f, mode, l, m_uold);
     return l;
 }
-
-
 
 void Domain::writeProtectionVars(const int f) {
     int myPe = ParallelInfo::mype();

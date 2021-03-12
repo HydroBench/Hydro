@@ -125,8 +125,8 @@ Domain::Domain(int argc, char **argv) {
         vtkOutput(m_nvtk);
         m_nvtk++;
     }
-    
-    setTiles();  // Must be defined after the createTestCase, i.e. m_uold should be defined
+
+    setTiles(); // Must be defined after the createTestCase, i.e. m_uold should be defined
 
     if (myPe == 0) {
         printSummary();
@@ -135,10 +135,11 @@ Domain::Domain(int argc, char **argv) {
 
 Domain::~Domain() {
     delete m_uold;
-    m_tiles.resize(0);
 
     if (m_tiles_on_device != nullptr)
         sycl::free(m_tiles_on_device, ParallelInfo::extraInfos()->m_queue);
+
+    delete[] m_tiles;
 
     if (m_recvbufru)
         free(m_recvbufru);
@@ -150,7 +151,6 @@ Domain::~Domain() {
         free(m_sendbufld);
     if (m_localDt)
         free(m_localDt);
-
 
     delete[] m_threadTimers;
     delete[] m_mortonIdx;
@@ -753,9 +753,7 @@ void Domain::setTiles() {
     }
     //
 
-    for (int32_t t = 0; t < m_nbtiles; t++) {
-        m_tiles.push_back(Tile());
-    }
+    m_tiles = new Tile[m_nbtiles];
 
     onHost.m_prt = m_prt;
 
@@ -828,7 +826,6 @@ void Domain::setTiles() {
     m_threadTimers = new Timers[m_nbWorkItems];
     assert(m_threadTimers != 0);
 
-
     onHost.initPhys(m_gamma, m_smallc, m_smallr, m_cfl, m_slope_type, m_nIterRiemann, m_iorder,
                     m_scheme);
     onHost.setTimes(m_threadTimers);
@@ -852,21 +849,18 @@ void Domain::setTiles() {
 
     // We create the corresponding Tiles on Device and also the TileShareVariables;
 
-
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
     m_tiles_on_device = sycl::malloc_device<Tile>(m_nbtiles, queue);
-
 
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
+    onHost.m_uold = std::move(
+        SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1))); // so on Device !
 
-    onHost.m_uold =  SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1)); // so on Device !
+    auto temp_buffers = new DeviceBuffers[m_nbWorkItems];
 
-    auto    temp_buffers = new DeviceBuffers[m_nbWorkItems];
-
-    for (int i = 0; i < m_nbWorkItems; i++)
-    {
+    for (int i = 0; i < m_nbWorkItems; i++) {
         temp_buffers[i].init(0, tileSizeTot, 0, tileSizeTot);
     }
 
@@ -877,30 +871,27 @@ void Domain::setTiles() {
         m_tiles[i].setShared(onDevice);
 
     queue.submit([&](sycl::handler &handler) {
-        handler.memcpy(m_tiles_on_device, m_tiles.data(), m_nbtiles * sizeof(Tile));
+        handler.memcpy(m_tiles_on_device, m_tiles, m_nbtiles * sizeof(Tile));
     });
 
-    queue.submit(
-        [&](auto & handler) { handler.memcpy(onHost.m_device_buffers, temp_buffers, sizeof(DeviceBuffers) * m_nbWorkItems);
-        }
-    );
+    queue.submit([&](auto &handler) {
+        handler.memcpy(onHost.m_device_buffers, temp_buffers,
+                       sizeof(DeviceBuffers) * m_nbWorkItems);
+    });
 
-
-  //  delete [] temp_buffers; Do not delete, it is in device memory here :-)
+    //  delete [] temp_buffers; Do not delete, it is in device memory here :-)
     queue.submit(
         [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
 
     auto theTiles = m_tiles_on_device;
 
-    queue.submit( [&] (sycl::handler & handler) 
-    {
+    queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
-        handler.parallel_for(global_range, [=] (sycl::nd_item<1> it) {
+        handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
             int idx = it.get_global_id();
             theTiles[0].deviceShared()->m_device_buffers[idx].firstTouch();
         });
     });
-
 }
 
 // EOF

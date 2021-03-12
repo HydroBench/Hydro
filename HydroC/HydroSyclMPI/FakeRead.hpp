@@ -4,9 +4,8 @@
 #ifndef FAKEREAD_H
 #define FAKEREAD_H
 
-
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 
 class FakeRead {
   private:

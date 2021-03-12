@@ -48,15 +48,15 @@ void Domain::computeDt() {
     auto the_tiles = m_tiles_on_device;
 
     real_t minimum = std::numeric_limits<float>::max();
-    real_t * result = sycl::malloc_shared<real_t>(1, queue);
+    real_t *result = sycl::malloc_shared<real_t>(1, queue);
     *result = minimum;
 
     sycl::buffer<real_t> min_buf(minimum);
     queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-     
-        handler.parallel_for(global_range, 
-        sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
+
+        handler.parallel_for(global_range,
+                             sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
                              [=](sycl::nd_item<1> it, auto &result) {
                                  int tile_idx = it.get_global_id();
                                  if (tile_idx < m_nbtiles) {
@@ -132,15 +132,14 @@ real_t Domain::computeTimeStep() {
 
         auto local = onDevice; // We cannot use a global variable, perhaps a copy on Domain !
         auto the_tiles = m_tiles_on_device;
-        auto nb_tiles = m_nbtiles; 
+        auto nb_tiles = m_nbtiles;
 
         auto tcur = m_tcur;
         auto dt = m_dt;
 
         queue
             .submit([&](sycl::handler &handler) {
-
-                sycl::stream out (1024, 256, handler);
+                sycl::stream out(1024, 256, handler);
 
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
                 handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
@@ -171,42 +170,41 @@ real_t Domain::computeTimeStep() {
 
         // we have to wait here that all tiles are ready to update uold
         real_t minimum = std::numeric_limits<float>::max();
-        real_t * result = sycl::malloc_shared<real_t>(1, queue);
+        real_t *result = sycl::malloc_shared<real_t>(1, queue);
         *result = minimum;
 
         sycl::buffer<real_t> min_buf(minimum);
         queue.submit([&](sycl::handler &handler) {
-
-              sycl::stream out (1024, 256, handler);
+            sycl::stream out(1024, 256, handler);
 
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-          
-            handler.parallel_for(global_range,
-                                 sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
-                                 [=](sycl::nd_item<1> it, auto &result) {
-                                     int tile_idx = it.get_global_id();
-                                     if (tile_idx < m_nbtiles) {
-                                         int32_t workitem = it.get_local_id();
+
+            handler.parallel_for(
+                global_range, sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
+                [=](sycl::nd_item<1> it, auto &result) {
+                    int tile_idx = it.get_global_id();
+                    if (tile_idx < m_nbtiles) {
+                        int32_t workitem = it.get_local_id();
 
 #if WITH_TIMERS == 1
-                                         int32_t thN = 0;
-                                         double startT = Custom_Timer::dcclock(), endT;
-                                         thN = myThread();
+                        int32_t thN = 0;
+                        double startT = Custom_Timer::dcclock(), endT;
+                        thN = myThread();
 #endif
-                                         auto *my_tile = &the_tiles[tile_idx];
-                                         my_tile->setOut(&out);
-                                         my_tile->setBuffers(local->buffers(workitem));
-                                         my_tile->updateconserv();
+                        auto *my_tile = &the_tiles[tile_idx];
+                        my_tile->setOut(&out);
+                        my_tile->setBuffers(local->buffers(workitem));
+                        my_tile->updateconserv();
 
-                                         real_t local_dt = my_tile->computeDt();
-                                         result.combine(local_dt);
+                        real_t local_dt = my_tile->computeDt();
+                        result.combine(local_dt);
 
 #if WITH_TIMERS == 1
-                                         endT = Custom_Timer::dcclock();
-                                         (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+                        endT = Custom_Timer::dcclock();
+                        (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
-                                     }
-                                 });
+                    }
+                });
         });
         last_dt = *result;
         // we have to wait here that uold has been fully updated by all tiles

@@ -10,7 +10,6 @@
 
 class ParallelInfoOpaque; // To be less opaque in implementation !
 
-
 class ParallelInfo {
     int m_myPe;
     int m_nProc;
@@ -26,7 +25,6 @@ class ParallelInfo {
         m_nProc = 1;
         m_nWorkers = 1;
         m_opaque = nullptr;
-
     }
 
     static ParallelInfo &GetInstance() {
@@ -42,10 +40,10 @@ class ParallelInfo {
     static int nb_procs() { return GetInstance().m_nProc; }
     static int nb_workers() { return GetInstance().m_nWorkers; }
 
-    static void init(int & argc, char  ** &argv, bool verbose=true);
+    static void init(int &argc, char **&argv, bool verbose = true);
     static void end();
 
-    static ParallelInfoOpaque * extraInfos() { return GetInstance().m_opaque;}
+    static ParallelInfoOpaque *extraInfos() { return GetInstance().m_opaque; }
 };
 
 #endif // PARALLEL_INFO_H

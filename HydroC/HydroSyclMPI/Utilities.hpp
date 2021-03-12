@@ -6,7 +6,6 @@
 
 #include <cstddef> // for size_t
 
-
 template <typename T> inline T Square(T x) { return x * x; }
 
 void CalcSubSurface(int xmin, int xmax, int ymin, int ymax, int pmin, int pmax, int box[MAXBOX_D],

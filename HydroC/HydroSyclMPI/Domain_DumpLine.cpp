@@ -6,7 +6,6 @@
 #include <mpi.h>
 #endif
 
-
 #include <cmath>
 
 void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {

@@ -6,8 +6,4 @@
 
 #include <CL/sycl.hpp>
 
-
- TilesSharedVariables onHost, *onDevice;
-
-
-
+TilesSharedVariables onHost, *onDevice;

@@ -34,5 +34,4 @@ static inline void umorton2(int32_t &x, int32_t &y, int32_t m) {
 
 static inline int32_t morton2(int32_t x, int32_t y) { return morton1(x) | (morton1(y) << 1); };
 
-
 #endif

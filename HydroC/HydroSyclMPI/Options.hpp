@@ -10,8 +10,6 @@
 #define USEMKL 0
 #define ALIGNED 1
 
-
-
 #define WITHBCAST 1 // read the input file once and broadcast the values
 
 #ifdef __MIC__

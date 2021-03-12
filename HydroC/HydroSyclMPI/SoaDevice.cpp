@@ -11,13 +11,12 @@ template <typename T>
 SoaDevice<T>::SoaDevice(int w, int h, int variables) : m_w(w), m_h(h), m_nbvariables(variables) {
     m_array =
         sycl::malloc_device<T>(m_w * m_h * m_nbvariables, ParallelInfo::extraInfos()->m_queue);
-    
+    m_managed = true;
 }
 
-
 template <typename T> SoaDevice<T>::~SoaDevice() {
-    if (m_array != nullptr)
-     sycl::free(m_array,  ParallelInfo::extraInfos()->m_queue);
+    if (m_array != nullptr && m_managed)
+        sycl::free(m_array, ParallelInfo::extraInfos()->m_queue);
 }
 
 template <typename T>
@@ -30,19 +29,17 @@ template <typename T> Array2D<T>::~Array2D() {
         sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
 }
 
-template <typename T> Array1D<T>::Array1D(int32_t lgr)  {
-    
+template <typename T> Array1D<T>::Array1D(int32_t lgr) {
+
     m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue);
 }
 template <typename T> Array1D<T>::~Array1D() {
-    std::cerr << "Array1D destructeur " << m_data << std::endl;
     if (m_data != nullptr)
-     sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
+        sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
 }
 
-
 SYCL_EXTERNAL
-const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> & mat) {
+const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> &mat) {
 
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
@@ -50,7 +47,7 @@ const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> & m
     for (int32_t j = 0; j < srcY; j++) {
 
         for (int32_t i = 0; i < srcX; i++) {
-            os << mat(i,j) << " ";
+            os << mat(i, j) << " ";
         }
         os << "\n";
     }
@@ -58,16 +55,15 @@ const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> & m
     return os;
 }
 
-
 SYCL_EXTERNAL
-const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> & mat) {
+const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> &mat) {
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
     os << " nx=" << srcX << " ny=" << srcY << "\n";
     for (int32_t j = 0; j < srcY; j++) {
 
         for (int32_t i = 0; i < srcX; i++) {
-            os << mat(i,j) << " ";
+            os << mat(i, j) << " ";
         }
         os << "\n";
     }
@@ -75,19 +71,16 @@ const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> & 
     return os;
 }
 
-template <typename T> 
-void Array2D<T>::putFullCol(int32_t x, int32_t offy, T* theCol, int32_t lgr)
-{
-  for (int32_t j = 0; j < lgr; j++) {
-        m_data[(j+offy)*m_w+x] = theCol[j];
+template <typename T> void Array2D<T>::putFullCol(int32_t x, int32_t offy, T *theCol, int32_t lgr) {
+    for (int32_t j = 0; j < lgr; j++) {
+        m_data[(j + offy) * m_w + x] = theCol[j];
     }
 }
 
 template <>
-void RArray2D<double>::putFullCol(int32_t x, int32_t offy, double * theCol, int32_t lgr)
-{
-  for (int32_t j = 0; j < lgr; j++) {
-        m_data[(j+offy)*m_w+x] = theCol[j];
+void RArray2D<double>::putFullCol(int32_t x, int32_t offy, double *theCol, int32_t lgr) {
+    for (int32_t j = 0; j < lgr; j++) {
+        m_data[(j + offy) * m_w + x] = theCol[j];
     }
 }
 
