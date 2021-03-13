@@ -6,3 +6,4 @@ tst
 *.pdf
 Dep
 *.pvd
+/build/

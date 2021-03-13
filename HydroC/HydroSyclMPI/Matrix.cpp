@@ -26,26 +26,16 @@ template <typename T> void Matrix2<T>::allocate(void) {
 
     assert((_w * _h) > 0);
 
-#if WITHHBW == 0 && WITHPOSIX == 0 && WITHNEW == 0
-#define WITHPOSIX 1
-#endif
     size_t lgrTab = (_w * _h) * sizeof(T);
-#ifdef WITHNEW
-    _arr = new T[_w * _h];
-    _org = _arr;
-// #pragma message "C++ NEW usage activated"
-#endif
 
-#ifdef WITHPOSIX
-    // #pragma message "posix_memalign activated"
-    int rc = posix_memalign((void **)&_arr, _nbloc, lgrTab + _nbloc);
-    _org = _arr;
-#endif
     _volume += lgrTab;
     _volumeMax = std::max(_volume, _volumeMax);
 
+    _arr = new T[_w * _h];
+    assert(_arr != nullptr);
+    _org = _arr;
+
     memset(_arr, 0, lgrTab);
-    assert(_arr != 0);
 }
 
 template <typename T> void Matrix2<T>::swapDimOnly() { std::swap(_w, _h); }
@@ -61,14 +51,17 @@ template <typename T> void Matrix2<T>::swapDimAndValues() {
 #define ALIGNEXT 128
 #endif
 
-template <typename T> Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), _arr(0), _org(0) {
+template <typename T>
+Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), _arr(nullptr), _org(0) {
+#if 0   
+    // remove black magic in order to be able to send/to device :-)
     // padd the array to make the next row aligned too.
     _w += (((_w * sizeof(T)) % ALIGNEXT) / sizeof(T));
     _h += (((_h * sizeof(T)) % ALIGNEXT) / sizeof(T));
     _w += (_w % 2);
     _h += (_h % 2);
+#endif
     allocate();
-    // std::cerr << "create " << this << std::endl;
 }
 
 template <typename T> void Matrix2<T>::fill(T v) {
@@ -87,27 +80,20 @@ template <typename T> void Matrix2<T>::fill(T v) {
 
 template <typename T> Matrix2<T>::~Matrix2() {
     // std::cerr << "Destruction object " << this << std::endl;
-    assert(_arr != 0);
+    assert(_arr != nullptr);
     size_t lgrTab = (_w * _h) * sizeof(T);
     _volume -= lgrTab;
 
-#ifdef WITHNEW
-    delete[] _org;
-#endif
-#ifdef WITHHBW
-    hbw_free(_org);
-#endif
-#if defined(WITHPOSIX)
-    free(_org);
-#endif
-    _arr = 0;
-    _org = 0;
+    delete[] _arr;
+
+    _arr = nullptr;
+    _org = nullptr;
 }
 
 template <typename T>
-Matrix2<T>::Matrix2(const Matrix2<T> &m) : _w(m._w), _h(m._h), _arr(0), _org(0) {
+Matrix2<T>::Matrix2(const Matrix2<T> &m) : _w(m._w), _h(m._h), _arr(nullptr), _org(0) {
     allocate();
-    assert(_arr != 0);
+    assert(_arr != nullptr);
     memcpy(_arr, m._arr, _w * _h * sizeof(T));
 }
 

@@ -26,11 +26,11 @@
 
 void Domain::changeDirection() {
 
-    // reverse the private storage direction of the tiles
+    // TODO: has to check ! reverse the private storage direction of the tiles
 
     onHost.swapScan();
     for (int32_t i = 0; i < m_nbtiles; i++) {
-
+        // it is of no use here :-)
         m_tiles[i].swapStorageDims();
     }
 
@@ -54,7 +54,7 @@ void Domain::computeDt() {
     sycl::buffer<real_t> min_buf(minimum);
     queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-
+        sycl::stream out(1024, 256, handler);
         handler.parallel_for(global_range,
                              sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
                              [=](sycl::nd_item<1> it, auto &result) {
@@ -63,12 +63,14 @@ void Domain::computeDt() {
                                      int32_t workitem = it.get_local_id();
 
                                      auto *my_tile = &the_tiles[tile_idx];
+                                     my_tile->setOut(out);
                                      my_tile->setBuffers(local->buffers(workitem));
                                      my_tile->setTcur(m_tcur);
                                      my_tile->setDt(m_dt);
 
                                      real_t local_dt = my_tile->computeDt();
                                      result.combine(local_dt);
+                                     out << it << " " << local_dt << "\n";
                                  }
                              });
     });
@@ -121,6 +123,8 @@ real_t Domain::computeTimeStep() {
         boundary_init();
         boundary_process();
 
+        sendUoldToDevice();
+
         double start = Custom_Timer::dcclock();
         int32_t t;
 
@@ -152,7 +156,7 @@ real_t Domain::computeTimeStep() {
 
 #endif
                         auto *my_tile = &the_tiles[idx];
-                        my_tile->setOut(&out);
+                        my_tile->setOut(out);
                         my_tile->setBuffers(local->buffers(workitem));
                         my_tile->setTcur(tcur);
                         my_tile->setDt(dt);
@@ -192,7 +196,7 @@ real_t Domain::computeTimeStep() {
                         thN = myThread();
 #endif
                         auto *my_tile = &the_tiles[tile_idx];
-                        my_tile->setOut(&out);
+                        my_tile->setOut(out);
                         my_tile->setBuffers(local->buffers(workitem));
                         my_tile->updateconserv();
 
@@ -294,6 +298,8 @@ void Domain::compute() {
     vtkprt[0] = '\0';
 
     if (m_tcur == 0) {
+        sendUoldToDevice();
+
         computeDt();
         m_dt /= 2.0;
         assert(m_dt > 1.e-15);

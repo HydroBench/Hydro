@@ -183,11 +183,11 @@ class Tile {
     void initTile();
 
     SYCL_EXTERNAL
-    void setOut(const sycl::stream *out) { m_cout = out; }
+    void setOut(const sycl::stream &out) { m_cout = &out; }
 
-    // Has to be defined at the beginning of the kernel
+    // Has to be defined at the beginning of the kernel with setOut
     SYCL_EXTERNAL
-    const sycl::stream cout() const { return *m_cout; }
+    const sycl::stream &cout() { return *m_cout; }
 
     void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 

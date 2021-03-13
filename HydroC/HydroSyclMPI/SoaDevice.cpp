@@ -1,5 +1,6 @@
 //
 // Implementation of Array of 2D arrays on devices
+//
 
 #include "SoaDevice.hpp"
 #include "ParallelInfo.hpp"
@@ -8,15 +9,17 @@
 #include <CL/sycl.hpp>
 
 template <typename T>
-SoaDevice<T>::SoaDevice(int w, int h, int variables) : m_w(w), m_h(h), m_nbvariables(variables) {
+SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvariables(variables) {
     m_array =
         sycl::malloc_device<T>(m_w * m_h * m_nbvariables, ParallelInfo::extraInfos()->m_queue);
     m_managed = true;
 }
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
-    if (m_array != nullptr && m_managed)
+    if (m_array != nullptr && m_managed) {
+        std::cerr << "SoaDevice destruct is called with " << m_array << std::endl;
         sycl::free(m_array, ParallelInfo::extraInfos()->m_queue);
+    }
 }
 
 template <typename T>

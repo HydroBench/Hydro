@@ -42,7 +42,7 @@ template <typename T> class Matrix2 : private Volume {
 
   public:
     // basic constructor
-    Matrix2(void) : _w(0), _h(0), _arr(0), _org(0){};
+    Matrix2(void) : _w(0), _h(0), _arr(nullptr), _org(0){};
 
     // prefered constructor
     Matrix2(int32_t w, int32_t h);
@@ -51,6 +51,8 @@ template <typename T> class Matrix2 : private Volume {
 
     // copy operator
     Matrix2(const Matrix2 &m);
+
+    T *data() { return _arr; }
 
     // access through ()
     // lhs

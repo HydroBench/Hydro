@@ -5,9 +5,7 @@
 #include <mpi.h>
 #endif
 
-#ifdef _SYCL
 #include <CL/sycl.hpp>
-#endif
 
 void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
 
@@ -29,7 +27,6 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
     inst.m_nProc = 1;
 #endif
 
-#ifdef _SYCL
     sycl::default_selector device_selector;
 
     // Environnement variables that can help
@@ -49,15 +46,11 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
     auto max_block_size = device.get_info<sycl::info::device::max_work_group_size>();
     auto max_EU_count = device.get_info<sycl::info::device::max_compute_units>();
 
-    if (max_EU_count != 1) {
-        inst.m_nWorkers = max_EU_count * 4; // We oversubscribe the EU / Threads if CPU
-    }
+    inst.m_nWorkers = max_EU_count;
 
     if (inst.m_verbosity) {
         std::cerr << "Running on " << device.get_info<sycl::info::device::name>() << std::endl;
         std::cerr << "The Device Max Work Group Size is : " << max_block_size << std::endl;
         std::cerr << "The Device Max EUCount is : " << max_EU_count << std::endl;
     }
-
-#endif
 }

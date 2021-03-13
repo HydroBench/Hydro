@@ -2,7 +2,7 @@ CXX=dpcpp
 
 ARCHEXT=dpcpp
 
-CFLAGS= -D_SYCL
+CFLAGS=
 
 ifneq ($(DBG),O)
    OPTIM+=-O3

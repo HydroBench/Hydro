@@ -856,7 +856,7 @@ void Domain::setTiles() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     onHost.m_uold = std::move(
-        SoaDevice<real_t>(NB_VAR, (xmax + xmin + 1), (ymax - ymin + 1))); // so on Device !
+        SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
 
     auto temp_buffers = new DeviceBuffers[m_nbWorkItems];
 
@@ -879,16 +879,26 @@ void Domain::setTiles() {
                        sizeof(DeviceBuffers) * m_nbWorkItems);
     });
 
-    //  delete [] temp_buffers; Do not delete, it is in device memory here :-)
+    //  TODO: do something delete [] temp_buffers; Do not delete, it is in device memory here :-)
     queue.submit(
         [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
 
+    std::cerr << "Memory allocated on Device" << std::endl;
     auto theTiles = m_tiles_on_device;
 
     queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
+        sycl::stream out(1024, 256, handler);
         handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
             int idx = it.get_global_id();
+            out << idx << "\n";
+            if (idx == 1) {
+                out << "In the test "
+                    << "\n";
+                theTiles[0].setOut(out);
+                theTiles[0].cout() << "Test from the Tiles 0"
+                                   << "\n";
+            }
             theTiles[0].deviceShared()->m_device_buffers[idx].firstTouch();
         });
     });

@@ -28,8 +28,6 @@ inline void *memsetth(void *s, int c, size_t n) {
 void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     int32_t lgx, lgy, lgmax;
 
-    // TODO: In fact I need a move here :-) !
-
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
 

@@ -125,12 +125,15 @@ class Domain {
     void setTiles();
     void printSummary();
 
+    void sendUoldToDevice();
+    void getUoldFromDevice();
+
     void boundary_init();
 
     void boundary_process();
     real_t computeTimeStep();
-    void compTStask1(int32_t t);
-    void compTStask2(int32_t t, int32_t t1, int32_t t2);
+    void compTStask1();
+    void compTStask2();
     void computeDt();
     void createTestCase();
     void changeDirection();

@@ -63,6 +63,8 @@ template <typename S> class RArray2D {
     RArray2D() = delete;
     RArray2D &operator=(const RArray2D &) = delete;
 
+    S *data() { return m_data; }
+
     SYCL_EXTERNAL
     RArray2D(S *val, int32_t w, int32_t h) : m_data(val), m_w(w), m_h(h) {}
 
@@ -174,7 +176,7 @@ template <typename T> class SoaDevice {
 
   public:
     SoaDevice() : m_array(nullptr), m_managed(false) { m_w = m_h = m_nbvariables = -1; }
-    SoaDevice(int w, int h, int variables);
+    SoaDevice(int variables, int w, int h);
     SoaDevice(const SoaDevice &org) = delete;
 
     // for move operation;
