@@ -25,6 +25,7 @@ class Domain {
 
     // Tile shared variables
     TilesSharedVariables *m_ondevice;
+    real_t *local_dt; // share variable to store dt has to be replaced by a reduce when working!
 
     real_t m_tcur, m_dt;        //=
     int32_t m_globNx, m_globNy; // global size of the simulation //=

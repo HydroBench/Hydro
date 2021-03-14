@@ -48,34 +48,40 @@ void Domain::computeDt() {
     auto the_tiles = m_tiles_on_device;
 
     real_t minimum = std::numeric_limits<float>::max();
-    real_t *result = sycl::malloc_shared<real_t>(1, queue);
-    *result = minimum;
 
-    sycl::buffer<real_t> min_buf(minimum);
-    queue.submit([&](sycl::handler &handler) {
-        auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-        sycl::stream out(1024, 256, handler);
-        handler.parallel_for(global_range,
-                             sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
-                             [=](sycl::nd_item<1> it, auto &result) {
-                                 int tile_idx = it.get_global_id();
-                                 if (tile_idx < m_nbtiles) {
-                                     int32_t workitem = it.get_local_id();
+    real_t *localDt = m_localDt;
+    for (int wi = 0; wi < m_nbWorkItems; wi++)
+        m_localDt[wi] = minimum;
 
-                                     auto *my_tile = &the_tiles[tile_idx];
-                                     my_tile->setOut(out);
-                                     my_tile->setBuffers(local->buffers(workitem));
-                                     my_tile->setTcur(m_tcur);
-                                     my_tile->setDt(m_dt);
+    auto nbTiles = m_nbtiles;
+    auto tcur = m_tcur;
+    auto dt = m_dt;
+    queue
+        .submit([&](sycl::handler &handler) {
+            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+            sycl::stream out(1024, 256, handler);
+            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                int tile_idx = it.get_global_id(0);
+                if (tile_idx < nbTiles) {
+                    int32_t workitem = it.get_local_id(0);
 
-                                     real_t local_dt = my_tile->computeDt();
-                                     result.combine(local_dt);
-                                     out << it << " " << local_dt << "\n";
-                                 }
-                             });
-    });
-    real_t dt = *result;
+                    auto *my_tile = &the_tiles[tile_idx];
+                    my_tile->setOut(out);
+                    my_tile->setBuffers(local->buffers(workitem));
+                    my_tile->setTcur(tcur);
+                    my_tile->setDt(dt);
+                    real_t local_dt = my_tile->computeDt();
 
+                    my_tile->cout()
+                        << "Tile " << tile_idx << " eu " << workitem << " dt= " << local_dt << "\n";
+
+                    localDt[workitem] = sycl::min(localDt[workitem], local_dt);
+                }
+            });
+        })
+        .wait();
+
+    dt = *std::min_element(localDt, localDt + m_nbWorkItems);
     m_dt = reduceMin(dt);
 }
 
@@ -123,12 +129,11 @@ real_t Domain::computeTimeStep() {
         boundary_init();
         boundary_process();
 
-        sendUoldToDevice();
+        sendUoldToDevice(); // Since Uold is modified by the two previous routines
 
         double start = Custom_Timer::dcclock();
         int32_t t;
 
-        // TODO: Here we have to transmits the updated uold to the devices
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
         int nb_virtual_tiles = m_nbtiles;
         if (nb_virtual_tiles % m_nbWorkItems != 0)

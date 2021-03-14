@@ -25,7 +25,7 @@ void Domain::sendUoldToDevice() {
         assert(matrice.getW() == matDevice.getW());
 
         queue.submit([&](auto &handler) {
-            handler.memcpy(matrice.data(), matDevice.data(),
+            handler.memcpy(matDevice.data(), matrice.data(),
                            matDevice.getH() * matDevice.getW() * sizeof(real_t));
         });
     }
@@ -43,7 +43,7 @@ void Domain::getUoldFromDevice() {
         assert(matrice.getW() == matDevice.getW());
 
         queue.submit([&](auto &handler) {
-            handler.memcpy(matDevice.data(), matrice.data(),
+            handler.memcpy(matrice.data(), matDevice.data(),
                            matDevice.getH() * matDevice.getW() * sizeof(real_t));
         });
     }

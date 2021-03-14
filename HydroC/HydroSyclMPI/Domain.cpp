@@ -858,6 +858,8 @@ void Domain::setTiles() {
     onHost.m_uold = std::move(
         SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
 
+    m_localDt = sycl::malloc_shared<real_t>(m_nbWorkItems, queue);
+
     auto temp_buffers = new DeviceBuffers[m_nbWorkItems];
 
     for (int i = 0; i < m_nbWorkItems; i++) {

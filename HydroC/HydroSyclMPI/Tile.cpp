@@ -11,9 +11,8 @@
 #include "Timers.hpp"
 #include "cclock.hpp"
 
-#include <CL/sycl.hpp> // pour sycl::sqrt !
+#include <CL/sycl.hpp> // pour sycl::sqrt
 
-#include <algorithm> // for min, max
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -80,8 +79,8 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS) {
         dsgn = (dcen > 0) ? one : -one; // sign(one, dcen);
 
         llftrgt = ((dlft * drgt) <= zero);
-        t1 = std::min(std::abs(dlft), std::abs(drgt));
-        dqS[i] = dsgn * std::min((one - llftrgt) * t1, std::abs(dcen));
+        t1 = sycl::min(sycl::abs(dlft), sycl::abs(drgt));
+        dqS[i] = dsgn * sycl::min((one - llftrgt) * t1, sycl::abs(dcen));
     }
 }
 
@@ -377,12 +376,6 @@ void Tile::compflx() {
 
 } // compflx
 
-template <typename LOOP_BODY> void forall(int32_t begin, int32_t end, LOOP_BODY body) {
-#pragma omp simd
-    for (int32_t i = begin; i < end; ++i)
-        body(i);
-}
-
 void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t uIDS, Preal_t uIUS,
                               Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS,
                               Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
@@ -600,7 +593,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
             real_t rrho = one / rho;
             real_t base = (deviceShared()->m_gamma - one) * rho * eS[k];
             ;
-            base = std::max(base, (real_t)(rho * smallp));
+            base = sycl::max(base, (real_t)(rho * smallp));
             qIPS[k] = base;
             cS[k] = sycl::sqrt(deviceShared()->m_gamma * base * rrho);
         }
@@ -612,7 +605,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
             real_t rrho = one / rho;
             real_t base = (deviceShared()->m_gamma - one) * rho * eS[k];
             ;
-            base = std::max(base, (real_t)(rho * smallp));
+            base = sycl::max(base, (real_t)(rho * smallp));
             qIPS[k] = base;
             cS[k] = sycl::sqrt(deviceShared()->m_gamma * base * rrho);
         }
@@ -657,7 +650,7 @@ void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal
     for (int32_t i = xmin; i < xmax; i++) {
         real_t eken, tmp;
         qIDS[i] = uoldIDS[i + m_offx];
-        qIDS[i] = std::max(qIDS[i], deviceShared()->m_smallr);
+        qIDS[i] = sycl::max(qIDS[i], deviceShared()->m_smallr);
         qIUS[i] = uoldIUS[i + m_offx] / qIDS[i];
         qIVS[i] = uoldIVS[i + m_offx] / qIDS[i];
         eken = my_half * (Square(qIUS[i]) + Square(qIVS[i]));
@@ -670,10 +663,10 @@ void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal
 void Tile::compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32_t xmax, Preal_t cS,
                                  Preal_t qIUS, Preal_t qIVS) {
     for (int32_t i = xmin; i < xmax; i++) {
-        tmp1 = std::max(tmp1, cS[i] + std::abs(qIUS[i]));
+        tmp1 = sycl::max(tmp1, cS[i] + sycl::abs(qIUS[i]));
     }
     for (int32_t i = xmin; i < xmax; i++) {
-        tmp2 = std::max(tmp2, cS[i] + std::abs(qIVS[i]));
+        tmp2 = sycl::max(tmp2, cS[i] + sycl::abs(qIVS[i]));
     }
 }
 
@@ -693,6 +686,7 @@ real_t Tile::compute_dt() {
     auto qIP = m_work->getQ()(IP_VAR);
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
+
     godunovDir_t oldScan = deviceShared()->m_scan;
 
     if (deviceShared()->m_scan == Y_SCAN) {
@@ -710,6 +704,7 @@ real_t Tile::compute_dt() {
         real_t *uoldIPS;
         real_t *uoldIVS;
         real_t *uoldIUS;
+
         uoldIDS = uoldID.getRow(s + m_offy);
         uoldIPS = uoldIP.getRow(s + m_offy);
         uoldIVS = uoldIV.getRow(s + m_offy);
@@ -719,6 +714,7 @@ real_t Tile::compute_dt() {
         real_t *qIPS = qIP.getRow(s);
         real_t *qIVS = qIV.getRow(s);
         real_t *qIUS = qIU.getRow(s);
+
         real_t *eS = (m_work->getE()).getRow(s);
         compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS, uoldIDS, uoldIUS, uoldIVS,
                               uoldIPS, eS);
@@ -742,11 +738,11 @@ real_t Tile::compute_dt() {
         real_t *cS = m_work->getC().getRow(s);
         compute_dt_loop2OnRow(tmp1, tmp2, xmin, xmax, cS, qIUS, qIVS);
     }
-    cournox = std::max(cournox, tmp1);
-    cournoy = std::max(cournoy, tmp2);
+    cournox = sycl::max(cournox, tmp1);
+    cournoy = sycl::max(cournoy, tmp2);
 
     dt = deviceShared()->m_cfl * m_dx /
-         std::max(cournox, std::max(cournoy, deviceShared()->m_smallc));
+         sycl::max(cournox, sycl::max(cournoy, deviceShared()->m_smallc));
 
     if (deviceShared()->m_scan != oldScan) {
         deviceShared()->swapScan();
@@ -775,7 +771,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
     for (int32_t i = xmin; i < xmax; i++) {
         real_t eken, qid, qiu, qiv, qip;
         qid = uIDS[i];
-        qid = std::max(qid, deviceShared()->m_smallr);
+        qid = sycl::max(qid, deviceShared()->m_smallr);
         // if (qid < m_smallr) qid = m_smallr;
         qiu = uIUS[i] / qid;
         qiv = uIVS[i] / qid;
@@ -858,12 +854,12 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 
     for (int32_t i = xmin; i < xmax; i++) {
         real_t wl_i, wr_i;
-        rl[i] = std::max(qleftIDS[i], deviceShared()->m_smallr);
+        rl[i] = sycl::max(qleftIDS[i], deviceShared()->m_smallr);
         ul[i] = qleftIUS[i];
-        pl[i] = std::max(qleftIPS[i], rl[i] * smallp);
-        rr[i] = std::max(qrightIDS[i], deviceShared()->m_smallr);
+        pl[i] = sycl::max(qleftIPS[i], rl[i] * smallp);
+        rr[i] = sycl::max(qrightIDS[i], deviceShared()->m_smallr);
         ur[i] = qrightIUS[i];
-        pr[i] = std::max(qrightIPS[i], rr[i] * smallp);
+        pr[i] = sycl::max(qrightIPS[i], rr[i] * smallp);
 
         // Lagrangian sound speed
         cl[i] = deviceShared()->m_gamma * pl[i] * rl[i];
@@ -872,7 +868,7 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         // First guess
         wl_i = sycl::sqrt(cl[i]);
         wr_i = sycl::sqrt(cr[i]);
-        pstar[i] = std::max(
+        pstar[i] = sycl::max(
             ((wr_i * pl[i] + wl_i * pr[i]) + wl_i * wr_i * (ul[i] - ur[i])) / (wl_i + wr_i), zero);
     }
 
@@ -898,12 +894,12 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
                 real_t usl = ul[i] - (pst - pl[i]) / wwl;
                 real_t usr = ur[i] + (pst - pr[i]) / wwr;
                 real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
-                real_t delp_i = std::max(tmp, (-pst));
+                real_t delp_i = sycl::max(tmp, (-pst));
                 // pstar[i] = pstar[i] + delp_i;
                 pst += delp_i;
                 // Convergence indicator
                 real_t tmp2 = delp_i / (pst + smallpp);
-                real_t uo_i = std::abs(tmp2);
+                real_t uo_i = sycl::abs(tmp2);
                 go_on[i] = uo_i > precision;
                 // FLOPS(29, 10, 2, 0);
                 pstar[i] = pst;
@@ -936,14 +932,14 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
         po_i = left * pl[i] + (1 - left) * pr[i];
         wo_i = left * wl_i + (1 - left) * wr_i;
 
-        real_t co_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
-        co_i = std::max(deviceShared()->m_smallc, co_i);
+        real_t co_i = sycl::sqrt(sycl::abs(deviceShared()->m_gamma * po_i / ro_i));
+        co_i = sycl::max(deviceShared()->m_smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstar[i]) / Square(wo_i));
-        rstar_i = std::max(rstar_i, deviceShared()->m_smallr);
+        rstar_i = sycl::max(rstar_i, deviceShared()->m_smallr);
 
-        real_t cstar_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * pstar[i] / rstar_i));
-        cstar_i = std::max(deviceShared()->m_smallc, cstar_i);
+        real_t cstar_i = sycl::sqrt(sycl::abs(deviceShared()->m_gamma * pstar[i] / rstar_i));
+        cstar_i = sycl::max(deviceShared()->m_smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
         real_t spin_i = cstar_i - sgnm[i] * ustar_i;
@@ -954,11 +950,11 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
             spout_i = ushock_i;
         }
 
-        real_t scr_i = std::max((real_t)(spout_i - spin_i),
-                                (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
+        real_t scr_i = sycl::max((real_t)(spout_i - spin_i),
+                                 (real_t)(deviceShared()->m_smallc + sycl::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
-        frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
+        frac_i = sycl::max(zero, (real_t)(sycl::min(one, frac_i)));
 
         int addSpout = spout_i < zero;
         int addSpin = spin_i > zero;
@@ -1013,12 +1009,12 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
         // Precompute values for this slice
         real_t wl_i, wr_i;
-        rlI = std::max(qleftIDS[i], deviceShared()->m_smallr);
+        rlI = sycl::max(qleftIDS[i], deviceShared()->m_smallr);
         ulI = qleftIUS[i];
-        plI = std::max(qleftIPS[i], rlI * smallp);
-        rrI = std::max(qrightIDS[i], deviceShared()->m_smallr);
+        plI = sycl::max(qleftIPS[i], rlI * smallp);
+        rrI = sycl::max(qrightIDS[i], deviceShared()->m_smallr);
         urI = qrightIUS[i];
-        prI = std::max(qrightIPS[i], rrI * smallp);
+        prI = sycl::max(qrightIPS[i], rrI * smallp);
 
         // Lagrangian sound speed
         clI = deviceShared()->m_gamma * plI * rlI;
@@ -1027,8 +1023,8 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         // First guess
         wl_i = sycl::sqrt(clI);
         wr_i = sycl::sqrt(crI);
-        pstarI =
-            std::max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i), zero);
+        pstarI = sycl::max(((wr_i * plI + wl_i * prI) + wl_i * wr_i * (ulI - urI)) / (wl_i + wr_i),
+                           zero);
         //  #pragma ivdep
         for (int32_t iter = 0; iter < 10; iter++) {
             if (goonI > 0) {
@@ -1042,12 +1038,12 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                 real_t usl = ulI - (pst - plI) / wwl;
                 real_t usr = urI + (pst - prI) / wwr;
                 real_t tmp = (qr * ql / (qr + ql) * (usl - usr));
-                real_t delp_i = std::max(tmp, (-pst));
+                real_t delp_i = sycl::max(tmp, (-pst));
                 // pstarI = pstarI + delp_i;
                 pst += delp_i;
                 // Convergence indicator
                 real_t tmp2 = delp_i / (pst + smallpp);
-                real_t uo_i = std::abs(tmp2);
+                real_t uo_i = sycl::abs(tmp2);
                 goonI = uo_i > precision;
                 // FLOPS(29, 10, 2, 0);
                 pstarI = pst;
@@ -1068,14 +1064,14 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         po_i = left * plI + (one - left) * prI;
         wo_i = left * wl_i + (one - left) * wr_i;
 
-        real_t co_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * po_i / ro_i));
-        co_i = std::max(deviceShared()->m_smallc, co_i);
+        real_t co_i = sycl::sqrt(sycl::abs(deviceShared()->m_gamma * po_i / ro_i));
+        co_i = sycl::max(deviceShared()->m_smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
-        rstar_i = std::max(rstar_i, deviceShared()->m_smallr);
+        rstar_i = sycl::max(rstar_i, deviceShared()->m_smallr);
 
-        real_t cstar_i = sycl::sqrt(std::abs(deviceShared()->m_gamma * pstarI / rstar_i));
-        cstar_i = std::max(deviceShared()->m_smallc, cstar_i);
+        real_t cstar_i = sycl::sqrt(sycl::abs(deviceShared()->m_gamma * pstarI / rstar_i));
+        cstar_i = sycl::max(deviceShared()->m_smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
         real_t spin_i = cstar_i - sgnm[i] * ustar_i;
@@ -1086,11 +1082,11 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
             spout_i = ushock_i;
         }
 
-        real_t scr_i = std::max((real_t)(spout_i - spin_i),
-                                (real_t)(deviceShared()->m_smallc + std::abs(spout_i + spin_i)));
+        real_t scr_i = sycl::max((real_t)(spout_i - spin_i),
+                                 (real_t)(deviceShared()->m_smallc + sycl::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
-        frac_i = std::max(zero, (real_t)(std::min(one, frac_i)));
+        frac_i = sycl::max(zero, (real_t)(sycl::min(one, frac_i)));
 
         int addSpout = spout_i < zero;
         int addSpin = spin_i > zero;
