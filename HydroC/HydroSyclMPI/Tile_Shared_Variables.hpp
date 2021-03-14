@@ -53,6 +53,8 @@ struct TilesSharedVariables {
             m_scan = Y_SCAN;
         else
             m_scan = X_SCAN;
+
+        m_uold.swapDimOnly();
     }
 
     SYCL_EXTERNAL

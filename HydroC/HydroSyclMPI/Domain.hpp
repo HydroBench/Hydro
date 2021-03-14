@@ -24,7 +24,7 @@ class Domain {
     Soa *m_uold; // on the full domain
 
     // Tile shared variables
-    TilesSharedVariables *m_ondevice;
+    TilesSharedVariables *m_onDevice;
     real_t *local_dt; // share variable to store dt has to be replaced by a reduce when working!
 
     real_t m_tcur, m_dt;        //=
@@ -42,9 +42,9 @@ class Domain {
     int m_prt;
     int32_t m_stats; // print various stats
     Tile *m_tiles;   //=
-    Tile *m_tiles_on_device;
+    Tile *m_tilesOnDevice;
 
-    int32_t m_nbtiles;  //=
+    int32_t m_nbTiles;  //=
     int32_t m_tileSize; //=
 
     int32_t m_nbWorkItems; // nb of threads available

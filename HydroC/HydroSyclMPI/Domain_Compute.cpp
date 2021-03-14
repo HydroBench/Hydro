@@ -26,13 +26,26 @@
 
 void Domain::changeDirection() {
 
-    // TODO: has to check ! reverse the private storage direction of the tiles
+    // We have to change direction of the different arrays that are on the devices
 
-    onHost.swapScan();
-    for (int32_t i = 0; i < m_nbtiles; i++) {
-        // it is of no use here :-)
-        m_tiles[i].swapStorageDims();
-    }
+    auto the_tiles = m_tilesOnDevice;
+    auto queue = ParallelInfo::extraInfos()->m_queue;
+    int32_t nbTiles = m_nbTiles;
+
+    auto first_call =
+        queue.parallel_for(nbTiles, [=](sycl::id<1> i) { the_tiles[i].swapStorageDims(); });
+
+    auto second_call = queue.parallel_for(m_nbWorkItems, [=](sycl::id<1> i) {
+        the_tiles[0].deviceSharedVariables()->buffers(i)->swapStorageDims();
+    });
+
+    queue
+        .submit([&](sycl::handler &handler) {
+            handler.depends_on(first_call);
+            handler.depends_on(second_call);
+            handler.single_task([=]() { the_tiles[0].deviceSharedVariables()->swapScan(); });
+        })
+        .wait();
 
     swapScan();
 }
@@ -40,20 +53,18 @@ void Domain::changeDirection() {
 void Domain::computeDt() {
 
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-    int nb_virtual_tiles = m_nbtiles;
+    int nb_virtual_tiles = m_nbTiles;
     if (nb_virtual_tiles % m_nbWorkItems != 0)
-        nb_virtual_tiles += m_nbtiles + (m_nbWorkItems - m_nbtiles % m_nbWorkItems);
+        nb_virtual_tiles += m_nbTiles + (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
 
-    auto local = onDevice; // We cannot use a global variable, perhaps a copy on Domain !
-    auto the_tiles = m_tiles_on_device;
+    auto the_tiles = m_tilesOnDevice;
 
-    real_t minimum = std::numeric_limits<float>::max();
+    real_t maximum = std::numeric_limits<float>::max();
 
     real_t *localDt = m_localDt;
-    for (int wi = 0; wi < m_nbWorkItems; wi++)
-        m_localDt[wi] = minimum;
+    std::fill(localDt, localDt + m_nbWorkItems, maximum);
 
-    auto nbTiles = m_nbtiles;
+    auto nbTiles = m_nbTiles;
     auto tcur = m_tcur;
     auto dt = m_dt;
     queue
@@ -63,17 +74,16 @@ void Domain::computeDt() {
             handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
                 int tile_idx = it.get_global_id(0);
                 if (tile_idx < nbTiles) {
+                    auto local = the_tiles[0].deviceSharedVariables();
+
                     int32_t workitem = it.get_local_id(0);
 
-                    auto *my_tile = &the_tiles[tile_idx];
-                    my_tile->setOut(out);
-                    my_tile->setBuffers(local->buffers(workitem));
-                    my_tile->setTcur(tcur);
-                    my_tile->setDt(dt);
-                    real_t local_dt = my_tile->computeDt();
-
-                    my_tile->cout()
-                        << "Tile " << tile_idx << " eu " << workitem << " dt= " << local_dt << "\n";
+                    auto &my_tile = the_tiles[tile_idx];
+                    my_tile.setOut(out);
+                    my_tile.setBuffers(local->buffers(workitem));
+                    my_tile.setTcur(tcur);
+                    my_tile.setDt(dt);
+                    real_t local_dt = my_tile.computeDt();
 
                     localDt[workitem] = sycl::min(localDt[workitem], local_dt);
                 }
@@ -121,10 +131,6 @@ real_t Domain::computeTimeStep() {
     real_t dt = 0, last_dt;
 
     for (int32_t pass = 0; pass < 2; pass++) {
-        Matrix2<real_t> &uold = *(*m_uold)(IP_VAR);
-
-        if (m_prt)
-            std::cout << "uold computeTimeStep" << uold;
 
         boundary_init();
         boundary_process();
@@ -135,14 +141,12 @@ real_t Domain::computeTimeStep() {
         int32_t t;
 
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-        int nb_virtual_tiles = m_nbtiles;
+        int nb_virtual_tiles = m_nbTiles;
         if (nb_virtual_tiles % m_nbWorkItems != 0)
-            nb_virtual_tiles += m_nbtiles + (m_nbWorkItems - m_nbtiles % m_nbWorkItems);
+            nb_virtual_tiles += m_nbTiles + (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
 
-        auto local = onDevice; // We cannot use a global variable, perhaps a copy on Domain !
-        auto the_tiles = m_tiles_on_device;
-        auto nb_tiles = m_nbtiles;
-
+        auto the_tiles = m_tilesOnDevice;
+        auto nb_tiles = m_nbTiles;
         auto tcur = m_tcur;
         auto dt = m_dt;
 
@@ -152,9 +156,10 @@ real_t Domain::computeTimeStep() {
 
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
                 handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                    int idx = it.get_global_id();
+                    auto local = the_tiles[0].deviceSharedVariables();
+                    int idx = it.get_global_id(0);
                     if (idx < nb_tiles) {
-                        int32_t workitem = it.get_local_id();
+                        int32_t workitem = it.get_local_id(0);
 #if WITH_TIMERS == 1
                         double startT = Custom_Timer::dcclock(), endT;
                         int32_t thN = workitem;
@@ -179,8 +184,9 @@ real_t Domain::computeTimeStep() {
 
         // we have to wait here that all tiles are ready to update uold
         real_t minimum = std::numeric_limits<float>::max();
-        real_t *result = sycl::malloc_shared<real_t>(1, queue);
-        *result = minimum;
+
+        real_t *localDt = m_localDt;
+        std::fill(m_localDt, m_localDt + m_nbWorkItems, minimum);
 
         sycl::buffer<real_t> min_buf(minimum);
         queue.submit([&](sycl::handler &handler) {
@@ -188,34 +194,33 @@ real_t Domain::computeTimeStep() {
 
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(
-                global_range, sycl::ONEAPI::reduction(result, minimum, sycl::ONEAPI::minimum<>()),
-                [=](sycl::nd_item<1> it, auto &result) {
-                    int tile_idx = it.get_global_id();
-                    if (tile_idx < m_nbtiles) {
-                        int32_t workitem = it.get_local_id();
+            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                int tile_idx = it.get_global_id(0);
+                auto local = the_tiles[0].deviceSharedVariables();
+                if (tile_idx < nb_tiles) {
+                    int32_t workitem = it.get_local_id(0);
 
 #if WITH_TIMERS == 1
-                        int32_t thN = 0;
-                        double startT = Custom_Timer::dcclock(), endT;
-                        thN = myThread();
+                    int32_t thN = 0;
+                    double startT = Custom_Timer::dcclock(), endT;
+                    thN = myThread();
 #endif
-                        auto *my_tile = &the_tiles[tile_idx];
-                        my_tile->setOut(out);
-                        my_tile->setBuffers(local->buffers(workitem));
-                        my_tile->updateconserv();
+                    auto *my_tile = &the_tiles[tile_idx];
+                    my_tile->setOut(out);
+                    my_tile->setBuffers(local->buffers(workitem));
+                    my_tile->updateconserv();
 
-                        real_t local_dt = my_tile->computeDt();
-                        result.combine(local_dt);
+                    real_t local_dt = my_tile->computeDt();
+                    localDt[workitem] = sycl::min(localDt[workitem], local_dt);
 
 #if WITH_TIMERS == 1
-                        endT = Custom_Timer::dcclock();
-                        (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+                    endT = Custom_Timer::dcclock();
+                    (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
 #endif
-                    }
-                });
+                }
+            });
         });
-        last_dt = *result;
+        last_dt = *std::min_element(localDt, localDt + m_nbWorkItems);
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();
         m_mainTimer.add(ALLTILECMP, (end - start));
@@ -508,7 +513,7 @@ void Domain::compute() {
         double elaps = (end - start);
         printf("End of computations in %.3lf s (", elaps);
         Custom_Timer::convertToHuman(timeHuman, (end - start));
-        printf("%s) with %d tiles", timeHuman, m_nbtiles);
+        printf("%s) with %d tiles", timeHuman, m_nbTiles);
 #ifdef _OPENMP
         printf(" using %d threads", m_numThreads);
 #endif

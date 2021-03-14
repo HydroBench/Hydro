@@ -69,9 +69,11 @@ include $(DEPS)
 %.o: %.c
 	$(CC) -c -O3 $< -o $@ 
 
+DPCPP_INCLUDE=$(shell which dpcpp | sed "s,bin/dpcpp,include/sycl,g")
+
 %.d: %.cpp
 	@echo "Generating $@"
-	@$(CXX) -M $(DEFS) $(CFLAGS) -MF $@ $<
+	@clang++ -M $(DEFS) $(CFLAGS) -I$(DPCPP_INCLUDE) -MF $@ $<
 
 
 clean:

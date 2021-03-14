@@ -192,7 +192,7 @@ class Tile {
     void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 
     SYCL_EXTERNAL
-    TilesSharedVariables *deviceShared() { return m_onDevice; }
+    TilesSharedVariables *deviceSharedVariables() { return m_onDevice; }
 
     SYCL_EXTERNAL
     void swapStorageDims();
@@ -219,9 +219,12 @@ class Tile {
     SYCL_EXTERNAL
     void setBuffers(DeviceBuffers *buf);
 
-    void notProcessed() { m_hasBeenProcessed = 0; };
-    void doneProcessed(int step) { m_hasBeenProcessed = step; };
-    int32_t isProcessed(int step) { return m_hasBeenProcessed == step; };
+    void notProcessed() { m_hasBeenProcessed = 0; }
+    void doneProcessed(int step) { m_hasBeenProcessed = step; }
+    int32_t isProcessed(int step) { return m_hasBeenProcessed == step; }
+
+    SYCL_EXTERNAL
+    void infos();
 
 #if 0
 

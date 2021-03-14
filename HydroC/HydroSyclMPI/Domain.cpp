@@ -39,9 +39,9 @@ Domain::Domain(int argc, char **argv) {
     m_ExtraLayer = 2;
     m_globNx = 128;
     m_globNy = 128;
-    m_tiles_on_device = nullptr;
+    m_tilesOnDevice = nullptr;
     m_tileSize = 16;
-    m_nbtiles = 1;
+    m_nbTiles = 1;
     m_dx = 0.05;
     m_boundary_left = 1;
     m_boundary_right = 1;
@@ -136,8 +136,8 @@ Domain::Domain(int argc, char **argv) {
 Domain::~Domain() {
     delete m_uold;
 
-    if (m_tiles_on_device != nullptr)
-        sycl::free(m_tiles_on_device, ParallelInfo::extraInfos()->m_queue);
+    if (m_tilesOnDevice != nullptr)
+        sycl::free(m_tilesOnDevice, ParallelInfo::extraInfos()->m_queue);
 
     delete[] m_tiles;
 
@@ -248,7 +248,7 @@ void Domain::printSummary() {
 
         printf("|    ts=         %d\n", m_tileSize);
 
-        printf("|    nt=         %d\n", m_nbtiles);
+        printf("|    nt=         %d\n", m_nbTiles);
         printf("|    tasked=     %u\n", m_tasked);
         printf("|    taskeddep=  %u\n", m_taskeddep);
         printf("|    morton=     %u\n", m_withMorton);
@@ -650,12 +650,12 @@ void Domain::parseParams(int argc, char **argv) {
 }
 
 void Domain::setTiles() {
-    int32_t i, j, offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
+    int32_t offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
     int32_t tileSizeM, tileSize;
     int32_t tileSizeOrg;
     Matrix2<int32_t> *mortonIdx; // to hold the array of tiles ids.
     //
-    m_nbtiles = 0;
+    m_nbTiles = 0;
     tileSize = m_tileSize;
 
     int myPe = ParallelInfo::mype();
@@ -669,7 +669,7 @@ void Domain::setTiles() {
 
         nTh = ParallelInfo::nb_workers();
 
-        m_nbtiles = 1;
+        m_nbTiles = 1;
         tsMin = 58;
         tsMax = 256;
 
@@ -696,24 +696,24 @@ void Domain::setTiles() {
         tileSize = tsCur;
         m_tileSize = tileSize;
 
-        m_nbtiles = this->nbTiles_fromsize(tileSize);
+        m_nbTiles = this->nbTiles_fromsize(tileSize);
         // std::cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles
         // % nTh) << std::endl;
 
         if (myPe == 0 && m_stats > 0)
             std::cout << "Computing tilesize to " << tileSize
-                      << " R=" << (float)m_nbtiles / (float)nTh << std::endl;
+                      << " R=" << (float)m_nbTiles / (float)nTh << std::endl;
     } else {
         if (myPe == 0 && m_stats > 0)
             std::cout << "Forcing tilesize to " << tileSize << std::endl;
     }
 
-    m_nbtiles = this->nbTiles_fromsize(tileSize);
+    m_nbTiles = this->nbTiles_fromsize(tileSize);
 
     mortonH = (m_ny + tileSize - 1) / tileSize;
     mortonW = (m_nx + tileSize - 1) / tileSize;
 
-    m_localDt = AlignedAllocReal(m_nbtiles);
+    m_localDt = AlignedAllocReal(m_nbTiles);
 
     // Create the Morton holder to wander around the tiles
     m_morton = new Matrix2<int32_t>(mortonW, mortonH);
@@ -721,12 +721,12 @@ void Domain::setTiles() {
     m_mortonIdx = m_morton->listMortonIdx();
     assert(m_mortonIdx != 0);
 
-    m_nbtiles = 0;
-    for (j = 0; j < mortonH; j++) {
-        for (i = 0; i < mortonW; i++) {
-            m_mortonIdx[m_nbtiles] = morton2(i, j);
-            (*m_morton)(i, j) = m_nbtiles;
-            m_nbtiles++;
+    m_nbTiles = 0;
+    for (int32_t j = 0; j < mortonH; j++) {
+        for (int32_t i = 0; i < mortonW; i++) {
+            m_mortonIdx[m_nbTiles] = morton2(i, j);
+            (*m_morton)(i, j) = m_nbTiles;
+            m_nbTiles++;
         }
     }
 
@@ -735,7 +735,7 @@ void Domain::setTiles() {
         int32_t *temp = new int32_t[maxim];
         for (int32_t i = 0; i < maxim; i++)
             temp[i] = -1;
-        for (int32_t i = 0, tt = 0; i < m_nbtiles; i++) {
+        for (int32_t i = 0, tt = 0; i < m_nbTiles; i++) {
             temp[m_mortonIdx[i]] = tt++;
         }
         // compacter le tableau
@@ -748,30 +748,30 @@ void Domain::setTiles() {
         // << std::endl;
         delete[] temp;
     } else {
-        for (int32_t i = 0; i < m_nbtiles; i++)
+        for (int32_t i = 0; i < m_nbTiles; i++)
             m_mortonIdx[i] = i;
     }
     //
 
-    m_tiles = new Tile[m_nbtiles];
+    m_tiles = new Tile[m_nbTiles];
 
     onHost.m_prt = m_prt;
 
-    m_nbtiles = 0;
+    m_nbTiles = 0;
     offy = 0;
-    for (j = 0; j < m_ny; j += tileSize) {
+    for (int32_t j = 0; j < m_ny; j += tileSize) {
         tileSizeY = tileSize;
         if (offy + tileSizeY >= m_ny)
             tileSizeY = m_ny - offy;
         assert(tileSizeY <= tileSize);
         offx = 0;
-        for (i = 0; i < m_nx; i += tileSize) {
+        for (int32_t i = 0; i < m_nx; i += tileSize) {
             tileSizeX = tileSize;
             if (offx + tileSizeX >= m_nx)
                 tileSizeX = m_nx - offx;
             assert(tileSizeX <= tileSize);
 
-            m_tiles[m_nbtiles++].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
+            m_tiles[m_nbTiles++].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
             if (m_prt) {
                 std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
                 std::cout << " ofx " << offx << " offy " << offy;
@@ -784,8 +784,8 @@ void Domain::setTiles() {
 
     // Make links to neighbors
     int t = 0;
-    for (j = 0; j < mortonH; j++) {
-        for (i = 0; i < mortonW; i++, t++) {
+    for (int32_t j = 0; j < mortonH; j++) {
+        for (int32_t i = 0; i < mortonW; i++, t++) {
             int tright = -1, tleft = -1, tup = -1, tdown = -1;
             Tile *pright = 0, *pleft = 0, *pup = 0, *pdown = 0;
             if (i < (mortonW - 1)) {
@@ -830,8 +830,8 @@ void Domain::setTiles() {
                     m_scheme);
     onHost.setTimes(m_threadTimers);
 
-    for (int32_t t = 0; t < m_nbtiles; t++) {
-        m_tiles[i].initTile();
+    for (int32_t t = 0; t < m_nbTiles; t++) {
+        m_tiles[t].initTile();
     }
 
     if (ParallelInfo::mype() == 0 && m_stats > 0) {
@@ -841,7 +841,7 @@ void Domain::setTiles() {
         memset(cpuName, 0, 1024);
 
         gethostname(hostn, 1023);
-        std::cout << "HydroC starting run with " << m_nbtiles << " tiles";
+        std::cout << "HydroC starting run with " << m_nbTiles << " tiles";
         std::cout << " on " << hostn << std::endl;
         getCPUName(cpuName);
         std::cout << "CPU name" << cpuName << std::endl;
@@ -850,7 +850,7 @@ void Domain::setTiles() {
     // We create the corresponding Tiles on Device and also the TileShareVariables;
 
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-    m_tiles_on_device = sycl::malloc_device<Tile>(m_nbtiles, queue);
+    m_tilesOnDevice = sycl::malloc_device<Tile>(m_nbTiles, queue);
 
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
@@ -869,11 +869,11 @@ void Domain::setTiles() {
     onHost.m_device_buffers = sycl::malloc_device<DeviceBuffers>(m_nbWorkItems, queue);
 
     onDevice = sycl::malloc_device<TilesSharedVariables>(1, queue);
-    for (int i = 0; i < m_nbtiles; i++)
+    for (int i = 0; i < m_nbTiles; i++)
         m_tiles[i].setShared(onDevice);
 
     queue.submit([&](sycl::handler &handler) {
-        handler.memcpy(m_tiles_on_device, m_tiles, m_nbtiles * sizeof(Tile));
+        handler.memcpy(m_tilesOnDevice, m_tiles, m_nbTiles * sizeof(Tile));
     });
 
     queue.submit([&](auto &handler) {
@@ -886,7 +886,7 @@ void Domain::setTiles() {
         [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
 
     std::cerr << "Memory allocated on Device" << std::endl;
-    auto theTiles = m_tiles_on_device;
+    auto theTiles = m_tilesOnDevice;
 
     queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
@@ -901,7 +901,7 @@ void Domain::setTiles() {
                 theTiles[0].cout() << "Test from the Tiles 0"
                                    << "\n";
             }
-            theTiles[0].deviceShared()->m_device_buffers[idx].firstTouch();
+            theTiles[0].deviceSharedVariables()->m_device_buffers[idx].firstTouch();
         });
     });
 }

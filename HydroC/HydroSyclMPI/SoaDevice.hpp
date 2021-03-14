@@ -179,6 +179,7 @@ template <typename T> class SoaDevice {
     SoaDevice(int variables, int w, int h);
     SoaDevice(const SoaDevice &org) = delete;
 
+    T *data() { return m_array; }
     // for move operation;
     SoaDevice &operator=(SoaDevice &&rhs) {
 
