@@ -28,6 +28,8 @@ class DeviceBuffers {
     // To be used as to be initialized at the beginning of the kernel
     sycl::stream *m_out;
 
+    bool m_swapped = false;
+
   protected:
   public:
     DeviceBuffers() : m_out(nullptr) {}

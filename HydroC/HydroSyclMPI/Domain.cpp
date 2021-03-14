@@ -651,17 +651,15 @@ void Domain::parseParams(int argc, char **argv) {
 
 void Domain::setTiles() {
     int32_t offx, offy, tileSizeX, tileSizeY, mortonW, mortonH;
-    int32_t tileSizeM, tileSize;
-    int32_t tileSizeOrg;
-    Matrix2<int32_t> *mortonIdx; // to hold the array of tiles ids.
+
     //
     m_nbTiles = 0;
-    tileSize = m_tileSize;
+    int32_t tileSize = m_tileSize;
 
     int myPe = ParallelInfo::mype();
 
     if (tileSize <= 0) {
-        int nTh = 1, nbT = 0, tsMin, tsMax, remMin, remain;
+        int nTh = 1, nbT = 0, tsMin, tsMax, remMin;
 
         int thMax, thCur;
         tileSize = 60;
@@ -697,8 +695,6 @@ void Domain::setTiles() {
         m_tileSize = tileSize;
 
         m_nbTiles = this->nbTiles_fromsize(tileSize);
-        // std::cout << "End loop " << m_nbtiles << " " << tileSize << " " << (m_nbtiles
-        // % nTh) << std::endl;
 
         if (myPe == 0 && m_stats > 0)
             std::cout << "Computing tilesize to " << tileSize

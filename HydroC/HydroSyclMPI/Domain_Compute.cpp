@@ -48,6 +48,8 @@ void Domain::changeDirection() {
         .wait();
 
     swapScan();
+    onHost.swapScan();
+    std::cerr << "Direction " << ((m_scan == X_SCAN) ? " X " : "Y") << std::endl;
 }
 
 void Domain::computeDt() {
@@ -75,6 +77,7 @@ void Domain::computeDt() {
                 int tile_idx = it.get_global_id(0);
                 if (tile_idx < nbTiles) {
                     auto local = the_tiles[0].deviceSharedVariables();
+                    assert(the_tiles[0].isSwapped() == (local->m_scan == Y_SCAN));
 
                     int32_t workitem = it.get_local_id(0);
 
@@ -138,7 +141,6 @@ real_t Domain::computeTimeStep() {
         sendUoldToDevice(); // Since Uold is modified by the two previous routines
 
         double start = Custom_Timer::dcclock();
-        int32_t t;
 
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
         int nb_virtual_tiles = m_nbTiles;
@@ -165,14 +167,13 @@ real_t Domain::computeTimeStep() {
                         int32_t thN = workitem;
 
 #endif
-                        auto *my_tile = &the_tiles[idx];
-                        my_tile->setOut(out);
-                        my_tile->setBuffers(local->buffers(workitem));
-                        my_tile->setTcur(tcur);
-                        my_tile->setDt(dt);
-                        my_tile->gatherconserv();
-                        my_tile->godunov();
-
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.setBuffers(local->buffers(workitem));
+                        my_tile.setTcur(tcur);
+                        my_tile.setDt(dt);
+                        my_tile.gatherconserv();
+                        my_tile.godunov();
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
                         (m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
@@ -228,10 +229,10 @@ real_t Domain::computeTimeStep() {
         if (m_prt) {
             std::cout << "After pass " << pass << " direction [" << m_scan << "]" << std::endl;
         }
-        changeDirection();
+        if (pass == 0)
+            changeDirection();
         // std::cerr << " new dir\n";
-    }                  // X_SCAN - Y_SCAN
-    changeDirection(); // to do X / Y then Y / X then X / Y ...
+    } // X_SCAN - Y_SCAN
 
     // final estimation of the time step
     dt = last_dt;

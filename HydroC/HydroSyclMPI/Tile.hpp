@@ -41,6 +41,8 @@ class Tile {
 
     const sycl::stream *m_cout;
     TilesSharedVariables *m_onDevice;
+
+    bool m_swapped;
     //
 
     // compute routines
@@ -139,6 +141,7 @@ class Tile {
             ymax = 2 * m_ExtraLayer + m_ny;
         }
         if (onHost.m_scan == Y_SCAN) {
+            // Not a device so we can use swap
             std::swap(xmin, ymin);
             std::swap(xmax, ymax);
         }
@@ -159,19 +162,16 @@ class Tile {
             ymin = 0;
             ymax = 2 * m_ExtraLayer + m_ny;
         }
+
         if (m_onDevice->m_scan == Y_SCAN) {
-            std::swap(xmin, ymin);
-            std::swap(xmax, ymax);
+            int t = xmin;
+            xmin = ymin;
+            ymin = t;
+            t = xmax;
+            xmax = ymax;
+            ymax = t;
         }
     };
-    // pack/unpack array for ghost cells exchange. Works either for OpenMP
-    int32_t pack_arrayv(int32_t xoffset, Preal_t buffer);
-    int32_t unpack_arrayv(int32_t xoffset, Preal_t buffer);
-
-    int32_t pack_arrayh(int32_t yoffset, Preal_t buffer);
-    int32_t unpack_arrayh(int32_t yoffset, Preal_t buffer);
-
-    //
 
   protected:
   public:
@@ -181,6 +181,7 @@ class Tile {
     ~Tile();
 
     void initTile();
+    bool isSwapped() const { return m_swapped; }
 
     SYCL_EXTERNAL
     void setOut(const sycl::stream &out) { m_cout = &out; }
@@ -196,8 +197,10 @@ class Tile {
 
     SYCL_EXTERNAL
     void swapStorageDims();
+
     SYCL_EXTERNAL
     void godunov();
+
     SYCL_EXTERNAL //
         void
         gatherconserv(); // fait

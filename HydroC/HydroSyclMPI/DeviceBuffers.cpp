@@ -15,16 +15,6 @@
 
 using namespace std;
 
-inline void *memsetth(void *s, int c, size_t n) {
-    char *ptr = (char *)s;
-    char cval = c;
-#pragma omp simd
-    for (int32_t i = 0; i < n; i++) {
-        ptr[i] = cval;
-    }
-    return s;
-}
-
 void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) {
     int32_t lgx, lgy, lgmax;
 
@@ -45,6 +35,7 @@ void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
 
     m_sgnm = std::move(Array1D<real_t>(lgmax));
     m_pl = std::move(Array1D<real_t>(lgmax));
+    m_swapped = false;
 }
 
 DeviceBuffers::~DeviceBuffers() {
@@ -64,6 +55,7 @@ void DeviceBuffers::swapStorageDims() {
 
     m_c.swapDimOnly();
     m_e.swapDimOnly();
+    m_swapped = !m_swapped;
 }
 
 void DeviceBuffers::firstTouch() {

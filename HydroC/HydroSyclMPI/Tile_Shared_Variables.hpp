@@ -32,6 +32,7 @@ struct TilesSharedVariables {
     DeviceBuffers *m_device_buffers;
 
     SoaDevice<real_t> m_uold;
+
     void initPhys(real_t gamma, real_t smallc, real_t smallr, real_t cfl, real_t slope_type,
                   int32_t nIterRiemmann, int32_t order, int32_t scheme) {
         m_gamma = gamma;
@@ -53,8 +54,6 @@ struct TilesSharedVariables {
             m_scan = Y_SCAN;
         else
             m_scan = X_SCAN;
-
-        m_uold.swapDimOnly();
     }
 
     SYCL_EXTERNAL

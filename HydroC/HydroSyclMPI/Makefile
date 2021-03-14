@@ -5,7 +5,7 @@ SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp DeviceBuffers.cpp \
 Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp \
 Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp \
 FakeRead.cpp main.cpp Timers.cpp ParallelInfo.cpp cclock.cpp \
-SoaDevice.cpp Tile_Shared_Variables.cpp DomainDevice.cpp
+SoaDevice.cpp Tile_Shared_Variables.cpp Domain_Device.cpp
 
 DEPS=$(patsubst %.cpp,%.d,$(SRCS))
 OBJS=$(patsubst %.cpp,%.o,$(SRCS)) 

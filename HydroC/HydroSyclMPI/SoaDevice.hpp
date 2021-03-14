@@ -63,26 +63,19 @@ template <typename S> class RArray2D {
     RArray2D() = delete;
     RArray2D &operator=(const RArray2D &) = delete;
 
+    SYCL_EXTERNAL
+    ~RArray2D() {} // It  is a view not a kill (JB007)
+
     S *data() { return m_data; }
 
     SYCL_EXTERNAL
     RArray2D(S *val, int32_t w, int32_t h) : m_data(val), m_w(w), m_h(h) {}
 
     SYCL_EXTERNAL
-    ~RArray2D() {}
-
-    SYCL_EXTERNAL
     int getW() const { return m_w; }
 
     SYCL_EXTERNAL
     int getH() const { return m_h; }
-
-    SYCL_EXTERNAL
-    void swapDimOnly() {
-        int32_t t = m_w;
-        m_w = m_h;
-        m_h = t;
-    }
 
     SYCL_EXTERNAL
     S &operator()(int32_t i, int32_t j) { return m_data[j * m_w + i]; }
@@ -106,18 +99,11 @@ template <typename S> class Array2D {
     int32_t m_h;
 
     bool m_managed_alloc;
+    bool m_swapped;
 
   public:
-    Array2D() : m_data(nullptr), m_managed_alloc(false) { m_h = m_w = -1; }
-
+    Array2D() : m_data(nullptr), m_managed_alloc(false), m_swapped(false) { m_h = m_w = -1; }
     Array2D(int32_t w, int32_t h);
-
-#if 0
-	SYCL_EXTERNAL
-	Array2D(S *val, int32_t w, int32_t h) :
-			m_data(val), m_w(w), m_h(h), m_managed_alloc(false) {
-	}
-#endif
 
     SYCL_EXTERNAL
     Array2D(const Array2D &org) = delete;
@@ -128,6 +114,8 @@ template <typename S> class Array2D {
         m_w = rhs.m_w;
         m_h = rhs.m_h;
         m_managed_alloc = rhs.m_managed_alloc;
+        m_swapped = rhs.m_swapped;
+
         rhs.m_data = nullptr;
         rhs.m_managed_alloc = false;
 
@@ -147,6 +135,7 @@ template <typename S> class Array2D {
         int32_t t = m_w;
         m_w = m_h;
         m_h = t;
+        m_swapped = !m_swapped;
     }
 
     SYCL_EXTERNAL
@@ -173,9 +162,12 @@ template <typename T> class SoaDevice {
 
     int32_t m_w, m_h, m_nbvariables;
     bool m_managed;
+    bool m_swapped;
 
   public:
-    SoaDevice() : m_array(nullptr), m_managed(false) { m_w = m_h = m_nbvariables = -1; }
+    SoaDevice() : m_array(nullptr), m_managed(false), m_swapped(false) {
+        m_w = m_h = m_nbvariables = -1;
+    }
     SoaDevice(int variables, int w, int h);
     SoaDevice(const SoaDevice &org) = delete;
 
@@ -188,6 +180,8 @@ template <typename T> class SoaDevice {
         m_nbvariables = rhs.m_nbvariables;
         m_array = rhs.m_array;
         m_managed = rhs.m_managed;
+        m_swapped = rhs.m_swapped;
+
         rhs.m_managed = false;
         rhs.m_array = nullptr;
         return *this;
@@ -203,7 +197,14 @@ template <typename T> class SoaDevice {
         return m_array[v * m_h * m_w + j * m_w + i];
     }
 
-    void swapDimOnly() { std::swap(m_h, m_w); }
+    SYCL_EXTERNAL
+    void swapDimOnly() {
+        int t = m_w;
+        m_w = m_h;
+        m_h = t;
+        m_swapped = !m_swapped;
+    }
+
     RArray2D<T> operator()(int32_t var) { return RArray2D<T>(m_array + var * m_h * m_w, m_w, m_h); }
 };
 

@@ -50,11 +50,13 @@ void Tile::initTile() {
 
     m_u = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
     m_flux = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_swapped = false;
 }
 
 void Tile::swapStorageDims() {
     m_u.swapDimOnly();
     m_flux.swapDimOnly();
+    m_swapped = !m_swapped;
 }
 
 void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
@@ -692,9 +694,10 @@ real_t Tile::compute_dt() {
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
 
+    // TODO : Check if it should be done before the variable allocation?
     godunovDir_t oldScan = deviceSharedVariables()->m_scan;
 
-    if (deviceSharedVariables()->m_scan == Y_SCAN) {
+    if (oldScan == Y_SCAN) {
         deviceSharedVariables()->swapScan();
         swapStorageDims();
     }
@@ -749,7 +752,7 @@ real_t Tile::compute_dt() {
     dt = deviceSharedVariables()->m_cfl * m_dx /
          sycl::max(cournox, sycl::max(cournoy, deviceSharedVariables()->m_smallc));
 
-    if (deviceSharedVariables()->m_scan != oldScan) {
+    if (oldScan == Y_SCAN) {
         deviceSharedVariables()->swapScan();
         swapStorageDims();
     }
@@ -1241,21 +1244,6 @@ void Tile::setVoisins(int32_t left, int32_t right, int32_t up, int32_t down) {
     m_voisin[RIGHT_TILE] = right;
 }
 
-SYCL_EXTERNAL
 void Tile::setBuffers(DeviceBuffers *buf) { m_work = buf; }
-
-#if 0
-long Tile::getLengthByte() { return m_u->getLengthByte() + m_flux->getLengthByte(); }
-
-void Tile::read(const int f) {
-    m_u->read(f);
-    m_flux->read(f);
-}
-
-void Tile::write(const int f) {
-    m_u->write(f);
-    m_flux->write(f);
-}
-#endif
 
 // EOF

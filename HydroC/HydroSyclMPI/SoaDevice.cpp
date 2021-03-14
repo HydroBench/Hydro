@@ -13,6 +13,7 @@ SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvaria
     m_array =
         sycl::malloc_device<T>(m_w * m_h * m_nbvariables, ParallelInfo::extraInfos()->m_queue);
     m_managed = true;
+    m_swapped = false;
 }
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
@@ -25,6 +26,7 @@ template <typename T> SoaDevice<T>::~SoaDevice() {
 template <typename T>
 Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true) {
     m_data = sycl::malloc_device<T>(m_w * m_h, ParallelInfo::extraInfos()->m_queue);
+    m_swapped = false;
 }
 
 template <typename T> Array2D<T>::~Array2D() {

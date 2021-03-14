@@ -5,9 +5,11 @@ ARCHEXT=dpcpp
 CFLAGS=
 
 ifneq ($(DBG),O)
-   OPTIM+=-O3
+   OPTIM+=-O1 -g
+else
+   OPTIM += -g -O0
 endif
-OPTIM+=-g -O0
+
 
 ifeq ($(MPI),O)
     # not yet
