@@ -196,7 +196,7 @@ oclInitCode(const int nproc, const int mype)
 	    if (mype == 0) fprintf(stderr, "Building a GPU version\n");
 	    if (nproc == 1) {
 		    devselected = oclGetGpuDev(platformselected, gpuSel);
-	    } else {
+	    } else {/*
 		    if (nbgpu > 1) gpuSel = GetDevice(nbgpu);
 		    devselected = oclGetGpuDev(platformselected, gpuSel);
 		    if (devselected == -1) {
@@ -207,7 +207,7 @@ oclInitCode(const int nproc, const int mype)
 			    exit(9);
 #endif
 		    }
-	    }
+	    */}
 	    fprintf(stdout, "Hydro: %03d uses GPU %d\n", mype, gpuSel);
 	    fflush(stdout);
 	    break;
@@ -220,10 +220,10 @@ oclInitCode(const int nproc, const int mype)
 	    if (mype == 0) fprintf(stderr, "Building an ACC version\n");
 	    if (nproc == 1) {
 		    devselected = oclGetAccDev(platformselected, accSel);
-	    } else {
+	    } else {/*
 		    if (nbacc > 1) accSel = GetDevice(nbacc);
 		    devselected = oclGetAccDev(platformselected, accSel);
-	    }
+	    */}
 	    fprintf(stdout, "Hydro: %03d uses ACC %d\n", mype, accSel);
 	    fflush(stdout);
 	    break;
