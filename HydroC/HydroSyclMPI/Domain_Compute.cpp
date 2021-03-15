@@ -189,37 +189,39 @@ real_t Domain::computeTimeStep() {
         std::fill(m_localDt, m_localDt + m_nbWorkItems, minimum);
 
         sycl::buffer<real_t> min_buf(minimum);
-        queue.submit([&](sycl::handler &handler) {
-            sycl::stream out(1024, 256, handler);
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(1024, 256, handler);
 
-            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                int tile_idx = it.get_global_id(0);
-                auto local = the_tiles[0].deviceSharedVariables();
-                if (tile_idx < nb_tiles) {
-                    int32_t workitem = it.get_local_id(0);
-
-#if WITH_TIMERS == 1
-                    int32_t thN = 0;
-                    double startT = Custom_Timer::dcclock(), endT;
-                    thN = myThread();
-#endif
-                    auto *my_tile = &the_tiles[tile_idx];
-                    my_tile->setOut(out);
-                    my_tile->setBuffers(local->buffers(workitem));
-                    my_tile->updateconserv();
-
-                    real_t local_dt = my_tile->computeDt();
-                    localDt[workitem] = sycl::min(localDt[workitem], local_dt);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int tile_idx = it.get_global_id(0);
+                    auto local = the_tiles[0].deviceSharedVariables();
+                    if (tile_idx < nb_tiles) {
+                        int32_t workitem = it.get_local_id(0);
 
 #if WITH_TIMERS == 1
-                    endT = Custom_Timer::dcclock();
-                    (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+                        int32_t thN = 0;
+                        double startT = Custom_Timer::dcclock(), endT;
+                        thN = myThread();
 #endif
-                }
-            });
-        }).wait();
+                        auto *my_tile = &the_tiles[tile_idx];
+                        my_tile->setOut(out);
+                        my_tile->setBuffers(local->buffers(workitem));
+                        my_tile->updateconserv();
+
+                        real_t local_dt = my_tile->computeDt();
+                        localDt[workitem] = sycl::min(localDt[workitem], local_dt);
+
+#if WITH_TIMERS == 1
+                        endT = Custom_Timer::dcclock();
+                        (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
+#endif
+                    }
+                });
+            })
+            .wait();
         last_dt = *std::min_element(localDt, localDt + m_nbWorkItems);
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();

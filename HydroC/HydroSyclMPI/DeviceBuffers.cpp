@@ -38,8 +38,6 @@ void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
     m_swapped = false;
 }
 
-
-
 void DeviceBuffers::swapStorageDims() {
 
     m_q.swapDimOnly();

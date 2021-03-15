@@ -25,7 +25,8 @@ class DeviceBuffers {
     Array1D<real_t> m_sgnm; //
     Array1D<real_t> m_pl;
 
-    // To be used as to be initialized at the beginning of each kernel and shared by tiles/workitems/...
+    // To be used as to be initialized at the beginning of each kernel and shared by
+    // tiles/workitems/...
     sycl::stream *m_out;
 
     bool m_swapped = false;
