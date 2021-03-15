@@ -1,0 +1,19 @@
+CXX=dpcpp
+
+ARCHEXT=dpcpp
+
+CFLAGS= -MP
+
+
+ifneq ($(DBG),O)
+   OPTIM+=-O1 -g
+else
+   OPTIM += -g -O0
+endif
+
+
+ifeq ($(MPI),O)
+    # not yet
+endif
+
+LIBS=-lsycl -lOpenCL

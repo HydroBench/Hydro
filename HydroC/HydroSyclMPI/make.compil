@@ -1,0 +1,11 @@
+ifeq ($(CXX),icx)
+endif
+
+ifeq ($(CXX),g++)
+endif
+
+ifeq ($(CXX),clang++)
+endif
+
+ifeq ($(CXX),icpc)
+endif

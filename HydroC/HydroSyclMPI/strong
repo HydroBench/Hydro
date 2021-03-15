@@ -1,0 +1,24 @@
+#!/bin/bash
+#MSUB -s /bin/bash
+#MSUB -T 72000
+#MSUB -N 1
+#MSUB -n 1
+#MSUB -e Strong.%I.err
+#MSUB -o Strong.%I.out
+#MSUB -r Strong
+#MSUB -q knc
+
+
+echo "Hello"
+
+module load mic
+make clean
+exit 1
+make MIC=O
+
+echo "Hello"
+
+for i in 1 2 4 8 16 32 64 128 240; do
+    ccc_mprun env OMP_NUM_THREADS=$i ./tst -i input.nml | tail -1
+done
+#EOF

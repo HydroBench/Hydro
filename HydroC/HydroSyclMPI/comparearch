@@ -1,0 +1,47 @@
+#!/bin/bash
+# set -x
+rm compile.log
+if [ `uname -n` = "cirrus50" ]; then
+    make MPI=O AVX=O PNG=O clean tst >> compile.log 2>&1
+    qlist="hybrid hybridk40"
+else
+    make MPI=O SSE=O PNG=O clean tst >> compile.log 2>&1
+    qlist="standard"
+fi
+module unload mic
+
+for Q in  $qlist ; do
+    nbsock=`nbsocket $Q`
+    nbcor=`nbcore $Q`
+    for s in `seq 1 $nbsock`; do
+	export th=`expr $nbcor \* $s`
+	R=`env OMP_NUM_THREADS=$th ccc_mprun -p $Q -N1 -n1 -c$th tst -i input.nml 2> /dev/null | grep Average`
+	echo $Q $th $R
+    done
+done
+if [ `uname -n` = "inti50" ]; then exit 0; fi
+
+Q="knc"
+module load mic
+make MIC=O clean tst >> compile.log 2>&1
+nbsock=4
+nbcor=`nbcore $Q`
+for s in `seq 1 $nbsock`; do
+    export th=`expr $nbcor \* $s`
+    R=`env OMP_NUM_THREADS=$th KMP_AFFINITY=scatter ccc_mprun -p $Q tst -i input.nml 2> /dev/null | grep Average`
+    echo $Q $th $R
+done
+
+Q="atom"
+module unload mic
+make ATOM=O clean tst >> compile.log 2>&1
+nbsock=`nbsocket $Q`
+nbcor=`nbcore $Q`
+for s in `seq 1 $nbsock`; do
+    export th=`expr $nbcor \* $s`
+    R=`env OMP_NUM_THREADS=$th KMP_AFFINITY=scatter ccc_mprun -p $Q tst -i input.nml 2> /dev/null | grep Average`
+    echo $Q $th $R
+done
+
+
+#EOF

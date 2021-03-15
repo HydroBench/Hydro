@@ -1,0 +1,49 @@
+ifeq ($(CXX),)
+     CXX=icpc
+endif
+
+CFLAGS+=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g3
+
+ifeq ($(MPI),O)
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include64
+      MPI_LIB=-L$(I_MPI_ROOT)/lib64
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   else
+      INCS+=-I$(MPI_ROOT)/include
+      MPI_LIB=-L$(MPI_ROOT)/lib
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+endif
+
+ifeq ($(CXX),icpc)
+   OPTIM+=-xCORE-AVX512
+   OPTIM+=$(DIVOPTS)
+   # 0 - 3
+   # OPTIM+=-qopt-streaming-cache-evict=1
+   # auto always never   (always for mem bound codes)
+   # OPTIM+=-qopt-streaming-stores=always
+endif
+
+ifeq ($(CXX),icx)
+   OPTIM+=-xCORE-AVX512
+   OPTIM+=$(DIVOPTS)
+   # 0 - 3
+   # OPTIM+=-qopt-streaming-cache-evict=1
+   # auto always never   (always for mem bound codes)
+   # OPTIM+=-qopt-streaming-stores=always
+endif
+
+ifeq ($(CXX),g++)
+   OPTIM+=-mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma
+endif
+
+ARCHEXT=avx3
+#EOF

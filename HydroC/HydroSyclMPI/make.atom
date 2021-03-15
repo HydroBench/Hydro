@@ -1,0 +1,22 @@
+CFLAGS+=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g
+
+ARCHEXT=atom
+OPTIM+=-xATOM_SSE4.2
+
+ifeq ($(MPI),O)
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include64
+      LIBS+=-L$(I_MPI_ROOT)/lib64 -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   else
+      INCS+=-I$(MPI_ROOT)/include
+      LIBS+=-L$(MPI_ROOT)/lib -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+endif
+

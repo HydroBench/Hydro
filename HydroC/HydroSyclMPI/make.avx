@@ -1,0 +1,39 @@
+CFLAGS+=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+endif
+OPTIM+=-g
+
+ifeq ($(MPI),O)
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_ROOT)/include64
+      MPI_LIB=-L$(I_MPI_ROOT)/lib64
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   else
+      INCS+=-I$(MPI_ROOT)/include
+      LIBS+=-L$(MPI_ROOT)/lib -lmpi
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+endif
+
+ifeq ($(CXX),icpc)
+     OPTIM+=-mavx -DAVX
+endif
+
+ifeq ($(CXX),g++)
+     OPTIM+=-mavx
+endif
+
+ifeq ($(CXX),clang++)
+     # 
+     OPTIM+=-mavx -fopenmp -Rpass-analysis=loop-vectorize -fsave-optimization-record -mllvm -force-vector-width=2 
+     # -fopenmp-simd
+     ifeq ($(CHECK),O)
+       	  OPTIM+=-fsanitize=address -fno-omit-frame-pointer
+     endif
+     LIBS+=
+endif
+
+ARCHEXT=avx

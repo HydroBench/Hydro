@@ -1,0 +1,67 @@
+CFLAGS+=-std=c++11
+
+ifneq ($(DBG),O)
+   OPTIM+=-O3
+   ifeq ($(OPTARCH),)
+      OPTARCH=-xMIC-AVX512
+   endif
+   ifeq ($(OPTEVICT),)
+      OPTEVICT=0
+   endif
+   ifeq ($(OPTFMA),)
+      OPTFMA=-fma
+   endif
+endif
+
+OPTIM+=-g
+
+ifeq ($(MPI),O)
+   ifneq ($(WI4MPI_ROOT),)
+      INCS+=-I$(WI4MPI_INCDIR) $(WI4MPI_COMPILE_OPT)
+      MPI_LIB=-L$(WI4MPI_LIBDIR)
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(WI4MPI_LIBDIR)
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+   ifneq ($(I_MPI_ROOT),)
+      INCS+=-I$(I_MPI_INCDIR) -DINTELMPI
+      MPI_LIB=-L$(I_MPI_LIBDIR)
+      LIBS+=$(MPI_LIB) -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+   ifneq ($(OMPI_CC),)
+      INCS+=-I$(MPI_ROOT)/include -DOPENMPI
+      MPI_LIB=-L$(MPI_ROOT)/lib
+      LIBS+=$(MPI_LIB) -lmpi_cxx -lmpi -Wl,-rpath,$(MPI_LIB)
+      DEFS+=-DMPI_ON $(INCS)
+   endif
+endif
+
+ifeq ($(CXX),icpc)
+   OPTIM+=$(OPTARCH) 
+   OPTIM+=$(OPTFMA)
+   # 0 - 3
+   # OPTIM+=-qopt-streaming-cache-evict=$(OPTEVICT)
+   # auto always never   (always for mem bound codes)
+   # OPTIM+=-qopt-streaming-stores=always
+   OPTIM+=-qopt-prefetch-distance=8,4
+   OPTIM+=-qopt-zmm-usage=high
+endif
+
+ifeq ($(CXX),g++)
+   OPTIM+=-mavx512f -mavx512cd -mavx512ifma -mavx512er -mavx512pf 
+endif
+
+ifeq ($(CXX),clang++)
+     OPTIM+=-I/usr/include
+   OPTIM+=-mavx512f -mavx512cd -mavx512ifma -mavx512er -mavx512pf 
+endif
+
+ARCHEXT=knl
+
+ifeq ($(HBM),O)
+   #OPTIM+=-DMEMKIND -DWITHHBW -I${MEMKINDDEV_INCDIR}
+   #LIBS+=-L${MEMKINDDEV_LIBDIR} -lmemkind
+   OPTIM+=-DMEMKIND -DWITHHBW 
+   LIBS+=-lmemkind
+endif
+

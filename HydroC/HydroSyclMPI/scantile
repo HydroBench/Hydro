@@ -1,0 +1,18 @@
+#!/bin/bash
+
+
+make MPI=O
+
+if [ $? -ne 0 ] ; then exit 1; fi
+i=1024
+while [ $i -gt 1 ]; do
+    sed "s/X/${i}/" < inputX.nml > input.nml
+    echo $i
+    env OMP_NUM_THREADS=4 ccc_mprun -p knc -T7200 -N4 -n8 ./tst -i input.nml 2> /dev/null > res.out
+    tail -2 res.out
+    i=`expr $i / 2`
+    sleep 10
+done
+
+#EOF
+000
