@@ -219,7 +219,7 @@ real_t Domain::computeTimeStep() {
 #endif
                 }
             });
-        });
+        }).wait();
         last_dt = *std::min_element(localDt, localDt + m_nbWorkItems);
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();

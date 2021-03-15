@@ -25,7 +25,7 @@ class DeviceBuffers {
     Array1D<real_t> m_sgnm; //
     Array1D<real_t> m_pl;
 
-    // To be used as to be initialized at the beginning of the kernel
+    // To be used as to be initialized at the beginning of each kernel and shared by tiles/workitems/...
     sycl::stream *m_out;
 
     bool m_swapped = false;
@@ -36,8 +36,7 @@ class DeviceBuffers {
     // basic constructor
     void init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
 
-    // destructor
-    ~DeviceBuffers();
+    ~DeviceBuffers() = default; // Should do the trick
 
     SYCL_EXTERNAL
     void swapStorageDims();

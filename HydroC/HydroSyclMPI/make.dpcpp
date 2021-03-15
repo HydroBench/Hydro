@@ -2,7 +2,8 @@ CXX=dpcpp
 
 ARCHEXT=dpcpp
 
-CFLAGS=
+CFLAGS= -MP
+
 
 ifneq ($(DBG),O)
    OPTIM+=-O1 -g

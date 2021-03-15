@@ -38,10 +38,7 @@ void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
     m_swapped = false;
 }
 
-DeviceBuffers::~DeviceBuffers() {
-    std::cerr << "Device Buffers destructeur is called " << m_out << std::endl;
-    // TODO: Somehow whe have to decide what to do at one point :-)
-}
+
 
 void DeviceBuffers::swapStorageDims() {
 

@@ -18,7 +18,7 @@ SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvaria
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
     if (m_array != nullptr && m_managed) {
-        std::cerr << "SoaDevice destruct is called with " << m_array << std::endl;
+
         sycl::free(m_array, ParallelInfo::extraInfos()->m_queue);
     }
 }
