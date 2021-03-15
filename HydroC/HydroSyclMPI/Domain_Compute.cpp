@@ -229,6 +229,9 @@ real_t Domain::computeTimeStep() {
         if (m_prt) {
             std::cout << "After pass " << pass << " direction [" << m_scan << "]" << std::endl;
         }
+        
+        getUoldFromDevice();
+
         if (pass == 0)
             changeDirection();
         // std::cerr << " new dir\n";

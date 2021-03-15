@@ -19,7 +19,7 @@ void Domain::sendUoldToDevice() {
     for (int var = 0; var < NB_VAR; var++) {
         auto &matrice = *(*m_uold)(var);
 
-        RArray2D<real_t> matDevice = onHost.m_uold(var);
+        RArray2D<real_t>  matDevice = onHost.m_uold(var);
 
         assert(matrice.getH() == matDevice.getH());
         assert(matrice.getW() == matDevice.getW());
@@ -35,9 +35,9 @@ void Domain::getUoldFromDevice() {
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
 
     for (int var = 0; var < NB_VAR; var++) {
-        auto matrice = *(*m_uold)(var);
+        auto & matrice = *(*m_uold)(var);
 
-        RArray2D<real_t> matDevice = onHost.m_uold(var);
+        RArray2D<real_t>  matDevice = onHost.m_uold(var);
 
         assert(matrice.getH() == matDevice.getH());
         assert(matrice.getW() == matDevice.getW());
