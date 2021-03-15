@@ -24,7 +24,7 @@ struct TilesSharedVariables {
     int32_t m_scheme;
 
     // convenient variables
-    godunovDir_t m_scan; // direction of the scan
+    
 
     int32_t m_prt;
 
@@ -48,13 +48,7 @@ struct TilesSharedVariables {
     SYCL_EXTERNAL
     void setTimes(Timers *pTimers) { m_threadTimers = pTimers; }
 
-    SYCL_EXTERNAL
-    void swapScan() {
-        if (m_scan == X_SCAN)
-            m_scan = Y_SCAN;
-        else
-            m_scan = X_SCAN;
-    }
+    
 
     SYCL_EXTERNAL
     DeviceBuffers *buffers(int workitem_idx) { return &m_device_buffers[workitem_idx]; }

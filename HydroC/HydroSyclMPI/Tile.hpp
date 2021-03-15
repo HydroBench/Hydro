@@ -29,6 +29,8 @@ class Tile {
     int32_t m_ExtraLayer;
 
     // Godunov variables and arrays
+    godunovDir_t m_scan;
+
     real_t m_tcur, m_dt, m_dx;
 
     // work arrays private to a tile
@@ -125,31 +127,8 @@ class Tile {
                             Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
                             Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
 
-    // utilities on tile
-    void getExtendsHost(tileSpan_t span, int32_t &xmin, int32_t &xmax, int32_t &ymin,
-                        int32_t &ymax) {
-        // returns the dimension of the tile with or without ghost cells.
-        if (span == TILE_INTERIOR) {
-            xmin = m_ExtraLayer;
-            xmax = m_ExtraLayer + m_nx;
-            ymin = m_ExtraLayer;
-            ymax = m_ExtraLayer + m_ny;
-        } else { // TILE_FULL
-            xmin = 0;
-            xmax = 2 * m_ExtraLayer + m_nx;
-            ymin = 0;
-            ymax = 2 * m_ExtraLayer + m_ny;
-        }
-        if (onHost.m_scan == Y_SCAN) {
-            // Not a device so we can use swap
-            std::swap(xmin, ymin);
-            std::swap(xmax, ymax);
-        }
-    };
-
     SYCL_EXTERNAL
-    void getExtendsDevice(tileSpan_t span, int32_t &xmin, int32_t &xmax, int32_t &ymin,
-                          int32_t &ymax) {
+    void getExtends(tileSpan_t span, int32_t &xmin, int32_t &xmax, int32_t &ymin, int32_t &ymax) {
         // returns the dimension of the tile with or without ghost cells.
         if (span == TILE_INTERIOR) {
             xmin = m_ExtraLayer;
@@ -163,7 +142,7 @@ class Tile {
             ymax = 2 * m_ExtraLayer + m_ny;
         }
 
-        if (m_onDevice->m_scan == Y_SCAN) {
+        if (m_scan == Y_SCAN) {
             int t = xmin;
             xmin = ymin;
             ymin = t;
@@ -195,6 +174,17 @@ class Tile {
     SYCL_EXTERNAL
     TilesSharedVariables *deviceSharedVariables() { return m_onDevice; }
 
+    SYCL_EXTERNAL
+    void swapScan() {
+        if (m_scan == X_SCAN)
+            m_scan = Y_SCAN;
+        else
+            m_scan = X_SCAN;
+    }
+
+
+    SYCL_EXTERNAL
+    godunovDir_t godunovDir() const { return m_scan; }
     SYCL_EXTERNAL
     void swapStorageDims();
 

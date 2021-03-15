@@ -32,8 +32,17 @@ void Domain::changeDirection() {
     auto queue = ParallelInfo::extraInfos()->m_queue;
     int32_t nbTiles = m_nbTiles;
 
+    queue.submit([&](sycl::handler & handler) {
+        sycl::stream out(1024, 256, handler);
+    	handler.single_task([=]() {
+    		out << "Before in Device direction " <<
+    				((the_tiles[0].godunovDir() == X_SCAN) ? "X" : "Y")
+					<< "\n";
+    	});
+    });
     auto first_call =
-        queue.parallel_for(nbTiles, [=](sycl::id<1> i) { the_tiles[i].swapStorageDims(); });
+        queue.parallel_for(nbTiles, [=](sycl::id<1> i) { the_tiles[i].swapStorageDims(); 
+        the_tiles[i].swapScan(); });
 
     auto second_call = queue.parallel_for(m_nbWorkItems, [=](sycl::id<1> i) {
         the_tiles[0].deviceSharedVariables()->buffers(i)->swapStorageDims();
@@ -41,15 +50,25 @@ void Domain::changeDirection() {
 
     queue
         .submit([&](sycl::handler &handler) {
-            handler.depends_on(first_call);
-            handler.depends_on(second_call);
-            handler.single_task([=]() { the_tiles[0].deviceSharedVariables()->swapScan(); });
+            handler.depends_on({first_call, second_call});
+
+            handler.single_task([=]() { /* nothing more */ });
         })
         .wait();
 
     swapScan();
-    onHost.swapScan();
-    std::cerr << "Direction " << ((m_scan == X_SCAN) ? " X " : "Y") << std::endl;
+    
+    std::cerr << "Direction " << ((m_scan == X_SCAN) ? "X" : "Y") << std::endl;
+    
+
+    queue.submit([&](sycl::handler & handler) {
+        sycl::stream out(1024, 256, handler);
+    	handler.single_task([=]() {
+    		out << "In Device direction " <<
+    				((the_tiles[0].godunovDir()== X_SCAN) ? "X" : "Y")
+					<< "\n";
+    	});
+    });
 }
 
 void Domain::computeDt() {
@@ -77,7 +96,6 @@ void Domain::computeDt() {
                 int tile_idx = it.get_global_id(0);
                 if (tile_idx < nbTiles) {
                     auto local = the_tiles[0].deviceSharedVariables();
-                    assert(the_tiles[0].isSwapped() == (local->m_scan == Y_SCAN));
 
                     int32_t workitem = it.get_local_id(0);
 

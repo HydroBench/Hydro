@@ -41,7 +41,9 @@ void Tile::initTile() {
     int32_t xmin, xmax, ymin, ymax;
     int32_t lgx, lgy;
 
-    getExtendsHost(TILE_FULL, xmin, xmax, ymin, ymax);
+    m_scan = X_SCAN;
+
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     lgx = (xmax - xmin);
     lgy = (ymax - ymin);
@@ -102,7 +104,7 @@ void Tile::slope() {
         auto q = m_work->getQ()(nbv);
         auto dq = m_work->getDQ()(nbv);
 
-        getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+        getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
         for (int32_t s = ymin; s < ymax; s++) {
             Preal_t qS = q.getRow(s);
@@ -170,7 +172,7 @@ void Tile::trace() {
         project = zero;
     }
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         Preal_t cS = m_work->getC().getRow(s);
@@ -293,7 +295,7 @@ void Tile::qleftr() {
     start = Custom_Timer::dcclock();
 #endif
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t v = 0; v < NB_VAR; v++) {
         auto pqleft = m_work->getQLEFT()(v);
@@ -358,7 +360,7 @@ void Tile::compflx() {
 
     real_t entho = 1.0 / (deviceSharedVariables()->m_gamma - one);
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         Preal_t qgdnvIDS = qgdnvID.getRow(s);
@@ -454,16 +456,16 @@ void Tile::updateconserv() {
     if (deviceSharedVariables()->m_prt)
         cout() << "dtdx " << dtdx << "\n";
 
-    getExtendsDevice(TILE_INTERIOR, xmin, xmax, ymin, ymax);
+    getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
     if (deviceSharedVariables()->m_prt) {
-        cout() << "scan " << (int32_t)deviceSharedVariables()->m_scan << "\n"
+        cout() << "scan " << (int32_t)m_scan << "\n"
                << "Tile uoldIP input updateconserv" << uoldIP << "Tile fluxID input updateconserv"
                << fluxID << "Tile fluxIU input updateconserv" << fluxIU
                << "Tile fluxIV input updateconserv" << fluxIV << "Tile uID updateconserv" << uID
                << "Tile uIU updateconserv" << uIU << "Tile uIV updateconserv" << uIV
                << "Tile uIP updateconserv" << uIP;
     }
-    if (deviceSharedVariables()->m_scan == X_SCAN) {
+    if (m_scan == X_SCAN) {
         for (int32_t s = ymin; s < ymax; s++) {
             Preal_t uoldIDS = uoldID.getRow(s + m_offy);
             Preal_t uoldIPS = uoldIP.getRow(s + m_offy);
@@ -551,14 +553,14 @@ void Tile::gatherconserv() {
     auto uoldIV = (deviceSharedVariables()->m_uold)(IV_VAR);
     auto uoldIU = (deviceSharedVariables()->m_uold)(IU_VAR);
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (deviceSharedVariables()->m_prt) {
         cout() << "Tile uoldID gatherconserv" << uoldID << "Tile uoldIU gatherconserv" << uoldIU
                << "Tile uoldIV gatherconserv" << uoldIV << "Tile uoldIP gatherconserv" << uoldIP;
     }
 
-    if (deviceSharedVariables()->m_scan == X_SCAN) {
+    if (m_scan == X_SCAN) {
         for (int32_t s = ymin; s < ymax; s++) {
             real_t *uoldIDS = uoldID.getRow(s + m_offy);
             real_t *uoldIPS = uoldIP.getRow(s + m_offy);
@@ -632,7 +634,7 @@ void Tile::eos(tileSpan_t span) {
         Square(deviceSharedVariables()->m_smallc) /
         deviceSharedVariables()->m_gamma; // TODO: We can precompute that to remove some divs
 
-    getExtendsDevice(span, xmin, xmax, ymin, ymax);
+    getExtends(span, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIDS = qID.getRow(s);
@@ -694,15 +696,18 @@ real_t Tile::compute_dt() {
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
 
-    // TODO : Check if it should be done before the variable allocation?
-    godunovDir_t oldScan = deviceSharedVariables()->m_scan;
+
+    godunovDir_t oldScan = m_scan;
+
+    
 
     if (oldScan == Y_SCAN) {
-        deviceSharedVariables()->swapScan();
+        swapScan();
+        m_work->swapStorageDims();
         swapStorageDims();
     }
 
-    getExtendsDevice(TILE_INTERIOR, xmin, xmax, ymin, ymax);
+    getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
     cournox = zero;
     cournoy = zero;
@@ -753,9 +758,11 @@ real_t Tile::compute_dt() {
          sycl::max(cournox, sycl::max(cournoy, deviceSharedVariables()->m_smallc));
 
     if (oldScan == Y_SCAN) {
-        deviceSharedVariables()->swapScan();
+        swapScan();
         swapStorageDims();
+        m_work->swapStorageDims();
     }
+ 
 
     if (deviceSharedVariables()->m_prt)
         cout() << "tile dt " << dt << "\n";
@@ -812,7 +819,7 @@ void Tile::constprim() {
     auto uIV = (m_u)(IV_VAR);
     auto uIU = (m_u)(IU_VAR);
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *eS = m_work->getE().getRow(s);
@@ -1155,7 +1162,7 @@ void Tile::riemann() {
         (deviceSharedVariables()->m_gamma + one) / (two * deviceSharedVariables()->m_gamma);
     real_t smallpp = deviceSharedVariables()->m_smallr * smallp;
 
-    getExtendsDevice(TILE_FULL, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qgdnvIDS = qgdnvID.getRow(s);
@@ -1206,7 +1213,7 @@ void Tile::godunov() {
                << "\n";
     if (deviceSharedVariables()->m_prt)
         cout() << "\n"
-               << " scan " << (int32_t)deviceSharedVariables()->m_scan << "\n";
+               << " scan " << (int32_t)m_scan << "\n";
     if (deviceSharedVariables()->m_prt)
         cout() << "\n"
                << " time " << m_tcur << "\n";
