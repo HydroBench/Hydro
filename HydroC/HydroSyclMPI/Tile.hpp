@@ -182,7 +182,6 @@ class Tile {
             m_scan = X_SCAN;
     }
 
-
     SYCL_EXTERNAL
     godunovDir_t godunovDir() const { return m_scan; }
     SYCL_EXTERNAL

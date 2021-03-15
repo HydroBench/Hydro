@@ -24,7 +24,6 @@ struct TilesSharedVariables {
     int32_t m_scheme;
 
     // convenient variables
-    
 
     int32_t m_prt;
 
@@ -47,8 +46,6 @@ struct TilesSharedVariables {
 
     SYCL_EXTERNAL
     void setTimes(Timers *pTimers) { m_threadTimers = pTimers; }
-
-    
 
     SYCL_EXTERNAL
     DeviceBuffers *buffers(int workitem_idx) { return &m_device_buffers[workitem_idx]; }

@@ -696,10 +696,7 @@ real_t Tile::compute_dt() {
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
 
-
     godunovDir_t oldScan = m_scan;
-
-    
 
     if (oldScan == Y_SCAN) {
         swapScan();
@@ -762,7 +759,6 @@ real_t Tile::compute_dt() {
         swapStorageDims();
         m_work->swapStorageDims();
     }
- 
 
     if (deviceSharedVariables()->m_prt)
         cout() << "tile dt " << dt << "\n";

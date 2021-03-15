@@ -32,17 +32,10 @@ void Domain::changeDirection() {
     auto queue = ParallelInfo::extraInfos()->m_queue;
     int32_t nbTiles = m_nbTiles;
 
-    queue.submit([&](sycl::handler & handler) {
-        sycl::stream out(1024, 256, handler);
-    	handler.single_task([=]() {
-    		out << "Before in Device direction " <<
-    				((the_tiles[0].godunovDir() == X_SCAN) ? "X" : "Y")
-					<< "\n";
-    	});
+    auto first_call = queue.parallel_for(nbTiles, [=](sycl::id<1> i) {
+        the_tiles[i].swapStorageDims();
+        the_tiles[i].swapScan();
     });
-    auto first_call =
-        queue.parallel_for(nbTiles, [=](sycl::id<1> i) { the_tiles[i].swapStorageDims(); 
-        the_tiles[i].swapScan(); });
 
     auto second_call = queue.parallel_for(m_nbWorkItems, [=](sycl::id<1> i) {
         the_tiles[0].deviceSharedVariables()->buffers(i)->swapStorageDims();
@@ -57,18 +50,6 @@ void Domain::changeDirection() {
         .wait();
 
     swapScan();
-    
-    std::cerr << "Direction " << ((m_scan == X_SCAN) ? "X" : "Y") << std::endl;
-    
-
-    queue.submit([&](sycl::handler & handler) {
-        sycl::stream out(1024, 256, handler);
-    	handler.single_task([=]() {
-    		out << "In Device direction " <<
-    				((the_tiles[0].godunovDir()== X_SCAN) ? "X" : "Y")
-					<< "\n";
-    	});
-    });
 }
 
 void Domain::computeDt() {
@@ -247,7 +228,7 @@ real_t Domain::computeTimeStep() {
         if (m_prt) {
             std::cout << "After pass " << pass << " direction [" << m_scan << "]" << std::endl;
         }
-        
+
         getUoldFromDevice();
 
         if (pass == 0)
