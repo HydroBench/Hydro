@@ -1,0 +1,15 @@
+*~
+*.o
+tst
+*.lst
+*.d
+*.pdf
+Dep
+*.pvd
+hydroc
+hydroc.std
+/.cproject
+/.project
+/dpcpp/
+/Debug/
+/Release/

@@ -19,4 +19,8 @@ hmpp*.cu
 *.d
 /.project
 HydroC/HydroCplusMPI/hydroc
-.gitignore
+HydroC/HydroCplusMPI/.project
+HydroC/HydroSyclMPI/.vscode/c_cpp_properties.json
+HydroC/HydroSyclMPI/.vscode/settings.json
+HydroC/HydroCplusMPI/.vscode/c_cpp_properties.json
+HydroC/HydroSyclMPI/.vscode/tasks.json
