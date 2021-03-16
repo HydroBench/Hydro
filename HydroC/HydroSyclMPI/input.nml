@@ -16,7 +16,7 @@ nstepmax=10		# end computation after n iterations
 # chkpt=1		# create a checkpoint restart file to continue the
   			#    simulation if time limit has been reached
 stats = 1 		# print run statistics 	      0 = less output
-ndumpline = 9 		# iteration at which dumping a line of values.
+ndumpline = 0		# iteration at which dumping a line of values.
 	    		#    useful to validate modifications. -1 to deactivate
 			
 tasked=   0		# activate tasks instead of classical OpenMP loops

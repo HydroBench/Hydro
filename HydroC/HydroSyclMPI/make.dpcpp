@@ -2,7 +2,7 @@ CXX=dpcpp
 
 ARCHEXT=dpcpp
 
-CFLAGS= -MP
+CFLAGS=
 
 
 ifneq ($(DBG),O)

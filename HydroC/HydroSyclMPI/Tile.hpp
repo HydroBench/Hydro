@@ -4,22 +4,22 @@
 #ifndef TILE_H
 #define TILE_H
 //
-#include "DeviceBuffers.hpp"
+
+
 #include "EnumDefs.hpp"
-#include "Options.hpp"
-#include "Soa.hpp"
+#include "precision.hpp"
 #include "SoaDevice.hpp"
-#include "Timers.hpp"
-#include "Utilities.hpp"
-
-#include <CL/sycl.hpp>
-
 #include "Tile_Shared_Variables.hpp"
+
+
+
+class DeviceBuffers;
+struct TilesSharedVariables;
 
 class Tile {
 
   private:
-    int32_t m_voisin[4]; // Not pointers since on Device it is different
+
     int32_t m_hasBeenProcessed;
 
     // dimensions
@@ -206,7 +206,6 @@ class Tile {
 
     void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
                    real_t dx);
-    void setVoisins(int32_t left, int32_t right, int32_t up, int32_t down);
 
     SYCL_EXTERNAL
     void setBuffers(DeviceBuffers *buf);

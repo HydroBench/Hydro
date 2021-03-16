@@ -23,18 +23,18 @@ void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
 
     lgmax = std::max(lgx, lgy);
 
-    m_q = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_qxm = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_qxp = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_dq = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_qleft = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_qright = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_qgdnv = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_c = std::move(Array2D<real_t>(lgx, lgy));
-    m_e = std::move(Array2D<real_t>(lgx, lgy));
+    m_q = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_qxm = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_qxp = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_dq = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_qleft = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_qright = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_qgdnv = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_c = (Array2D<real_t>(lgx, lgy));
+    m_e = (Array2D<real_t>(lgx, lgy));
 
-    m_sgnm = std::move(Array1D<real_t>(lgmax));
-    m_pl = std::move(Array1D<real_t>(lgmax));
+    m_sgnm = (Array1D<real_t>(lgmax));
+    m_pl = (Array1D<real_t>(lgmax));
     m_swapped = false;
 }
 

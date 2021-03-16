@@ -4,6 +4,7 @@
 
 #include "Domain.hpp"
 
+#include "Options.hpp"
 #include "ParallelInfo.hpp"
 #include "ParallelInfoOpaque.hpp"
 #include "Tile_Shared_Variables.hpp"
@@ -778,33 +779,6 @@ void Domain::setTiles() {
         offy += tileSize;
     }
 
-    // Make links to neighbors
-    int t = 0;
-    for (int32_t j = 0; j < mortonH; j++) {
-        for (int32_t i = 0; i < mortonW; i++, t++) {
-            int tright = -1, tleft = -1, tup = -1, tdown = -1;
-            Tile *pright = 0, *pleft = 0, *pup = 0, *pdown = 0;
-            if (i < (mortonW - 1)) {
-                tright = (*m_morton)(i + 1, j);
-                pright = &m_tiles[tright];
-            }
-            if (i > 0) {
-                tleft = (*m_morton)(i - 1, j);
-                pleft = &m_tiles[tleft];
-            }
-            if (j < (mortonH - 1)) {
-                tup = (*m_morton)(i, j + 1);
-                pup = &m_tiles[tup];
-            }
-            if (j > 0) {
-                tdown = (*m_morton)(i, j - 1);
-                pdown = &m_tiles[tdown];
-            }
-
-            m_tiles[t].setVoisins(tleft, tright, tup, tdown);
-        }
-    }
-
     // Create the shared buffers
 
     m_nbWorkItems = ParallelInfo::nb_workers();
@@ -851,7 +825,7 @@ void Domain::setTiles() {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    onHost.m_uold = std::move(
+    onHost.m_uold = (
         SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
 
     m_localDt = sycl::malloc_shared<real_t>(m_nbWorkItems, queue);
@@ -886,17 +860,9 @@ void Domain::setTiles() {
 
     queue.submit([&](sycl::handler &handler) {
         auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
-        sycl::stream out(1024, 256, handler);
         handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
             int idx = it.get_global_id();
-            out << idx << "\n";
-            if (idx == 1) {
-                out << "In the test "
-                    << "\n";
-                theTiles[0].setOut(out);
-                theTiles[0].cout() << "Test from the Tiles 0"
-                                   << "\n";
-            }
+
             theTiles[0].deviceSharedVariables()->m_device_buffers[idx].firstTouch();
         });
     });

@@ -2,31 +2,17 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
-#include "Options.hpp"
 
 #include "Tile.hpp"
 
-#include "Tile_Shared_Variables.hpp"
+#include <CL/sycl.hpp>
+#include <algorithm>
 
-#include "Timers.hpp"
-#include "cclock.hpp"
-
-#include <CL/sycl.hpp> // pour sycl::sqrt
-
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 
 //
 
 Tile::Tile() {
-    for (int32_t i = 0; i < NEIGHBOUR_TILE; i++) {
-        m_voisin[i] = -1;
-    }
+    m_scan = X_SCAN;
     m_ExtraLayer = 2;
 }
 
@@ -50,8 +36,8 @@ void Tile::initTile() {
 
     // I am on the Host, I can call a global variable !
 
-    m_u = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_flux = std::move(SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_u = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_flux = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
     m_swapped = false;
 }
 
@@ -1235,17 +1221,11 @@ void Tile::godunov() {
 
 real_t Tile::computeDt() {
     real_t dt = 0;
-    // a sync on the tiles is required before entering here
+
     dt = compute_dt();
     return dt;
 }
 
-void Tile::setVoisins(int32_t left, int32_t right, int32_t up, int32_t down) {
-    m_voisin[UP_TILE] = up;
-    m_voisin[DOWN_TILE] = down;
-    m_voisin[LEFT_TILE] = left;
-    m_voisin[RIGHT_TILE] = right;
-}
 
 void Tile::setBuffers(DeviceBuffers *buf) { m_work = buf; }
 

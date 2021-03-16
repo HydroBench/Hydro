@@ -32,6 +32,8 @@ template <typename S> class Array1D {
     Array1D(int32_t lgr);
     ~Array1D();
 
+    Array1D & operator= (const Array1D &) = delete;
+
     // for move operation
     Array1D &operator=(Array1D &&other) {
 
@@ -105,8 +107,9 @@ template <typename S> class Array2D {
     Array2D() : m_data(nullptr), m_managed_alloc(false), m_swapped(false) { m_h = m_w = -1; }
     Array2D(int32_t w, int32_t h);
 
-    SYCL_EXTERNAL
     Array2D(const Array2D &org) = delete;
+
+    Array2D &operator=(const Array2D& ) = delete;
 
     // for move operation
     Array2D &operator=(Array2D &&rhs) {
@@ -170,6 +173,7 @@ template <typename T> class SoaDevice {
     }
     SoaDevice(int variables, int w, int h);
     SoaDevice(const SoaDevice &org) = delete;
+    SoaDevice &operator=(const SoaDevice &) = delete;
 
     T *data() { return m_array; }
     // for move operation;
