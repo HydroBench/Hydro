@@ -828,15 +828,15 @@ void Domain::setTiles() {
     onHost.m_uold = (
         SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
 
-    m_localDt = sycl::malloc_shared<real_t>(m_nbWorkItems, queue);
+    m_localDt = sycl::malloc_shared<real_t>(m_nbTiles, queue);
 
-    auto temp_buffers = new DeviceBuffers[m_nbWorkItems];
+    auto temp_buffers = new DeviceBuffers[m_nbTiles];
 
-    for (int i = 0; i < m_nbWorkItems; i++) {
+    for (int i = 0; i < m_nbTiles; i++) {
         temp_buffers[i].init(0, tileSizeTot, 0, tileSizeTot);
     }
 
-    onHost.m_device_buffers = sycl::malloc_device<DeviceBuffers>(m_nbWorkItems, queue);
+    onHost.m_device_buffers = sycl::malloc_device<DeviceBuffers>(m_nbTiles, queue);
 
     onDevice = sycl::malloc_device<TilesSharedVariables>(1, queue);
     for (int i = 0; i < m_nbTiles; i++)
@@ -848,7 +848,7 @@ void Domain::setTiles() {
 
     queue.submit([&](auto &handler) {
         handler.memcpy(onHost.m_device_buffers, temp_buffers,
-                       sizeof(DeviceBuffers) * m_nbWorkItems);
+                       sizeof(DeviceBuffers) * m_nbTiles);
     });
 
     //  TODO: do something delete [] temp_buffers; Do not delete, it is in device memory here :-)

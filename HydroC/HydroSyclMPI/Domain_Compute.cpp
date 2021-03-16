@@ -1,10 +1,26 @@
 
+
+
 #include "Domain.hpp"
+#include "cclock.hpp"
+#include "DeviceBuffers.hpp"
 #include "FakeRead.hpp"
+#include "Matrix.hpp"
+#include "precision.hpp"
 #include "ParallelInfo.hpp"
 #include "ParallelInfoOpaque.hpp"
+#include "Tile.hpp"
 #include "Tile_Shared_Variables.hpp"
-#include "cclock.hpp"
+#include "Timers.hpp"
+#include "Utilities.hpp"
+
+
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <limits>
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -57,7 +73,7 @@ void Domain::computeDt() {
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
     int nb_virtual_tiles = m_nbTiles;
     if (nb_virtual_tiles % m_nbWorkItems != 0)
-        nb_virtual_tiles += m_nbTiles + (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
+        nb_virtual_tiles +=  (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
 
     auto the_tiles = m_tilesOnDevice;
 
@@ -82,18 +98,21 @@ void Domain::computeDt() {
 
                     auto &my_tile = the_tiles[tile_idx];
                     my_tile.setOut(out);
-                    my_tile.setBuffers(local->buffers(workitem));
+                    my_tile.setBuffers(local->buffers(tile_idx));
                     my_tile.setTcur(tcur);
                     my_tile.setDt(dt);
                     real_t local_dt = my_tile.computeDt();
 
-                    localDt[workitem] = sycl::min(localDt[workitem], local_dt);
+//                    out << "Init dt Tile " << tile_idx << " wi " << workitem << " "
+//                    		<<local_dt << sycl::stream_manipulator::endl;
+
+                    localDt[tile_idx] = local_dt;
                 }
             });
         })
         .wait();
 
-    dt = *std::min_element(localDt, localDt + m_nbWorkItems);
+    dt = *std::min_element(localDt, localDt + m_nbTiles);
     m_dt = reduceMin(dt);
 }
 
@@ -144,7 +163,7 @@ real_t Domain::computeTimeStep() {
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
         int nb_virtual_tiles = m_nbTiles;
         if (nb_virtual_tiles % m_nbWorkItems != 0)
-            nb_virtual_tiles += m_nbTiles + (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
+            nb_virtual_tiles += (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
 
         auto the_tiles = m_tilesOnDevice;
         auto nb_tiles = m_nbTiles;
@@ -168,7 +187,7 @@ real_t Domain::computeTimeStep() {
 #endif
                         auto &my_tile = the_tiles[idx];
                         my_tile.setOut(out);
-                        my_tile.setBuffers(local->buffers(workitem));
+                        my_tile.setBuffers(local->buffers(idx));
                         my_tile.setTcur(tcur);
                         my_tile.setDt(dt);
                         my_tile.gatherconserv();
@@ -191,7 +210,7 @@ real_t Domain::computeTimeStep() {
         sycl::buffer<real_t> min_buf(minimum);
         queue
             .submit([&](sycl::handler &handler) {
-                sycl::stream out(1024, 256, handler);
+                sycl::stream out(2048, 256, handler);
 
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
@@ -206,13 +225,17 @@ real_t Domain::computeTimeStep() {
                         double startT = Custom_Timer::dcclock(), endT;
                         thN = myThread();
 #endif
-                        auto *my_tile = &the_tiles[tile_idx];
-                        my_tile->setOut(out);
-                        my_tile->setBuffers(local->buffers(workitem));
-                        my_tile->updateconserv();
+                        auto &my_tile = the_tiles[tile_idx];
+                        my_tile.setOut(out);
+                        my_tile.setBuffers(local->buffers(tile_idx));
+                        my_tile.updateconserv();
 
-                        real_t local_dt = my_tile->computeDt();
-                        localDt[workitem] = sycl::min(localDt[workitem], local_dt);
+                        real_t local_dt = my_tile.computeDt();
+                        localDt[tile_idx] = local_dt;
+
+//                        out << "Tile " << tile_idx << " wi " << workitem << " "
+//                                           		<< local_dt << sycl::stream_manipulator::endl;
+
 
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
@@ -222,7 +245,7 @@ real_t Domain::computeTimeStep() {
                 });
             })
             .wait();
-        last_dt = *std::min_element(localDt, localDt + m_nbWorkItems);
+        last_dt = *std::min_element(localDt, localDt + m_nbTiles);
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();
         m_mainTimer.add(ALLTILECMP, (end - start));
@@ -313,8 +336,8 @@ void Domain::compute() {
     vtkprt[0] = '\0';
 
     if (m_tcur == 0) {
-        sendUoldToDevice();
 
+        sendUoldToDevice();
         computeDt();
         m_dt /= 2.0;
         assert(m_dt > 1.e-15);
