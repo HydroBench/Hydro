@@ -53,14 +53,11 @@ void Domain::changeDirection() {
         the_tiles[i].swapScan();
     });
 
-    auto second_call = queue.parallel_for(m_nbWorkItems, [=](sycl::id<1> i) {
-        the_tiles[0].deviceSharedVariables()->buffers(i)->swapStorageDims();
-    });
+   
 
     queue
         .submit([&](sycl::handler &handler) {
-            handler.depends_on({first_call, second_call});
-
+            handler.depends_on({first_call});
             handler.single_task([=]() { /* nothing more */ });
         })
         .wait();
@@ -190,7 +187,7 @@ real_t Domain::computeTimeStep() {
                         my_tile.setBuffers(local->buffers(idx));
                         my_tile.setTcur(tcur);
                         my_tile.setDt(dt);
-                        my_tile.gatherconserv();
+                        my_tile.gatherconserv(); // From uold to TIle's u
                         my_tile.godunov();
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
@@ -228,7 +225,7 @@ real_t Domain::computeTimeStep() {
                         auto &my_tile = the_tiles[tile_idx];
                         my_tile.setOut(out);
                         my_tile.setBuffers(local->buffers(tile_idx));
-                        my_tile.updateconserv();
+                        my_tile.updateconserv();  // From Tile's u and flux to uold
 
                         real_t local_dt = my_tile.computeDt();
                         localDt[tile_idx] = local_dt;

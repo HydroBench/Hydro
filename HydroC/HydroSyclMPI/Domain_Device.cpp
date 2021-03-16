@@ -36,6 +36,7 @@ void Domain::sendUoldToDevice() {
 void Domain::getUoldFromDevice() {
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
 
+
     for (int var = 0; var < NB_VAR; var++) {
         auto &matrice = *(*m_uold)(var);
 

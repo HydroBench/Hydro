@@ -2,12 +2,10 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
-
 #include "Tile.hpp"
 
 #include <CL/sycl.hpp>
 #include <algorithm>
-
 
 //
 
@@ -124,14 +122,17 @@ void Tile::trace() {
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
+
     auto dqID = m_work->getDQ()(ID_VAR);
     auto dqIV = m_work->getDQ()(IV_VAR);
     auto dqIU = m_work->getDQ()(IU_VAR);
     auto dqIP = m_work->getDQ()(IP_VAR);
+
     auto pqxmID = m_work->getQXM()(ID_VAR);
     auto pqxmIP = m_work->getQXM()(IP_VAR);
     auto pqxmIV = m_work->getQXM()(IV_VAR);
     auto pqxmIU = m_work->getQXM()(IU_VAR);
+
     auto pqxpID = m_work->getQXP()(ID_VAR);
     auto pqxpIP = m_work->getQXP()(IP_VAR);
     auto pqxpIV = m_work->getQXP()(IV_VAR);
@@ -375,7 +376,6 @@ void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t u
                               Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
                               Preal_t fluxIUS, Preal_t fluxIPS) {
 
-#pragma omp simd
     for (int32_t i = xmin; i < xmax; i++) {
         uoldIDS[i + m_offx] = uIDS[i] + (fluxIDS[i - 2] - fluxIDS[i - 1]) * dtdx;
         uoldIVS[i + m_offx] = uIVS[i] + (fluxIVS[i - 2] - fluxIVS[i - 1]) * dtdx;
@@ -438,6 +438,7 @@ void Tile::updateconserv() {
     auto uIP = (m_u)(IP_VAR);
     auto uIV = (m_u)(IV_VAR);
     auto uIU = (m_u)(IU_VAR);
+
     real_t dtdx = m_dt / m_dx;
     if (deviceSharedVariables()->m_prt)
         cout() << "dtdx " << dtdx << "\n";
@@ -498,9 +499,6 @@ void Tile::updateconserv() {
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax, Preal_t uIDS, Preal_t uIUS, Preal_t uIVS,
                               Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS,
                               Preal_t uoldIPS) {
-#if ALIGNED > 0
-    // #pragma vector aligned // impossible !
-#endif
 
 #pragma omp simd
     for (int32_t i = xmin; i < xmax; i++) {
@@ -586,7 +584,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
             real_t rho = qIDS[k];
             real_t rrho = one / rho;
             real_t base = (deviceSharedVariables()->m_gamma - one) * rho * eS[k];
-            ;
+
             base = sycl::max(base, (real_t)(rho * smallp));
             qIPS[k] = base;
             cS[k] = sycl::sqrt(deviceSharedVariables()->m_gamma * base * rrho);
@@ -686,7 +684,6 @@ real_t Tile::compute_dt() {
 
     if (oldScan == Y_SCAN) {
         swapScan();
-        m_work->swapStorageDims();
         swapStorageDims();
     }
 
@@ -743,7 +740,6 @@ real_t Tile::compute_dt() {
     if (oldScan == Y_SCAN) {
         swapScan();
         swapStorageDims();
-        m_work->swapStorageDims();
     }
 
     if (deviceSharedVariables()->m_prt)
@@ -760,11 +756,6 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
                           Preal_t qIUS, const Preal_t uIDS, const Preal_t uIPS, const Preal_t uIVS,
                           const Preal_t uIUS, Preal_t eS) {
 
-#if ALIGNED > 0
-    // #pragma message "constprimOnRow aligned"
-    // #pragma vector aligned
-
-#endif
     for (int32_t i = xmin; i < xmax; i++) {
         real_t eken, qid, qiu, qiv, qip;
         qid = uIDS[i];
@@ -805,16 +796,19 @@ void Tile::constprim() {
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *eS = m_work->getE().getRow(s);
+
         real_t *qIDS = qID.getRow(s);
         real_t *qIPS = qIP.getRow(s);
         real_t *qIVS = qIV.getRow(s);
         real_t *qIUS = qIU.getRow(s);
+
         real_t *uIDS = uID.getRow(s);
         real_t *uIPS = uIP.getRow(s);
         real_t *uIVS = uIV.getRow(s);
         real_t *uIUS = uIU.getRow(s);
         constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
+
     if (deviceSharedVariables()->m_prt) {
         cout() << "Tile qIP constprim" << qIP << "Tile e constprim" << m_work->getE();
     }
@@ -844,10 +838,8 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
 
     // Precompute values for this slice
     // #pragma ivdep
-#if ALIGNED > 0
-    // #pragma vector aligned
 
-#endif
+    // #pragma vector aligned
 
     for (int32_t i = xmin; i < xmax; i++) {
         real_t wl_i, wr_i;
@@ -875,10 +867,6 @@ void Tile::riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6
     // #pragma unroll(5)
 
     for (int32_t iter = 0; iter < deviceSharedVariables()->m_niter_riemann; iter++) {
-#if ALIGNED > 0
-        // #pragma vector aligned
-
-#endif
         for (int32_t i = xmin; i < xmax; i++) {
             if (go_on[i] > 0) {
                 real_t pst = pstar[i];
@@ -1184,24 +1172,20 @@ void Tile::godunov() {
     auto uIP = (m_u)(IP_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
 
-    if (deviceSharedVariables()->m_prt)
-        cout() << "= = = = = = = =  = ="
-               << "\n";
-    if (deviceSharedVariables()->m_prt)
-        cout() << "      Godunov"
-               << "\n";
-    if (deviceSharedVariables()->m_prt)
-        cout() << "= = = = = = = =  = ="
-               << "\n";
-    if (deviceSharedVariables()->m_prt)
+    if (deviceSharedVariables()->m_prt) {
+        cout() << "= = = = = = = =  = =" << "\n";
+        cout() << "      Godunov"  << "\n";
+        cout() << "= = = = = = = =  = =" << "\n";
+
         cout() << "\n"
                << " scan " << (int32_t)m_scan << "\n";
-    if (deviceSharedVariables()->m_prt)
+
         cout() << "\n"
                << " time " << m_tcur << "\n";
-    if (deviceSharedVariables()->m_prt)
+
         cout() << "\n"
                << " dt " << m_dt << "\n";
+    }
 
     constprim();
     eos(TILE_FULL);
@@ -1215,17 +1199,15 @@ void Tile::godunov() {
     riemann();
 
     compflx();
+
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile uold godunov apres compflx" << uold;
 }
 
 real_t Tile::computeDt() {
-    real_t dt = 0;
-
-    dt = compute_dt();
+    real_t dt = compute_dt();
     return dt;
 }
-
 
 void Tile::setBuffers(DeviceBuffers *buf) { m_work = buf; }
 

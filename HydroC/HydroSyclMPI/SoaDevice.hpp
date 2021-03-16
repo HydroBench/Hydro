@@ -209,6 +209,7 @@ template <typename T> class SoaDevice {
         m_swapped = !m_swapped;
     }
 
+    // Provide a view to the matrix2D for var
     RArray2D<T> operator()(int32_t var) { return RArray2D<T>(m_array + var * m_h * m_w, m_w, m_h); }
 };
 
