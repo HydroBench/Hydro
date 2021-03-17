@@ -2,7 +2,7 @@
 #define PRECISION_H
 
 #ifndef PREC_SP
-typedef double real_t;
+using real_t = double;
 
 constexpr real_t one = 1.0L;
 constexpr real_t two = 2.0L;
@@ -12,7 +12,7 @@ constexpr real_t hundred = 100.0L;
 constexpr real_t precision = 1.e-6;
 
 #else
-typedef float real_t;
+using real_t = float;
 
 constexpr real_t one = 1.0f;
 constexpr real_t two = 2.0f;
@@ -23,6 +23,6 @@ constexpr real_t PRECISION = 1.e-6f;
 
 #endif
 
-typedef real_t *__restrict__ Preal_t;
+using Preal_t = real_t *__restrict__;
 
 #endif

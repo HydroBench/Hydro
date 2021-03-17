@@ -710,8 +710,6 @@ void Domain::setTiles() {
     mortonH = (m_ny + tileSize - 1) / tileSize;
     mortonW = (m_nx + tileSize - 1) / tileSize;
 
-
-
     // Create the Morton holder to wander around the tiles
     m_morton = new Matrix2<int32_t>(mortonW, mortonH);
     // std::cerr << mortonW << " " << mortonH << std::endl;
@@ -751,6 +749,9 @@ void Domain::setTiles() {
     //
 
     m_tiles = new Tile[m_nbTiles];
+    //
+    // TODO: sort Tile arrays according to the m_mortonIdx
+    //
 
     onHost.m_prt = m_prt;
 
@@ -825,10 +826,10 @@ void Domain::setTiles() {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    onHost.m_uold = (
-        SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
+    onHost.m_uold =
+        (SoaDevice<real_t>(NB_VAR, (xmax - xmin + 1), (ymax - ymin + 1))); // so on Device !
 
-    m_localDt = sycl::malloc_shared<real_t>(m_nbTiles, queue);
+    m_localDt = 0;
 
     auto temp_buffers = new DeviceBuffers[m_nbTiles];
 
@@ -847,8 +848,7 @@ void Domain::setTiles() {
     });
 
     queue.submit([&](auto &handler) {
-        handler.memcpy(onHost.m_device_buffers, temp_buffers,
-                       sizeof(DeviceBuffers) * m_nbTiles);
+        handler.memcpy(onHost.m_device_buffers, temp_buffers, sizeof(DeviceBuffers) * m_nbTiles);
     });
 
     //  TODO: do something delete [] temp_buffers; Do not delete, it is in device memory here :-)

@@ -403,6 +403,7 @@ void Domain::compute() {
         }
     }
     dt = m_dt;
+    dumpLine();
 
     while (m_tcur < m_tend) {
         int needSync = 0;

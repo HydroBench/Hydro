@@ -1,19 +1,23 @@
+//
+// Computation part of the Domain Class
+//
+// Schedules the computation that happends in the Tiles
+//
 
-
-
-#include <Device_Buffers.hpp>
+#include "Device_Buffers.hpp"
 #include "Domain.hpp"
-#include "cclock.hpp"
 #include "FakeRead.hpp"
 #include "Matrix.hpp"
-#include "precision.hpp"
 #include "ParallelInfo.hpp"
 #include "ParallelInfoOpaque.hpp"
 #include "Tile.hpp"
 #include "Tile_Shared_Variables.hpp"
 #include "Timers.hpp"
 #include "Utilities.hpp"
+#include "cclock.hpp"
+#include "precision.hpp"
 
+#include <CL/sycl.hpp>
 
 #include <cassert>
 #include <cstdio>
@@ -26,8 +30,6 @@
 #include <mpi.h>
 #endif
 
-#include <CL/sycl.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -36,17 +38,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#ifndef LIGHTSYNC
-#define LIGHTSYNC 0
-#endif
-
-
-void Domain::debuginfos()
-{
-	auto arr1 = (*m_uold)(0);
-	std::cerr << "Info " << std::accumulate(arr1->data(), arr1->data()+(arr1->getW() * arr1->getH() ) , 0.0)
-			<< std::endl;
-}
+void Domain::debuginfos() {}
 
 void Domain::changeDirection() {
 
@@ -60,8 +52,6 @@ void Domain::changeDirection() {
         the_tiles[i].swapStorageDims();
         the_tiles[i].swapScan();
     });
-
-   
 
     queue
         .submit([&](sycl::handler &handler) {
@@ -78,28 +68,27 @@ void Domain::computeDt() {
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
     int nb_virtual_tiles = m_nbTiles;
     if (nb_virtual_tiles % m_nbWorkItems != 0)
-        nb_virtual_tiles +=  (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
+        nb_virtual_tiles += (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
 
     auto the_tiles = m_tilesOnDevice;
 
     real_t maximum = std::numeric_limits<float>::max();
 
-    real_t *localDt = m_localDt;
-    std::fill(localDt, localDt + m_nbWorkItems, maximum);
-
     auto nbTiles = m_nbTiles;
     auto tcur = m_tcur;
     auto dt = m_dt;
+
+    sycl::buffer<real_t> localDT(nbTiles);
     queue
         .submit([&](sycl::handler &handler) {
+            sycl::accessor localDT_A(localDT, handler);
+
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-            sycl::stream out(1024, 256, handler);
+            sycl::stream out(4196, 256, handler);
             handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
                 int tile_idx = it.get_global_id(0);
                 if (tile_idx < nbTiles) {
                     auto local = the_tiles[0].deviceSharedVariables();
-
-                    int32_t workitem = it.get_local_id(0);
 
                     auto &my_tile = the_tiles[tile_idx];
                     my_tile.setOut(out);
@@ -108,16 +97,22 @@ void Domain::computeDt() {
                     my_tile.setDt(dt);
                     real_t local_dt = my_tile.computeDt();
 
-//                    out << "Init dt Tile " << tile_idx << " wi " << workitem << " "
-//                    		<<local_dt << sycl::stream_manipulator::endl;
+                    //                    out << "Init dt Tile " << tile_idx << " wi " << workitem
+                    //                    << " "
+                    //                    		<<local_dt <<
+                    //                    sycl::stream_manipulator::endl;
 
-                    localDt[tile_idx] = local_dt;
+                    localDT_A[tile_idx] = local_dt;
                 }
             });
         })
         .wait();
 
-    dt = *std::min_element(localDt, localDt + m_nbTiles);
+    sycl::host_accessor localDT_h(localDT, sycl::read_only);
+    dt = localDT_h[0];
+    for (int i = 1; i < nbTiles; i++)
+        dt = sycl::min(localDT_h[i], dt);
+
     m_dt = reduceMin(dt);
 }
 
@@ -158,11 +153,9 @@ real_t Domain::computeTimeStep() {
 
     for (int32_t pass = 0; pass < 2; pass++) {
 
-    	debuginfos();
-    	// This is modifying uold
+        // This is modifying uold
         boundary_init();
         boundary_process();
-        debuginfos();
 
         sendUoldToDevice(); // Since Uold is modified by the two previous routines
 
@@ -178,17 +171,16 @@ real_t Domain::computeTimeStep() {
         auto tcur = m_tcur;
         auto dt = m_dt;
 
-
         queue
             .submit([&](sycl::handler &handler) {
-                sycl::stream out(1024, 256, handler);
+                sycl::stream out(4196, 256, handler);
 
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
                 handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
                     auto local = the_tiles[0].deviceSharedVariables();
                     int idx = it.get_global_id(0);
                     if (idx < nb_tiles) {
-                        int32_t workitem = it.get_local_id(0);
+
 #if WITH_TIMERS == 1
                         double startT = Custom_Timer::dcclock(), endT;
                         int32_t thN = workitem;
@@ -200,7 +192,9 @@ real_t Domain::computeTimeStep() {
                         my_tile.setTcur(tcur);
                         my_tile.setDt(dt);
                         my_tile.gatherconserv(); // From uold to TIle's u
+
                         my_tile.godunov();
+
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
                         (m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
@@ -211,15 +205,12 @@ real_t Domain::computeTimeStep() {
             .wait();
 
         // we have to wait here that all tiles are ready to update uold
-        real_t minimum = std::numeric_limits<float>::max();
 
-        real_t *localDt = m_localDt;
-        std::fill(m_localDt, m_localDt + m_nbWorkItems, minimum);
-
-        sycl::buffer<real_t> min_buf(minimum);
+        sycl::buffer<real_t> localDT(m_nbTiles);
         queue
             .submit([&](sycl::handler &handler) {
-                sycl::stream out(2048, 256, handler);
+                sycl::stream out(4196, 256, handler);
+                sycl::accessor localDt(localDT, handler);
 
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
@@ -237,14 +228,16 @@ real_t Domain::computeTimeStep() {
                         auto &my_tile = the_tiles[tile_idx];
                         my_tile.setOut(out);
                         my_tile.setBuffers(local->buffers(tile_idx));
-                        my_tile.updateconserv();  // From Tile's u and flux to uold
+
+                        my_tile.updateconserv(); // From Tile's u and flux to uold
 
                         real_t local_dt = my_tile.computeDt();
                         localDt[tile_idx] = local_dt;
 
-//                        out << "Tile " << tile_idx << " wi " << workitem << " "
-//                                           		<< local_dt << sycl::stream_manipulator::endl;
-
+                    //                        out << "Tile " << tile_idx << " wi " << workitem << "
+                    //                        "
+                    //                                           		<< local_dt <<
+                    //                                           sycl::stream_manipulator::endl;
 
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
@@ -254,7 +247,11 @@ real_t Domain::computeTimeStep() {
                 });
             })
             .wait();
-        last_dt = *std::min_element(localDt, localDt + m_nbTiles);
+        sycl::host_accessor localDT_h(localDT, sycl::read_only);
+        last_dt = localDT_h[0];
+        for (int i = 1; i < m_nbTiles; i++)
+            last_dt = sycl::min(localDT_h[i], last_dt);
+
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();
         m_mainTimer.add(ALLTILECMP, (end - start));
@@ -353,11 +350,9 @@ void Domain::compute() {
         if (myPe == 0) {
             std::cout << " Initial dt " << std::setiosflags(std::ios::scientific)
                       << std::setprecision(5) << m_dt << std::endl;
-            ;
         }
     }
     dt = m_dt;
-
     while (m_tcur < m_tend) {
         int needSync = 0;
         vtkprt[0] = '\0';
@@ -510,8 +505,10 @@ void Domain::compute() {
 
     // TODO: temporaire a equiper de mesure de temps
     if (m_checkPoint) {
+
         double start, end;
         start = Custom_Timer::dcclock();
+
         // m_tcur -= m_dt;
         if ((m_iter % 2) == 0) {
             m_dt = dt;

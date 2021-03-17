@@ -5,13 +5,10 @@
 #define TILE_H
 //
 
-
 #include "EnumDefs.hpp"
-#include "precision.hpp"
 #include "SoaDevice.hpp"
 #include "Tile_Shared_Variables.hpp"
-
-
+#include "precision.hpp"
 
 class DeviceBuffers;
 struct TilesSharedVariables;
@@ -19,7 +16,6 @@ struct TilesSharedVariables;
 class Tile {
 
   private:
-
     int32_t m_hasBeenProcessed;
 
     // dimensions

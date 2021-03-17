@@ -26,17 +26,18 @@ template <typename T> const sycl::stream &operator<<(const sycl::stream &, const
 
 template <typename S> class Array1D {
     S *m_data; // This is a device address
+    int32_t m_lgr;
 
   public:
-    Array1D() : m_data(nullptr){};
+    Array1D() : m_data(nullptr), m_lgr(0){};
     Array1D(int32_t lgr);
     ~Array1D();
 
-    Array1D & operator= (const Array1D &) = delete;
+    Array1D &operator=(const Array1D &) = delete;
 
     // for move operation
     Array1D &operator=(Array1D &&other) {
-
+        m_lgr = other.m_lgr;
         m_data = other.m_data;
         other.m_data = nullptr;
         return *this;
@@ -45,9 +46,7 @@ template <typename S> class Array1D {
     SYCL_EXTERNAL
     S *data() { return m_data; }
 
-    S &operator()(int32_t idx) { return m_data[idx]; }
-    S operator()(int32_t idx) const { return m_data[idx]; }
-
+    SYCL_EXTERNAL
     friend std::ostream &operator<<(std::ostream &, const Array1D<S> &);
 
     SYCL_EXTERNAL
@@ -63,7 +62,7 @@ template <typename S> class RArray2D {
 
   public:
     RArray2D() = delete;
-    RArray2D(const RArray2D  & org) : m_data(org.m_data), m_w(org.m_w), m_h(org.m_h) {};
+    RArray2D(const RArray2D &org) : m_data(org.m_data), m_w(org.m_w), m_h(org.m_h){};
 
     RArray2D &operator=(const RArray2D &) = delete;
 
@@ -88,7 +87,7 @@ template <typename S> class RArray2D {
     S operator()(int32_t i, int32_t j) const { return m_data[j * m_w + i]; }
 
     SYCL_EXTERNAL
-    S *getRow(int row) { return &m_data[row * m_w]; }
+    S *getRow(int row) { return m_data + (row * m_w); }
 
     SYCL_EXTERNAL
     void putFullCol(int32_t x, int32_t offy, S *thecol, int32_t l);
@@ -111,7 +110,7 @@ template <typename S> class Array2D {
 
     Array2D(const Array2D &org) = delete;
 
-    Array2D &operator=(const Array2D& ) = delete;
+    Array2D &operator=(const Array2D &) = delete;
 
     // for move operation
     Array2D &operator=(Array2D &&rhs) {
@@ -144,16 +143,10 @@ template <typename S> class Array2D {
     }
 
     SYCL_EXTERNAL
-    S &operator()(int32_t i, int32_t j) { return m_data[j * m_w + i]; }
-
-    SYCL_EXTERNAL
     S operator()(int32_t i, int32_t j) const { return m_data[j * m_w + i]; }
 
     SYCL_EXTERNAL
     S *getRow(int row) { return &m_data[row * m_w]; }
-
-    SYCL_EXTERNAL
-    void putFullCol(int32_t x, int32_t offy, S *thecol, int32_t l);
 
     friend std::ostream &operator<<(std::ostream &, const Array2D<S> &);
 
@@ -196,14 +189,6 @@ template <typename T> class SoaDevice {
     ~SoaDevice();
 
     SYCL_EXTERNAL
-    T &operator()(int32_t v, int32_t i, int32_t j) { return m_array[v * m_h * m_w + j * m_w + i]; }
-
-    SYCL_EXTERNAL
-    T operator()(int32_t v, int32_t i, int32_t j) const {
-        return m_array[v * m_h * m_w + j * m_w + i];
-    }
-
-    SYCL_EXTERNAL
     void swapDimOnly() {
         int t = m_w;
         m_w = m_h;
@@ -212,6 +197,7 @@ template <typename T> class SoaDevice {
     }
 
     // Provide a view to the matrix2D for var
+    SYCL_EXTERNAL
     RArray2D<T> operator()(int32_t var) { return RArray2D<T>(m_array + var * m_h * m_w, m_w, m_h); }
 };
 

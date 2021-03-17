@@ -21,7 +21,7 @@ ndumpline = 1		# iteration at which dumping a line of values.
 			
 tasked=   0		# activate tasks instead of classical OpenMP loops
 taskeddep=0		# activate task dependancy mechanism (currently broken)
-prt=0			# prints all arrays during computation (very verbose)
+prt=1			# prints all arrays during computation (very verbose)
 forcesync = 0		# forces sync() after writing files
 forcestop = 0		# forces writing the STOP file marker as if computation
 	    		#  was finished when either nstepmax or tend is reached.

@@ -17,7 +17,6 @@ SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvaria
 }
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
-//	std::cerr << "~SoaDevice " << m_array << " " << m_managed << std::endl;
 
     if (m_array != nullptr && m_managed) {
 
@@ -32,7 +31,6 @@ Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true
 }
 
 template <typename T> Array2D<T>::~Array2D() {
-//	std::cerr << "~Array2D " << m_data << " " << m_managed_alloc << std::endl;
 
     if (m_managed_alloc)
         sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
@@ -40,9 +38,11 @@ template <typename T> Array2D<T>::~Array2D() {
 
 template <typename T> Array1D<T>::Array1D(int32_t lgr) {
     m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue);
+    m_lgr = lgr;
 }
+
 template <typename T> Array1D<T>::~Array1D() {
-//	std::cerr << "~Array1D " << m_data  << std::endl;
+
     if (m_data != nullptr)
         sycl::free(m_data, ParallelInfo::extraInfos()->m_queue);
 }
@@ -74,16 +74,12 @@ const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> &m
         for (int32_t i = 0; i < srcX; i++) {
             os << mat(i, j) << " ";
         }
-        os << "\n";
+        os << sycl::stream_manipulator::endl;
     }
-    os << "\n\n";
+    os << sycl::stream_manipulator::endl
+       << sycl::stream_manipulator::endl
+       << sycl::stream_manipulator::flush;
     return os;
-}
-
-template <typename T> void Array2D<T>::putFullCol(int32_t x, int32_t offy, T *theCol, int32_t lgr) {
-    for (int32_t j = 0; j < lgr; j++) {
-        m_data[(j + offy) * m_w + x] = theCol[j];
-    }
 }
 
 template <>

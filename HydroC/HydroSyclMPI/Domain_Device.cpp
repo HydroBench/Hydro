@@ -47,11 +47,8 @@ void Domain::getUoldFromDevice() {
 
         queue
             .submit([&](auto &handler) {
-                handler.memcpy(matrice->data(), matDevice.data(),
-                               lgr * sizeof(real_t));
+                handler.memcpy(matrice->data(), matDevice.data(), lgr * sizeof(real_t));
             })
             .wait();
-
-
     }
 }

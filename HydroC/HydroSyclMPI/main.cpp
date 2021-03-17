@@ -29,7 +29,6 @@ void validmatrix() {
 
 int main(int argc, char **argv) {
 
-
     Domain *domain = new Domain(argc, argv);
 
     if (domain->isStopped()) {
