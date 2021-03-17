@@ -9,7 +9,7 @@
 #ifndef TILESSHAREDVARIABLES
 #define TILESSHAREDVARIABLES
 
-#include "DeviceBuffers.hpp"
+#include "Device_Buffers.hpp"
 #include "EnumDefs.hpp"
 #include "SoaDevice.hpp"
 #include "Timers.hpp"

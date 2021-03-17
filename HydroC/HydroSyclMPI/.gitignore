@@ -13,3 +13,5 @@ hydroc.std
 /dpcpp/
 /Debug/
 /Release/
+/build/
+/Default/

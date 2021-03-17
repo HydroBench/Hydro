@@ -692,23 +692,17 @@ real_t Tile::compute_dt() {
     cournox = zero;
     cournoy = zero;
 
-    for (int32_t s = ymin; s < ymax; s++) {
-        real_t *uoldIDS;
-        real_t *uoldIPS;
-        real_t *uoldIVS;
-        real_t *uoldIUS;
+    for (int32_t y = ymin; y < ymax; y++) {
+        auto uoldIDS = uoldID.getRow(y + m_offy);
+        auto uoldIPS = uoldIP.getRow(y + m_offy);
+        auto uoldIVS = uoldIV.getRow(y + m_offy);
+        auto uoldIUS = uoldIU.getRow(y + m_offy);
 
-        uoldIDS = uoldID.getRow(s + m_offy);
-        uoldIPS = uoldIP.getRow(s + m_offy);
-        uoldIVS = uoldIV.getRow(s + m_offy);
-        uoldIUS = uoldIU.getRow(s + m_offy);
+        auto *qIDS = qID.getRow(y);
+        auto *qIVS = qIV.getRow(y);
+        auto *qIUS = qIU.getRow(y);
 
-        real_t *qIDS = qID.getRow(s);
-        // real_t *qIPS = qIP.getRow(s);
-        real_t *qIVS = qIV.getRow(s);
-        real_t *qIUS = qIU.getRow(s);
-
-        real_t *eS = (m_work->getE()).getRow(s);
+        auto *eS = (m_work->getE()).getRow(y);
         compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS, uoldIDS, uoldIUS, uoldIVS,
                               uoldIPS, eS);
     }

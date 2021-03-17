@@ -39,8 +39,8 @@ void Domain::getUoldFromDevice() {
     for (int var = 0; var < NB_VAR; var++) {
 
         auto matrice = (*m_uold)(var);
-        int32_t lgr = matrice->getH() * matrice->getW();
         RArray2D<real_t> matDevice(onHost.m_uold(var));
+        int32_t lgr = matrice->getH() * matrice->getW();
 
         assert(matrice->getH() == matDevice.getH());
         assert(matrice->getW() == matDevice.getW());

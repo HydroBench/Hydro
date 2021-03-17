@@ -2,9 +2,8 @@
 // (C) Guillaume.Colin-de-Verdiere at CEA.Fr
 //
 
-#include "DeviceBuffers.hpp"
-
 #include "precision.hpp"
+#include "Device_Buffers.hpp"
 
 #include <CL/sycl.hpp>
 #include <algorithm>
