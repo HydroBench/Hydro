@@ -151,7 +151,7 @@ Domain::~Domain() {
     if (m_sendbufld)
         free(m_sendbufld);
     if (m_localDt)
-        free(m_localDt);
+        free(m_localDt, ParallelInfo::extraInfos()->m_queue);
 
     delete[] m_threadTimers;
     delete[] m_mortonIdx;
@@ -710,7 +710,7 @@ void Domain::setTiles() {
     mortonH = (m_ny + tileSize - 1) / tileSize;
     mortonW = (m_nx + tileSize - 1) / tileSize;
 
-    m_localDt = AlignedAllocReal(m_nbTiles);
+
 
     // Create the Morton holder to wander around the tiles
     m_morton = new Matrix2<int32_t>(mortonW, mortonH);

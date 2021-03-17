@@ -29,10 +29,6 @@ void validmatrix() {
 
 int main(int argc, char **argv) {
 
-#ifdef WITHHBW
-    hbw_set_policy(HBW_POLICY_PREFERRED);
-// #pragma message "HBW policy set to PREFERRED"
-#endif
 
     Domain *domain = new Domain(argc, argv);
 

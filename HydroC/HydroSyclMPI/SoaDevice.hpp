@@ -63,6 +63,8 @@ template <typename S> class RArray2D {
 
   public:
     RArray2D() = delete;
+    RArray2D(const RArray2D  & org) : m_data(org.m_data), m_w(org.m_w), m_h(org.m_h) {};
+
     RArray2D &operator=(const RArray2D &) = delete;
 
     SYCL_EXTERNAL

@@ -16,7 +16,7 @@ nstepmax=10		# end computation after n iterations
 # chkpt=1		# create a checkpoint restart file to continue the
   			#    simulation if time limit has been reached
 stats = 1 		# print run statistics 	      0 = less output
-ndumpline = 0		# iteration at which dumping a line of values.
+ndumpline = 1		# iteration at which dumping a line of values.
 	    		#    useful to validate modifications. -1 to deactivate
 			
 tasked=   0		# activate tasks instead of classical OpenMP loops
@@ -33,7 +33,7 @@ fakereadsize = 0	# number of bytes to read
 &MESH0
 nx=2012			# total number of cells in the x dimension
 ny=2043			# total number of cells in the y dimension
-tilesize=0		# lengths of the sizes of the square tiles paving the domain
+tilesize=60		# lengths of the sizes of the square tiles paving the domain
 morton=1		# affects the tiles to threads according to a morton curve
 numa=1			# intialize arrays in a numa aware manner
 

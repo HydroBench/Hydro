@@ -204,6 +204,8 @@ class Domain {
     void dumpOneArray(FILE *f, Matrix2<real_t> &p);
     void dumpLineArray(FILE *f, Matrix2<real_t> &p, char *name, char *ext);
 
+    void debuginfos();
+
   protected:
   public:
     // basic constructor

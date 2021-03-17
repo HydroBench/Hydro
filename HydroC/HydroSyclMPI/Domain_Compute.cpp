@@ -40,6 +40,14 @@
 #define LIGHTSYNC 0
 #endif
 
+
+void Domain::debuginfos()
+{
+	auto arr1 = (*m_uold)(0);
+	std::cerr << "Info " << std::accumulate(arr1->data(), arr1->data()+(arr1->getW() * arr1->getH() ) , 0.0)
+			<< std::endl;
+}
+
 void Domain::changeDirection() {
 
     // We have to change direction of the different arrays that are on the devices
@@ -150,8 +158,11 @@ real_t Domain::computeTimeStep() {
 
     for (int32_t pass = 0; pass < 2; pass++) {
 
+    	debuginfos();
+    	// This is modifying uold
         boundary_init();
         boundary_process();
+        debuginfos();
 
         sendUoldToDevice(); // Since Uold is modified by the two previous routines
 
@@ -166,6 +177,7 @@ real_t Domain::computeTimeStep() {
         auto nb_tiles = m_nbTiles;
         auto tcur = m_tcur;
         auto dt = m_dt;
+
 
         queue
             .submit([&](sycl::handler &handler) {
