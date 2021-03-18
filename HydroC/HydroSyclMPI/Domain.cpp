@@ -858,14 +858,17 @@ void Domain::setTiles() {
     std::cerr << "Memory allocated on Device" << std::endl;
     auto theTiles = m_tilesOnDevice;
 
-    queue.submit([&](sycl::handler &handler) {
-        auto global_range = sycl::nd_range<1>(m_nbWorkItems, m_nbWorkItems);
-        handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-            int idx = it.get_global_id();
-
-            theTiles[0].deviceSharedVariables()->m_device_buffers[idx].firstTouch();
-        });
-    });
+    for (int v = 0; v < NB_VAR; v++)
+        for (int t = 0; t < m_nbTiles; t++) {
+            queue.submit([&](sycl::handler &handler) {
+                handler.memset(temp_buffers[t].getC().data(), 0,
+                               temp_buffers[t].getLength() * sizeof(real_t));
+            });
+            queue.submit([&](sycl::handler &handler) {
+                handler.memset(temp_buffers[t].getE().data(), 0,
+                               temp_buffers[t].getLength() * sizeof(real_t));
+            });
+        }
 }
 
 // EOF
