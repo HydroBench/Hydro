@@ -403,7 +403,7 @@ void Domain::compute() {
         }
     }
     dt = m_dt;
-    dumpLine();
+   // dumpLine(); only for debug
 
     while (m_tcur < m_tend) {
         int needSync = 0;
