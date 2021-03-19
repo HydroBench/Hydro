@@ -404,6 +404,9 @@ void Domain::compute() {
     }
     dt = m_dt;
 
+   // dumpLine(); only for debug
+
+
     while (m_tcur < m_tend) {
         int needSync = 0;
         vtkprt[0] = '\0';
