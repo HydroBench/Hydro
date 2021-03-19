@@ -15,10 +15,11 @@ SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvaria
 
     m_managed = true;
     m_swapped = false;
-
+#if 0
     auto queue = ParallelInfo::extraInfos()->m_queue;
     queue.submit(
         [&](sycl::handler &h) { h.memset(m_array, 0, m_w * m_h * m_nbvariables * sizeof(T)); });
+#endif
 }
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
@@ -33,8 +34,10 @@ template <typename T>
 Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true) {
     m_data = sycl::malloc_device<T>(m_w * m_h, ParallelInfo::extraInfos()->m_queue);
     m_swapped = false;
+#if 0
     auto queue = ParallelInfo::extraInfos()->m_queue;
     queue.submit([&](sycl::handler &h) { h.memset(m_data, 0, m_w * m_h * sizeof(T)); });
+#endif
 }
 
 template <typename T> Array2D<T>::~Array2D() {
@@ -46,9 +49,6 @@ template <typename T> Array2D<T>::~Array2D() {
 template <typename T> Array1D<T>::Array1D(int32_t lgr) {
     m_data = sycl::malloc_device<T>(lgr, ParallelInfo::extraInfos()->m_queue);
     m_lgr = lgr;
-
-    auto queue = ParallelInfo::extraInfos()->m_queue;
-    queue.submit([&](sycl::handler &h) { h.memset(m_data, 0, lgr * sizeof(T)); });
 }
 
 template <typename T> Array1D<T>::~Array1D() {

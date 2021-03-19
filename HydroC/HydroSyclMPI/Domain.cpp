@@ -856,19 +856,22 @@ void Domain::setTiles() {
         [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
 
     std::cerr << "Memory allocated on Device" << std::endl;
-    auto theTiles = m_tilesOnDevice;
+    auto localoD = onDevice;
 
-    for (int v = 0; v < NB_VAR; v++)
-        for (int t = 0; t < m_nbTiles; t++) {
-            queue.submit([&](sycl::handler &handler) {
-                handler.memset(temp_buffers[t].getC().data(), 0,
-                               temp_buffers[t].getLength() * sizeof(real_t));
-            });
-            queue.submit([&](sycl::handler &handler) {
-                handler.memset(temp_buffers[t].getE().data(), 0,
-                               temp_buffers[t].getLength() * sizeof(real_t));
-            });
-        }
+    queue.submit([&](sycl::handler &handler) {
+        handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) {
+            auto &work = localoD->m_device_buffers[idx];
+            int lgr = work.getLength();
+
+            auto v_c = work.getC().data();
+            auto v_e = work.getE().data();
+            for (int32_t i = 0;  i < lgr; i++) {
+                v_c[i] = 0;
+                v_e[i] = 0;
+            }
+        });
+    });
+    
 }
 
 // EOF
