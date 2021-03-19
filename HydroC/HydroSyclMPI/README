@@ -8,6 +8,10 @@ To compile HydroC, just do make in this directory.
 
 To controle DPC++ runs you can use those variables:
 
+ * SYCL_DEVICE_TYPE= CPU | GPU 
+ 
+ or when it will be working 
+
  * SYCL_DEVICE_FILTER=backend:device_type:device_num
 
 - backend in host, level_zero, opencl, cuda, "*"

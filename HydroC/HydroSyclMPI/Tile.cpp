@@ -81,10 +81,6 @@ void Tile::slope() {
     int32_t xmin, xmax, ymin, ymax;
     double start, end;
 
-#if 0   
-    start = Custom_Timer::dcclock();
-#endif
-
     for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
         auto q = m_work->getQ()(nbv);
         auto dq = m_work->getDQ()(nbv);
@@ -104,21 +100,10 @@ void Tile::slope() {
     auto dq = m_work->getDQ()(IP_VAR);
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile dq slope" << dq;
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(SLOPE, elaps);
-#endif
 } // slope
 
 void Tile::trace() {
     int32_t xmin, xmax, ymin, ymax;
-
-#if 0   
-    double start, end;
-
-    start = Custom_Timer::dcclock();
-#endif
-
     auto qID = m_work->getQ()(ID_VAR);
     auto qIV = m_work->getQ()(IV_VAR);
     auto qIU = m_work->getQ()(IU_VAR);
@@ -189,10 +174,6 @@ void Tile::trace() {
 
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile pqxpIP Trace" << pqxpIP;
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(TRACE, elaps);
-#endif
 
 } // trace
 
@@ -277,11 +258,6 @@ void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqri
 void Tile::qleftr() {
     int32_t xmin, xmax, ymin, ymax;
 
-#if 0    
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
-
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t v = 0; v < NB_VAR; v++) {
@@ -304,10 +280,7 @@ void Tile::qleftr() {
     auto pqright = m_work->getQRIGHT()(IP_VAR);
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile qright qleftr" << pqright;
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(QLEFTR, elaps);
-#endif
+
 }
 
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
@@ -330,10 +303,7 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
 
 void Tile::compflx() {
     int32_t xmin, xmax, ymin, ymax;
-#if 0   
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
+
 
     auto qgdnvID = m_work->getQGDNV()(ID_VAR);
     auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
@@ -365,10 +335,6 @@ void Tile::compflx() {
     }
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile fluxIP compflx" << fluxIP;
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(COMPFLX, elaps);
-#endif
 
 } // compflx
 
@@ -418,10 +384,6 @@ void Tile::updateconservYscan(int32_t y, int32_t xmin, int32_t xmax, int32_t ymi
 
 void Tile::updateconserv() {
 
-#if 0
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
 
     int32_t xmin, xmax, ymin, ymax;
 
@@ -492,10 +454,6 @@ void Tile::updateconserv() {
                << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
     }
 
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(UPDCVAR, elaps);
-#endif
 
 } // updateconserv
 
@@ -525,10 +483,6 @@ void Tile::gatherconservYscan() {}
 
 void Tile::gatherconserv() {
     int32_t xmin, xmax, ymin, ymax;
-#if 0   
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
 
     auto uID = (m_u)(ID_VAR);
     auto uIP = (m_u)(IP_VAR);
@@ -572,10 +526,6 @@ void Tile::gatherconserv() {
         cout() << "Tile uID gatherconserv" << uID << "Tile uIU gatherconserv" << uIU
                << "Tile uIV gatherconserv" << uIV << "Tile uIP gatherconserv" << uIP;
     }
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(GATHCVAR, elaps);
-#endif
 
 } // gatherconserv
 
@@ -609,10 +559,7 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 
 void Tile::eos(tileSpan_t span) {
     int32_t xmin, xmax, ymin, ymax;
-#if 0
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
+
 
     auto qID = m_work->getQ()(ID_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
@@ -633,10 +580,7 @@ void Tile::eos(tileSpan_t span) {
     if (deviceSharedVariables()->m_prt) {
         cout() << "Tile qIP eos" << qIP << "Tile c eos" << m_work->getC();
     }
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(EOS, elaps);
-#endif
+
 
 } // eos
 
@@ -668,10 +612,7 @@ void Tile::compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32
 
 real_t Tile::compute_dt() {
     int32_t xmin, xmax, ymin, ymax;
-#if 0   
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
+
     real_t dt = 0, cournox, cournoy, tmp1 = zero, tmp2 = zero;
     auto uoldID = (deviceSharedVariables()->m_uold)(ID_VAR);
     auto uoldIP = (deviceSharedVariables()->m_uold)(IP_VAR);
@@ -710,17 +651,12 @@ real_t Tile::compute_dt() {
                               uoldIPS, eS);
     }
     // stop timer here to avoid counting EOS twice
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(COMPDT, elaps);
-#endif
+
 
     eos(TILE_INTERIOR); // needs    qID, e    returns    c, qIP
 
     // resume timing
-#if 0
-    start = Custom_Timer::dcclock();
-#endif
+
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIVS = qIV.getRow(s);
@@ -741,10 +677,7 @@ real_t Tile::compute_dt() {
 
     if (deviceSharedVariables()->m_prt)
         cout() << "tile dt " << dt << "\n";
-#if 0
-    elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(COMPDT, elaps);
-#endif
+
 
     return dt;
 } // compute_dt
@@ -774,10 +707,7 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 
 void Tile::constprim() {
     int32_t xmin, xmax, ymin, ymax;
-#if 0   
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
+
 
     auto qID = m_work->getQ()(ID_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
@@ -810,10 +740,7 @@ void Tile::constprim() {
         cout() << "Tile qIP constprim" << qIP << "Tile e constprim" << m_work->getE();
     }
 
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(CONSTPRIM, elaps);
-#endif
+
 
 } // constprim
 
@@ -950,10 +877,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
 void Tile::riemann() {
     int32_t xmin, xmax, ymin, ymax;
-#if 0   
-    double start, end;
-    start = Custom_Timer::dcclock();
-#endif
+
 
     auto qgdnvID = m_work->getQGDNV()(ID_VAR);
     auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
@@ -1003,10 +927,7 @@ void Tile::riemann() {
                << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
     }
 
-#if 0
-    double elaps = Custom_Timer::dcclock() - start;
-    m_threadTimers[myThread()].add(RIEMANN, elaps);
-#endif
+
 
 } // riemann
 
