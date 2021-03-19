@@ -25,15 +25,13 @@ class DeviceBuffers {
     Array1D<real_t> m_sgnm; //
     Array1D<real_t> m_pl;
 
-    // To be used as to be initialized at the beginning of each kernel and shared by
-    // tiles/workitems/...
-    sycl::stream *m_out;
+    int m_nx, m_ny;
 
     bool m_swapped = false;
 
   protected:
   public:
-    DeviceBuffers() : m_out(nullptr) {}
+    DeviceBuffers() {}
     // basic constructor
     void init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax);
 
@@ -72,7 +70,7 @@ class DeviceBuffers {
     real_t *getPL() { return m_pl.data(); }
 
     SYCL_EXTERNAL
-    sycl::stream *cout() { return m_out; }
+    int32_t getLength() { return m_nx * m_ny; }
 };
 #endif
 // EOF

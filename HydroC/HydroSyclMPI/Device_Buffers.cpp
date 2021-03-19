@@ -22,6 +22,9 @@ void DeviceBuffers::init(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax)
 
     lgmax = std::max(lgx, lgy);
 
+    m_nx = lgx;
+    m_ny = lgy;
+
     m_q = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
     m_qxm = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
     m_qxp = (SoaDevice<real_t>(NB_VAR, lgx, lgy));

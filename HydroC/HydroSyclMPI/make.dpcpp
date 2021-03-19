@@ -6,7 +6,7 @@ CFLAGS=
 
 
 ifneq ($(DBG),O)
-   OPTIM+=-O3 -g
+   OPTIM+=-O2
 else
    OPTIM += -g -O0
 endif

@@ -24,3 +24,7 @@ HydroC/HydroSyclMPI/.vscode/c_cpp_properties.json
 HydroC/HydroSyclMPI/.vscode/settings.json
 HydroC/HydroCplusMPI/.vscode/c_cpp_properties.json
 HydroC/HydroSyclMPI/.vscode/tasks.json
+HydroC/HydroSyclMPI/bar.txt
+HydroC/HydroSyclMPI/ref.txt
+HydroC/HydroSyclMPI/ref1.txt
+HydroC/HydroSyclMPI/hydroc.dpcpp

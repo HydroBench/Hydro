@@ -148,6 +148,8 @@ template <typename S> class Array2D {
     SYCL_EXTERNAL
     S *getRow(int row) { return &m_data[row * m_w]; }
 
+    S *data() { return m_data; }
+
     friend std::ostream &operator<<(std::ostream &, const Array2D<S> &);
 
     SYCL_EXTERNAL

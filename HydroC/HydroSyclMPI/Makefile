@@ -1,4 +1,4 @@
-# Makefile for DPCPP
+# Makefile for Sycl
 
 
 SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp Device_Buffers.cpp \
@@ -18,7 +18,7 @@ HOST=$(shell uname -n | sed 's/[0-9]//g')
 ARCHEXT=dpcpp
 NODEFAULT=no
 DPCPP=O
-DBG=O
+DBG=N
 
 
 DEFS+=$(DEFSEXT)
@@ -28,6 +28,11 @@ include make.compil
 
 ifeq ($(DPCPP),O)
 include make.dpcpp
+NODEFAULT=yes
+endif
+
+ifeq ($(CODEPLAY),O)
+include make.cp
 NODEFAULT=yes
 endif
 

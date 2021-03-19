@@ -9,6 +9,8 @@
 
 //
 
+template <typename T> inline T my_abs(const T &b) { return (b < 0) ? -b : b; }
+
 Tile::Tile() {
     m_scan = X_SCAN;
     m_ExtraLayer = 2;
@@ -70,8 +72,8 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS) {
         dsgn = (dcen > 0) ? one : -one; // sign(one, dcen);
 
         llftrgt = ((dlft * drgt) <= zero);
-        t1 = sycl::min(sycl::abs(dlft), sycl::abs(drgt));
-        dqS[i] = dsgn * sycl::min((one - llftrgt) * t1, sycl::abs(dcen));
+        t1 = sycl::min(my_abs(dlft), my_abs(drgt));
+        dqS[i] = dsgn * sycl::min((one - llftrgt) * t1, my_abs(dcen));
     }
 }
 
@@ -657,10 +659,10 @@ void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal
 void Tile::compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32_t xmax, Preal_t cS,
                                  Preal_t qIUS, Preal_t qIVS) {
     for (int32_t i = xmin; i < xmax; i++) {
-        tmp1 = sycl::max(tmp1, cS[i] + sycl::abs(qIUS[i]));
+        tmp1 = sycl::max(tmp1, cS[i] + my_abs(qIUS[i]));
     }
     for (int32_t i = xmin; i < xmax; i++) {
-        tmp2 = sycl::max(tmp2, cS[i] + sycl::abs(qIVS[i]));
+        tmp2 = sycl::max(tmp2, cS[i] + my_abs(qIVS[i]));
     }
 }
 
@@ -871,7 +873,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                 pst += delp_i;
                 // Convergence indicator
                 real_t tmp2 = delp_i / (pst + smallpp);
-                real_t uo_i = sycl::abs(tmp2);
+                real_t uo_i = my_abs(tmp2);
                 go_onI = uo_i > precision;
                 // FLOPS(29, 10, 2, 0);
                 pstarI = pst;
@@ -892,13 +894,13 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         po_i = left * plI + (one - left) * prI;
         wo_i = left * wl_i + (one - left) * wr_i;
 
-        real_t co_i = sycl::sqrt(sycl::abs(deviceSharedVariables()->m_gamma * po_i / ro_i));
+        real_t co_i = sycl::sqrt(my_abs(deviceSharedVariables()->m_gamma * po_i / ro_i));
         co_i = sycl::max(deviceSharedVariables()->m_smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
         rstar_i = sycl::max(rstar_i, deviceSharedVariables()->m_smallr);
 
-        real_t cstar_i = sycl::sqrt(sycl::abs(deviceSharedVariables()->m_gamma * pstarI / rstar_i));
+        real_t cstar_i = sycl::sqrt(my_abs(deviceSharedVariables()->m_gamma * pstarI / rstar_i));
         cstar_i = sycl::max(deviceSharedVariables()->m_smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
@@ -912,7 +914,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
         real_t scr_i =
             sycl::max((real_t)(spout_i - spin_i),
-                      (real_t)(deviceSharedVariables()->m_smallc + sycl::abs(spout_i + spin_i)));
+                      (real_t)(deviceSharedVariables()->m_smallc + my_abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = sycl::max(zero, (real_t)(sycl::min(one, frac_i)));
@@ -1032,6 +1034,7 @@ void Tile::godunov() {
     if (deviceSharedVariables()->m_order > 1) {
         slope();
     }
+    trace(); // Was missing !
 
     qleftr();
 

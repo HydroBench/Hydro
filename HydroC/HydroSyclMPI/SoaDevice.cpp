@@ -12,8 +12,14 @@ template <typename T>
 SoaDevice<T>::SoaDevice(int variables, int w, int h) : m_w(w), m_h(h), m_nbvariables(variables) {
     m_array =
         sycl::malloc_device<T>(m_w * m_h * m_nbvariables, ParallelInfo::extraInfos()->m_queue);
+
     m_managed = true;
     m_swapped = false;
+#if 0
+    auto queue = ParallelInfo::extraInfos()->m_queue;
+    queue.submit(
+        [&](sycl::handler &h) { h.memset(m_array, 0, m_w * m_h * m_nbvariables * sizeof(T)); });
+#endif
 }
 
 template <typename T> SoaDevice<T>::~SoaDevice() {
@@ -28,6 +34,10 @@ template <typename T>
 Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true) {
     m_data = sycl::malloc_device<T>(m_w * m_h, ParallelInfo::extraInfos()->m_queue);
     m_swapped = false;
+#if 0
+    auto queue = ParallelInfo::extraInfos()->m_queue;
+    queue.submit([&](sycl::handler &h) { h.memset(m_data, 0, m_w * m_h * sizeof(T)); });
+#endif
 }
 
 template <typename T> Array2D<T>::~Array2D() {
@@ -52,15 +62,17 @@ const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> &ma
 
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
-    os << " nx=" << srcX << " ny=" << srcY << "\n";
+    os << " nx=" << srcX << " ny=" << srcY << sycl::endl;
+    int width = os.get_width();
     for (int32_t j = 0; j < srcY; j++) {
 
         for (int32_t i = 0; i < srcX; i++) {
-            os << mat(i, j) << " ";
+
+            os << sycl::setw(12) << sycl::scientific << sycl::setprecision(4) << mat(i, j) << " ";
         }
-        os << "\n";
+        os << sycl::stream_manipulator::endl;
     }
-    os << "\n\n";
+    os << sycl::setw(width) << sycl::stream_manipulator::endl << sycl::stream_manipulator::endl;
     return os;
 }
 
@@ -68,15 +80,16 @@ SYCL_EXTERNAL
 const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> &mat) {
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
+    int32_t width = os.get_width();
     os << " nx=" << srcX << " ny=" << srcY << "\n";
     for (int32_t j = 0; j < srcY; j++) {
 
         for (int32_t i = 0; i < srcX; i++) {
-            os << mat(i, j) << " ";
+            os << sycl::setw(12) << sycl::scientific << sycl::setprecision(4) << mat(i, j) << " ";
         }
         os << sycl::stream_manipulator::endl;
     }
-    os << sycl::stream_manipulator::endl
+    os << sycl::setw(width) << sycl::stream_manipulator::endl
        << sycl::stream_manipulator::endl
        << sycl::stream_manipulator::flush;
     return os;

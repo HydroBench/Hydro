@@ -169,7 +169,7 @@ class Domain {
         return nbtx * nbty;
     }
 
-    Domain(void){}; // default constructor.
+    Domain(void) = delete;
     void swapScan() {
         if (m_scan == X_SCAN)
             m_scan = Y_SCAN;
