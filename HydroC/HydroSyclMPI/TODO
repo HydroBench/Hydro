@@ -1,0 +1,7 @@
+TODO
+
+1) Split the kernels into smaller pieces => measure the impact on performances
+2) Try to do boundary limits in the device so that no more Uold transfers are needed
+3) allocate alligned arrays and adjust the corresponding dimensions (As it the C++ version)
+4) Check if the MPI version is still working
+
