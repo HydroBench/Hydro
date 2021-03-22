@@ -56,7 +56,8 @@ void Domain::changeDirection() {
     queue
         .submit([&](sycl::handler &handler) {
             handler.depends_on({first_call});
-            handler.single_task([=]() { /* nothing more */ });
+            handler.single_task([=]() { /* nothing more */
+            });
         })
         .wait();
 
@@ -185,8 +186,6 @@ real_t Domain::computeTimeStep() {
                         my_tile.setDt(dt);
                         my_tile.gatherconserv(); // From uold to TIle's u
 
-                        my_tile.godunov();
-
 #if WITH_TIMERS == 1
                         endT = Custom_Timer::dcclock();
                         (m_timerLoops[thN])[LOOP_GODUNOV] += (endT - startT);
@@ -196,8 +195,148 @@ real_t Domain::computeTimeStep() {
             })
             .wait();
 
+        if (m_prt) {
+            std::cout << "= = = = = = = =  = =" << std::endl;
+            std::cout << "      Godunov" << std::endl;
+            std::cout << "= = = = = = = =  = =" << std::endl;
+            std::cout << std::endl << " scan " << (int32_t)m_scan << std::endl;
+            std::cout << std::endl << " time " << m_tcur << std::endl;
+            std::cout << std::endl << " dt " << m_dt << std::endl;
+        }
+
+        double startT = Custom_Timer::dcclock();
+
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.constprim();
+                    }
+                });
+            })
+            .wait();
+
+        double endT = Custom_Timer::dcclock();
+        m_mainTimer.add(CONSTPRIM, endT - startT);
+
+        startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.eos(TILE_FULL);
+                    }
+                });
+            })
+            .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(EOS, endT - startT);
+
+        if (m_iorder > 1) {
+            startT = endT;
+            queue
+                .submit([&](sycl::handler &handler) {
+                    sycl::stream out(40000, 10000, handler);
+                    auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                    handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                        int idx = it.get_global_id(0);
+                        if (idx < nb_tiles) {
+                            auto &my_tile = the_tiles[idx];
+                            my_tile.setOut(out);
+                            my_tile.slope();
+                        }
+                    });
+                })
+                .wait();
+            endT = Custom_Timer::dcclock();
+            m_mainTimer.add(SLOPE, endT - startT);
+        }
+
+        startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.trace();
+                    }
+                });
+            })
+            .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(TRACE, endT - startT);
+
+        startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.qleftr();
+                    }
+                });
+            })
+            .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(QLEFTR, endT - startT);
+
+        startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.riemann();
+                    }
+                });
+            })
+            .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(RIEMANN, endT - startT);
+
+        startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                sycl::stream out(40000, 10000, handler);
+                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+                    int idx = it.get_global_id(0);
+                    if (idx < nb_tiles) {
+                        auto &my_tile = the_tiles[idx];
+                        my_tile.setOut(out);
+                        my_tile.compflx();
+                    }
+                });
+            })
+            .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(COMPFLX, endT - startT);
+
         // we have to wait here that all tiles are ready to update uold
 
+        startT = endT;
         sycl::buffer<real_t> localDT(m_nbTiles);
         queue
             .submit([&](sycl::handler &handler) {
@@ -211,11 +350,6 @@ real_t Domain::computeTimeStep() {
                     auto local = the_tiles[0].deviceSharedVariables();
                     if (tile_idx < nb_tiles) {
 
-#if WITH_TIMERS == 1
-                        int32_t thN = 0;
-                        double startT = Custom_Timer::dcclock(), endT;
-                        thN = myThread();
-#endif
                         auto &my_tile = the_tiles[tile_idx];
                         my_tile.setOut(out);
                         my_tile.setBuffers(local->buffers(tile_idx));
@@ -224,15 +358,13 @@ real_t Domain::computeTimeStep() {
 
                         real_t local_dt = my_tile.computeDt();
                         localDt[tile_idx] = local_dt;
-
-#if WITH_TIMERS == 1
-                        endT = Custom_Timer::dcclock();
-                        (m_timerLoops[thN])[LOOP_UPDATE] += (endT - startT);
-#endif
                     }
                 });
             })
             .wait();
+        endT = Custom_Timer::dcclock();
+        m_mainTimer.add(UPDCVAR, endT - startT);
+
         sycl::host_accessor localDT_h(localDT, sycl::read_only);
         last_dt = localDT_h[0];
         for (int i = 1; i < m_nbTiles; i++)
@@ -250,7 +382,7 @@ real_t Domain::computeTimeStep() {
 
         if (pass == 0)
             changeDirection();
-        // std::cerr << " new dir\n";
+
     } // X_SCAN - Y_SCAN
 
     // final estimation of the time step
