@@ -747,11 +747,17 @@ void Domain::setTiles() {
             m_mortonIdx[i] = i;
     }
     //
+    // TODO: sort the index arrays according to the m_mortonIdx
+    //
+    std::vector<std::pair<int, int>> array_to_sort;
+    for (int i = 0; i < m_nbTiles; i++)
+        array_to_sort.push_back(std::make_pair(m_mortonIdx[i], i));
+    if (m_withMorton) {
+        std::sort(array_to_sort.begin(), array_to_sort.end());
+    }
+    // Create the Tiles
 
     m_tiles = new Tile[m_nbTiles];
-    //
-    // TODO: sort Tile arrays according to the m_mortonIdx
-    //
 
     onHost.m_prt = m_prt;
 
@@ -769,7 +775,13 @@ void Domain::setTiles() {
                 tileSizeX = m_nx - offx;
             assert(tileSizeX <= tileSize);
 
-            m_tiles[m_nbTiles++].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
+            int tile_idx = m_nbTiles++;
+
+            if (m_withMorton)
+                tile_idx = array_to_sort[tile_idx].second;
+
+            m_tiles[tile_idx].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
+
             if (m_prt) {
                 std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;
                 std::cout << " ofx " << offx << " offy " << offy;
@@ -865,13 +877,12 @@ void Domain::setTiles() {
 
             auto v_c = work.getC().data();
             auto v_e = work.getE().data();
-            for (int32_t i = 0;  i < lgr; i++) {
+            for (int32_t i = 0; i < lgr; i++) {
                 v_c[i] = 0;
                 v_e[i] = 0;
             }
         });
     });
-    
 }
 
 // EOF
