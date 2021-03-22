@@ -53,14 +53,15 @@ template <typename T> void Matrix2<T>::swapDimAndValues() {
 
 template <typename T>
 Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), _arr(nullptr), _org(0) {
-#if 0   
-    // remove black magic in order to be able to send/to device :-)
+
+	int nb_elt_per_align = ALIGNEXT / sizeof(T);
+	int remain = _w % nb_elt_per_align;
+	if (remain)
+		_w += (nb_elt_per_align - remain);
+	remain = _h % nb_elt_per_align;
+	if (remain)
+		_h += (nb_elt_per_align - remain);
     // padd the array to make the next row aligned too.
-    _w += (((_w * sizeof(T)) % ALIGNEXT) / sizeof(T));
-    _h += (((_h * sizeof(T)) % ALIGNEXT) / sizeof(T));
-    _w += (_w % 2);
-    _h += (_h % 2);
-#endif
     allocate();
 }
 

@@ -168,7 +168,7 @@ template <typename T> class SoaDevice {
     SoaDevice() : m_array(nullptr), m_managed(false), m_swapped(false) {
         m_w = m_h = m_nbvariables = -1;
     }
-    SoaDevice(int variables, int w, int h);
+    SoaDevice(int variables, int32_t w, int32_t h);
     SoaDevice(const SoaDevice &org) = delete;
     SoaDevice &operator=(const SoaDevice &) = delete;
 

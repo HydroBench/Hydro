@@ -39,8 +39,7 @@ class Tile {
     DeviceBuffers *m_work;
     // Shared variables for all tiles
 
-    const sycl::stream *m_cout;
-    TilesSharedVariables *m_onDevice;
+   TilesSharedVariables *m_onDevice;
 
     bool m_swapped;
     //
@@ -146,12 +145,6 @@ class Tile {
     void initTile();
     bool isSwapped() const { return m_swapped; }
 
-    SYCL_EXTERNAL
-    void setOut(const sycl::stream &out) { m_cout = &out; }
-
-    // Has to be defined at the beginning of the kernel with setOut
-    SYCL_EXTERNAL
-    const sycl::stream &cout() { return *m_cout; }
 
     void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 
@@ -214,7 +207,7 @@ class Tile {
                    real_t dx);
 
     SYCL_EXTERNAL
-    void setBuffers(DeviceBuffers *buf);
+    void setBuffers(DeviceBuffers *buf) {m_work = buf; }
 
     void notProcessed() { m_hasBeenProcessed = 0; }
     void doneProcessed(int step) { m_hasBeenProcessed = step; }

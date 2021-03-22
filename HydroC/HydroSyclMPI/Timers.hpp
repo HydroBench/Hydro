@@ -23,6 +23,8 @@ typedef enum {
     COMPDT,
     CONSTPRIM,
     RIEMANN,
+	SENDUOLD,
+	GETUOLD,
     TILEOMP, // maker to end tile measurements
     BOUNDEXEC,
     BOUNDINIT,
