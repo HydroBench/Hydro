@@ -10,6 +10,8 @@
 #include "Tile_Shared_Variables.hpp"
 #include "precision.hpp"
 
+#include <cstdint>
+
 class DeviceBuffers;
 struct TilesSharedVariables;
 
@@ -45,57 +47,42 @@ class Tile {
 
     // compute routines
     SYCL_EXTERNAL
-    void slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS); // fait
-    SYCL_EXTERNAL
-    void slope(); // fait
+    void slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS);
+
     SYCL_EXTERNAL
     void traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, real_t zerol,
                     real_t project, Preal_t cS, Preal_t qIDS, Preal_t qIUS, Preal_t qIVS,
                     Preal_t qIPS, Preal_t dqIDS, Preal_t dqIUS, Preal_t dqIVS, Preal_t dqIPS,
                     Preal_t pqxpIDS, Preal_t pqxpIUS, Preal_t pqxpIVS, Preal_t pqxpIPS,
-                    Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS); // fait
+                    Preal_t pqxmIDS, Preal_t pqxmIUS, Preal_t pqxmIVS, Preal_t pqxmIPS);
     SYCL_EXTERNAL
-    void trace();
-    SYCL_EXTERNAL // fait
-        void
-        qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS,
-                    Preal_t pqxpS); // fait
+    void qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqrightS, Preal_t pqxmS,
+                     Preal_t pqxpS);
     SYCL_EXTERNAL
-    void qleftr();
-    SYCL_EXTERNAL // fait
-        void
-        compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS,
-                     Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS,
-                     Preal_t fluxIPS, Preal_t fluxIDS); // fait
-    SYCL_EXTERNAL
-    void compflx(); // fait
+    void compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS, Preal_t qgdnvIUS,
+                      Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS, Preal_t fluxIUS,
+                      Preal_t fluxIPS, Preal_t fluxIDS);
     SYCL_EXTERNAL
     void eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS, Preal_t qIPS,
-                  Preal_t cS); // fait
-    SYCL_EXTERNAL
-    void eos(tileSpan_t span); // fait
+                  Preal_t cS);
     SYCL_EXTERNAL
     void constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIVS,
                         Preal_t qIUS, Preal_t uIDS, Preal_t uIPS, Preal_t uIVS, Preal_t uIUS,
                         Preal_t eS);
-    SYCL_EXTERNAL
-    void constprim(); // fait
     SYCL_EXTERNAL
     void riemannOnRow(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6, real_t smallpp,
                       Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIPS, Preal_t qgdnvIVS,
                       Preal_t qleftIDS, Preal_t qleftIUS, Preal_t qleftIPS, Preal_t qleftIVS,
                       Preal_t qrightIDS, Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS,
                       long *__restrict__ goon, Preal_t sgnm, Preal_t pstar, Preal_t rl, Preal_t ul,
-                      Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl,
-                      Preal_t cr); // fait
+                      Preal_t pl, Preal_t rr, Preal_t ur, Preal_t pr, Preal_t cl, Preal_t cr);
+
     SYCL_EXTERNAL
     void riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t gamma6,
                             real_t smallpp, Preal_t qgdnvIDS, Preal_t qgdnvIUS, Preal_t qgdnvIPS,
                             Preal_t qgdnvIVS, Preal_t qleftIDS, Preal_t qleftIUS, Preal_t qleftIPS,
                             Preal_t qleftIVS, Preal_t qrightIDS, Preal_t qrightIUS,
                             Preal_t qrightIPS, Preal_t qrightIVS, Preal_t sgnm);
-    SYCL_EXTERNAL
-    void riemann(); // fait
     SYCL_EXTERNAL
     void compute_dt_loop2OnRow(real_t &tmp1, real_t &tmp2, int32_t xmin, int32_t xmax, Preal_t cS,
                                Preal_t qIUS, Preal_t qIVS);
@@ -152,6 +139,7 @@ class Tile {
   public:
     // basic constructor
     Tile(void); // default constructor
+
     // destructor
     ~Tile();
 
@@ -180,19 +168,41 @@ class Tile {
 
     SYCL_EXTERNAL
     godunovDir_t godunovDir() const { return m_scan; }
+
     SYCL_EXTERNAL
     void swapStorageDims();
 
     SYCL_EXTERNAL
+    void slope();
+
+    SYCL_EXTERNAL
+    void eos(tileSpan_t span);
+
+    SYCL_EXTERNAL
     void godunov();
 
-    SYCL_EXTERNAL //
-        void
-        gatherconserv(); // fait
     SYCL_EXTERNAL
-    void updateconserv(); // fait
+    void riemann();
+
+    SYCL_EXTERNAL
+    void compflx();
+
+    SYCL_EXTERNAL
+    void trace();
+
+    SYCL_EXTERNAL
+    void qleftr();
+
+    SYCL_EXTERNAL
+    void gatherconserv();
+
+    SYCL_EXTERNAL
+    void updateconserv();
     SYCL_EXTERNAL
     real_t computeDt(); // returns local time step
+
+    SYCL_EXTERNAL
+    void constprim();
 
     // set/get
     SYCL_EXTERNAL
@@ -212,16 +222,6 @@ class Tile {
 
     SYCL_EXTERNAL
     void infos();
-
-#if 0
-
-        return r;
-    }
-    // for checkpoint / restart
-    long getLengthByte();
-    void read(const int f);
-    void write(const int f);
-#endif
 };
 #endif
 // EOF

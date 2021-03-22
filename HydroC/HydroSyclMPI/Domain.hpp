@@ -135,6 +135,7 @@ class Domain {
     real_t computeTimeStep();
     void compTStask1();
     void compTStask2();
+    void compTStask3();
     void computeDt();
     void createTestCase();
     void changeDirection();
