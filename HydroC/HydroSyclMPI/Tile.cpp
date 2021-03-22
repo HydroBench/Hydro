@@ -280,7 +280,6 @@ void Tile::qleftr() {
     auto pqright = m_work->getQRIGHT()(IP_VAR);
     if (deviceSharedVariables()->m_prt)
         cout() << "Tile qright qleftr" << pqright;
-
 }
 
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
@@ -303,7 +302,6 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
 
 void Tile::compflx() {
     int32_t xmin, xmax, ymin, ymax;
-
 
     auto qgdnvID = m_work->getQGDNV()(ID_VAR);
     auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
@@ -384,7 +382,6 @@ void Tile::updateconservYscan(int32_t y, int32_t xmin, int32_t xmax, int32_t ymi
 
 void Tile::updateconserv() {
 
-
     int32_t xmin, xmax, ymin, ymax;
 
     auto uoldID = (deviceSharedVariables()->m_uold)(ID_VAR);
@@ -453,7 +450,6 @@ void Tile::updateconserv() {
         cout() << "Tile uoldID updateconserv" << uoldID << "Tile uoldIU updateconserv" << uoldIU
                << "Tile uoldIV updateconserv" << uoldIV << "Tile uoldIP updateconserv" << uoldIP;
     }
-
 
 } // updateconserv
 
@@ -560,7 +556,6 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 void Tile::eos(tileSpan_t span) {
     int32_t xmin, xmax, ymin, ymax;
 
-
     auto qID = m_work->getQ()(ID_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
 
@@ -580,7 +575,6 @@ void Tile::eos(tileSpan_t span) {
     if (deviceSharedVariables()->m_prt) {
         cout() << "Tile qIP eos" << qIP << "Tile c eos" << m_work->getC();
     }
-
 
 } // eos
 
@@ -652,11 +646,9 @@ real_t Tile::compute_dt() {
     }
     // stop timer here to avoid counting EOS twice
 
-
     eos(TILE_INTERIOR); // needs    qID, e    returns    c, qIP
 
     // resume timing
-
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIVS = qIV.getRow(s);
@@ -677,7 +669,6 @@ real_t Tile::compute_dt() {
 
     if (deviceSharedVariables()->m_prt)
         cout() << "tile dt " << dt << "\n";
-
 
     return dt;
 } // compute_dt
@@ -707,7 +698,6 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
 
 void Tile::constprim() {
     int32_t xmin, xmax, ymin, ymax;
-
 
     auto qID = m_work->getQ()(ID_VAR);
     auto qIP = m_work->getQ()(IP_VAR);
@@ -739,8 +729,6 @@ void Tile::constprim() {
     if (deviceSharedVariables()->m_prt) {
         cout() << "Tile qIP constprim" << qIP << "Tile e constprim" << m_work->getE();
     }
-
-
 
 } // constprim
 
@@ -878,7 +866,6 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 void Tile::riemann() {
     int32_t xmin, xmax, ymin, ymax;
 
-
     auto qgdnvID = m_work->getQGDNV()(ID_VAR);
     auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
     auto qgdnvIP = m_work->getQGDNV()(IP_VAR);
@@ -926,8 +913,6 @@ void Tile::riemann() {
         cout() << "tile qgdnvID riemann" << qgdnvID << "tile qgdnvIU riemann" << qgdnvIU
                << "tile qgfnvIV riemann" << qgdnvIV << "tile qgdnvIP riemann" << qgdnvIP;
     }
-
-
 
 } // riemann
 
