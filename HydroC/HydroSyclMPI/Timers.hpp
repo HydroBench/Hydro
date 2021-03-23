@@ -26,6 +26,7 @@ typedef enum {
 	SENDUOLD,
 	GETUOLD,
     TILEOMP, // maker to end tile measurements
+	WAITQUEUE,
     BOUNDEXEC,
     BOUNDINIT,
     REDUCEMIN,
