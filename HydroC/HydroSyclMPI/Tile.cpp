@@ -9,7 +9,6 @@
 
 //
 
-
 Tile::Tile() {
     m_scan = X_SCAN;
     m_ExtraLayer = 2;
@@ -17,9 +16,7 @@ Tile::Tile() {
 
 Tile::~Tile() {}
 
-void Tile::infos() {
-
-}
+void Tile::infos() {}
 
 // This is on Host, since we allocate the device space here
 void Tile::initTile() {
@@ -78,7 +75,6 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS) {
 
 void Tile::slope() {
     int32_t xmin, xmax, ymin, ymax;
-
 
     for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
         auto q = m_work->getQ()(nbv);
@@ -162,7 +158,6 @@ void Tile::trace() {
                    dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS, pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS,
                    pqxmIVS, pqxmIPS);
     }
-
 
 } // trace
 
@@ -262,7 +257,6 @@ void Tile::qleftr() {
             qleftrOnRow(xmin, xmax, pqleftS, pqrightS, pqxmS, pqxpS);
         }
     }
-
 }
 
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
@@ -314,7 +308,6 @@ void Tile::compflx() {
         compflxOnRow(xmin, xmax, entho, qgdnvIDS, qgdnvIUS, qgdnvIVS, qgdnvIPS, fluxIVS, fluxIUS,
                      fluxIPS, fluxIDS);
     }
-
 
 } // compflx
 
@@ -383,8 +376,6 @@ void Tile::updateconserv() {
 
     real_t dtdx = m_dt / m_dx;
 
-
-
     getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
     if (m_scan == X_SCAN) {
@@ -420,7 +411,6 @@ void Tile::updateconserv() {
                                fluxIVS, fluxIUS, fluxIPS, fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
         }
     }
-
 
 } // updateconserv
 
@@ -463,7 +453,6 @@ void Tile::gatherconserv() {
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-
     if (m_scan == X_SCAN) {
         for (int32_t s = ymin; s < ymax; s++) {
             real_t *uoldIDS = uoldID.getRow(s + m_offy);
@@ -486,24 +475,22 @@ void Tile::gatherconserv() {
         }
     }
 
-
 } // gatherconserv
 
 void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Preal_t eS,
                     Preal_t qIPS, Preal_t cS) {
 
-		const real_t gamma = deviceSharedVariables()->m_gamma;
+    const real_t gamma = deviceSharedVariables()->m_gamma;
 
-        for (int32_t k = xmin; k < xmax; k++) {
-            real_t rho = qIDS[k];
-            real_t rrho = one / rho;
-            real_t base = (gamma - one) * rho * eS[k];
+    for (int32_t k = xmin; k < xmax; k++) {
+        real_t rho = qIDS[k];
+        real_t rrho = one / rho;
+        real_t base = (gamma - one) * rho * eS[k];
 
-            base = sycl::max(base, (real_t)(rho * smallp));
-            qIPS[k] = base;
-            cS[k] = sycl::sqrt(gamma* base * rrho);
-        }
-
+        base = sycl::max(base, (real_t)(rho * smallp));
+        qIPS[k] = base;
+        cS[k] = sycl::sqrt(gamma * base * rrho);
+    }
 }
 
 void Tile::eos(tileSpan_t span) {
@@ -526,13 +513,12 @@ void Tile::eos(tileSpan_t span) {
         eosOnRow(xmin, xmax, smallp, qIDS, eS, qIPS, cS);
     }
 
-
 } // eos
 
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS,
                                  Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS,
                                  Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS) {
-	real_t smallr =  deviceSharedVariables()->m_smallr;
+    real_t smallr = deviceSharedVariables()->m_smallr;
     for (int32_t i = xmin; i < xmax; i++) {
         real_t eken, tmp;
         qIDS[i] = uoldIDS[i + m_offx];
@@ -619,7 +605,6 @@ real_t Tile::compute_dt() {
         swapStorageDims();
     }
 
-
     return dt;
 } // compute_dt
 
@@ -675,7 +660,6 @@ void Tile::constprim() {
         real_t *uIUS = uIU.getRow(s);
         constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
-
 
 } // constprim
 
@@ -856,11 +840,9 @@ void Tile::riemann() {
                            qrightIPS, qrightIVS, m_work->getSGNM());
     }
 
-
 } // riemann
 
 void Tile::godunov() {
-
 
     constprim();
 
@@ -876,8 +858,6 @@ void Tile::godunov() {
     riemann();
 
     compflx();
-
-
 }
 
 real_t Tile::computeDt() {
@@ -885,4 +865,124 @@ real_t Tile::computeDt() {
     return dt;
 }
 
+void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32_t boundary_up,
+                            int32_t boundary_down) {
+
+    int32_t xmin, xmax, ymin, ymax;
+
+    getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
+
+    if (m_scan == X_SCAN) {
+        if (boundary_left > 0) {
+
+            for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
+                auto uold = m_onDevice->m_uold(ivar);
+                int32_t i_min = sycl::max(xmin + m_offx, 0);
+                int32_t i_max = sycl::min(xmax + m_offx, m_ExtraLayer);
+                for (int i = i_min; i < i_max; i++) {
+                    int i0;
+                    real_t sign = 1.0;
+                    if (boundary_left == 1) {
+                        int i0 = 2 * m_ExtraLayer - i - 1; // CL reflexion
+                        if (ivar == IU_VAR) {
+                            sign = -1.0;
+                        }
+                    } else if (boundary_left == 2) {
+                        i0 = m_ExtraLayer; // CL absorbante
+                    } else {
+                        i0 = m_gnx + i; // CL periodique
+                    }
+#pragma ivdep
+                    for (int j = ymin; j < ymax; j++) {
+                        uold(i, m_offy + j) = uold(i0, m_offy + j) * sign;
+                    }
+                }
+            }
+        }
+
+        if (boundary_right > 0) {
+            // Right boundary
+            for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
+                auto uold = m_onDevice->m_uold(ivar);
+                int32_t i_min = sycl::max(xmin + m_offx, m_gnx + m_ExtraLayer);
+                int32_t i_max = sycl::min(xmax + m_offx, m_gnx + 2 * m_ExtraLayer);
+                for (int32_t i = i_min; i < i_max; i++) {
+                    real_t sign = 1.0;
+                    int32_t i0;
+                    if (boundary_right == 1) {
+                        i0 = 2 * m_gnx + 2 * m_ExtraLayer - i - 1;
+                        if (ivar == IU_VAR) {
+                            sign = -1.0;
+                        }
+                    } else if (boundary_right == 2) {
+                        i0 = m_gnx + m_ExtraLayer;
+                    } else {
+                        i0 = i - m_gnx;
+                    }
+#pragma ivdep
+                    for (int j = ymin; j < ymax; j++) {
+                        uold(i, m_offy + j) = uold(i0, m_offy + j) * sign;
+                    }
+                }
+            }
+        }
+    } // X_SCAN
+
+    if (m_scan == Y_SCAN) {
+
+        // Lower boundary
+        if (boundary_down > 0) {
+            for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
+                auto uold = m_onDevice->m_uold(ivar);
+                int32_t j_min = sycl::max(ymin + m_offy, 0);
+                int32_t j_max = sycl::min(ymax + m_offy, m_ExtraLayer);
+                for (int32_t j = j_min; j < j_max; j++) {
+                    real_t sign = 1.0;
+
+                    int32_t j0 = 0;
+                    if (boundary_down == 1) {
+                        j0 = 2 * m_ExtraLayer - j - 1;
+                        if (ivar == IV_VAR) {
+                            sign = -1;
+                        }
+                    } else if (boundary_down == 2) {
+                        j0 = m_ExtraLayer;
+                    } else {
+                        j0 = m_gny + j;
+                    }
+#pragma ivdep
+                    for (int32_t i = xmin; i < xmax; i++) {
+                        uold(m_offx + i, j) = uold(m_offx + i, j0) * sign;
+                    }
+                }
+            }
+        }
+        // Upper boundary
+        if (boundary_up > 0) {
+            for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
+                auto uold = m_onDevice->m_uold(ivar);
+                int32_t j_min = sycl::max(ymin + m_offy, m_gny + m_ExtraLayer);
+                int32_t j_max = sycl::min(ymax + m_offy, m_gny + 2 * m_ExtraLayer);
+                for (int32_t j = j_min; j < j_max; j++) {
+                    real_t sign = 1;
+                    int32_t j0;
+                    if (boundary_up == 1) {
+                        j0 = 2 * m_gny + 2 * m_ExtraLayer - j - 1;
+                        if (ivar == IV_VAR) {
+                            sign = -1;
+                        }
+                    } else if (boundary_up == 2) {
+                        j0 = m_gny + 1;
+                    } else {
+                        j0 = j - m_gny;
+                    }
+#pragma ivdep
+                    for (int32_t i = xmin; i < xmax; i++) {
+                        uold(m_offx + i, j) = uold(m_offx + i, j0) * sign;
+                    }
+                }
+            }
+        }
+    } // Y_SCAN
+}
 // EOF

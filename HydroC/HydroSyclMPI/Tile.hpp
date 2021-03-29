@@ -166,6 +166,9 @@ class Tile {
     void swapStorageDims();
 
     SYCL_EXTERNAL
+    void boundary_process(int32_t, int32_t, int32_t, int32_t);
+
+    SYCL_EXTERNAL
     void slope();
 
     SYCL_EXTERNAL
