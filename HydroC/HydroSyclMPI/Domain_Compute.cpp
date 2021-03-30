@@ -67,23 +67,24 @@ void Domain::changeDirection() {
 void Domain::computeDt() {
 
     sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-    int nb_virtual_tiles = m_nbTiles;
-    if (nb_virtual_tiles % m_nbWorkItems != 0)
-        nb_virtual_tiles += (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
+    int nb_virtual_tiles = m_nbTiles - 1 + m_nbWorkItems - (m_nbTiles - 1) % m_nbWorkItems;
 
     auto the_tiles = m_tilesOnDevice;
     auto nbTiles = m_nbTiles;
     auto tcur = m_tcur;
     auto dt = m_dt;
 
-    sycl::buffer<real_t> localDT(nbTiles);
-    queue
+    real_t * result = sycl::malloc_shared<real_t>(1, queue);
+    *result = std::numeric_limits<real_t>::max();
+
+     queue
         .submit([&](sycl::handler &handler) {
-            sycl::accessor localDT_A(localDT, handler);
 
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+            handler.parallel_for(global_range,
+            		sycl::ONEAPI::reduction(result, sycl::ONEAPI::minimum<real_t>()),
+            		[=](sycl::nd_item<1> it, auto & res) {
                 int tile_idx = it.get_global_id(0);
                 if (tile_idx < nbTiles) {
                     auto local = the_tiles[0].deviceSharedVariables();
@@ -95,16 +96,15 @@ void Domain::computeDt() {
                     my_tile.setDt(dt);
                     real_t local_dt = my_tile.computeDt();
 
-                    localDT_A[tile_idx] = local_dt;
+                    res.combine(local_dt);
                 }
             });
         })
         .wait();
 
-    sycl::host_accessor localDT_h(localDT, sycl::read_only);
-    dt = localDT_h[0];
-    for (int i = 1; i < nbTiles; i++)
-        dt = sycl::min(localDT_h[i], dt);
+
+    dt = *result;
+    sycl::free(result, queue);
 
     m_dt = reduceMin(dt);
 }
@@ -235,13 +235,17 @@ real_t Domain::computeTimeStep() {
         // we have to wait here that all tiles are ready to update uold
 
         startT = endT;
-        sycl::buffer<real_t> localDT(m_nbTiles);
+        real_t * result = sycl::malloc_shared<real_t>(1, queue);
+        *result = std::numeric_limits<float>::max();
+
+
         queue.submit([&](sycl::handler &handler) {
-            sycl::accessor localDt(localDT, handler);
 
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
+            handler.parallel_for(global_range,
+            		sycl::ONEAPI::reduction(result, sycl::ONEAPI::minimum<real_t>()),
+            		[=](sycl::nd_item<1> it, auto & res) {
                 int tile_idx = it.get_global_id(0);
                 auto local = the_tiles[0].deviceSharedVariables();
                 if (tile_idx < nb_tiles) {
@@ -253,7 +257,8 @@ real_t Domain::computeTimeStep() {
                     my_tile.updateconserv(); // From Tile's u and flux to uold
 
                     real_t local_dt = my_tile.computeDt();
-                    localDt[tile_idx] = local_dt;
+                    res.combine(local_dt);
+
                 }
             });
         });
@@ -266,10 +271,8 @@ real_t Domain::computeTimeStep() {
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(UPDCVAR, endT - startT);
 
-        sycl::host_accessor localDT_h(localDT, sycl::read_only);
-        last_dt = localDT_h[0];
-        for (int i = 1; i < m_nbTiles; i++)
-            last_dt = sycl::min(localDT_h[i], last_dt);
+        last_dt = *result;
+        sycl::free(result, queue);
 
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();
