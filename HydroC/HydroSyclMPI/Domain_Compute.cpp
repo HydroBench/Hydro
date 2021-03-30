@@ -148,9 +148,7 @@ real_t Domain::computeTimeStep() {
         double start, startT, endT;
 
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-        int nb_virtual_tiles = m_nbTiles;
-        if (nb_virtual_tiles % m_nbWorkItems != 0)
-            nb_virtual_tiles += (m_nbWorkItems - m_nbTiles % m_nbWorkItems);
+        int nb_virtual_tiles = m_nbTiles - 1 + m_nbWorkItems  - ((m_nbTiles - 1) % m_nbWorkItems);
 
         auto the_tiles = m_tilesOnDevice;
         auto nb_tiles = m_nbTiles;
@@ -259,7 +257,6 @@ real_t Domain::computeTimeStep() {
                 }
             });
         });
-
         start_wait = Custom_Timer::dcclock();
         queue.wait();
 
