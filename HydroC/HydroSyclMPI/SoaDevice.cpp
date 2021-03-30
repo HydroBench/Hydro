@@ -13,21 +13,22 @@
 #endif
 
 inline void adjust(int32_t &_w, int32_t &_h, int32_t size) {
-	int nb_elt_per_align = ALIGNEXT / size;
-	int remain = _w % nb_elt_per_align;
-	if (remain)
-		_w += (nb_elt_per_align - remain);
-	remain = _h % nb_elt_per_align;
-	if (remain)
-		_h += (nb_elt_per_align - remain);
+    int nb_elt_per_align = ALIGNEXT / size;
+    int remain = _w % nb_elt_per_align;
+    if (remain)
+        _w += (nb_elt_per_align - remain);
+    remain = _h % nb_elt_per_align;
+    if (remain)
+        _h += (nb_elt_per_align - remain);
 }
 
 template <typename T>
-SoaDevice<T>::SoaDevice(int variables, int32_t w, int32_t h) : m_w(w), m_h(h), m_nbvariables(variables) {
-	adjust(m_w, m_h, sizeof(T));
+SoaDevice<T>::SoaDevice(int variables, int32_t w, int32_t h)
+    : m_w(w), m_h(h), m_nbvariables(variables) {
+    adjust(m_w, m_h, sizeof(T));
 
-    m_array =
-        sycl::aligned_alloc_device<T>(ALIGNEXT, m_w * m_h * m_nbvariables, ParallelInfo::extraInfos()->m_queue);
+    m_array = sycl::aligned_alloc_device<T>(ALIGNEXT, m_w * m_h * m_nbvariables,
+                                            ParallelInfo::extraInfos()->m_queue);
 
     m_managed = true;
     m_swapped = false;
@@ -49,9 +50,10 @@ template <typename T> SoaDevice<T>::~SoaDevice() {
 
 template <typename T>
 Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true) {
-	adjust(m_w, m_h, sizeof(T));
+    adjust(m_w, m_h, sizeof(T));
 
-    m_data = sycl::aligned_alloc_device<T>(ALIGNEXT, m_w * m_h, ParallelInfo::extraInfos()->m_queue);
+    m_data =
+        sycl::aligned_alloc_device<T>(ALIGNEXT, m_w * m_h, ParallelInfo::extraInfos()->m_queue);
     m_swapped = false;
 
 #if 0

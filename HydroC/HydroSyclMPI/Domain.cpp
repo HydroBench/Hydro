@@ -15,6 +15,7 @@
 
 Domain::Domain(int argc, char **argv) {
     // default values
+    m_StepbyStep = false;
     m_numa = 1;
     m_nextOutput = 0;
     m_nextImage = 0;
@@ -400,6 +401,12 @@ void Domain::readInput() {
             }
             if (strcmp(pkey, "numa") == 0) {
                 sscanf(pval, "%d", &m_numa);
+                continue;
+            }
+            if (strcmp(pkey, "stepbystep") == 0) {
+                int32_t i;
+                sscanf(pval, "%d", &i);
+                m_StepbyStep = (i != 0);
                 continue;
             }
             if (strcmp(pkey, "iorder") == 0) {

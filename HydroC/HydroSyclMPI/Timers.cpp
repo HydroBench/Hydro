@@ -109,16 +109,16 @@ const char *Timers::name(Fname_t f) {
         lname = "allTileCmp";
         break;
     case SENDUOLD:
-    	lname = "sendUoldToDevice";
-    	break;
+        lname = "sendUoldToDevice";
+        break;
 
     case WAITQUEUE:
-    	lname = "queueWait";
-    	break;
+        lname = "queueWait";
+        break;
 
     case GETUOLD:
-    	lname = "getUoldFromDevice";
-    	break;
+        lname = "getUoldFromDevice";
+        break;
 
     case BANDWIDTH:
         lname = "-- bandwidth --";

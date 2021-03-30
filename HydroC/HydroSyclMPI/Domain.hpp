@@ -78,6 +78,7 @@ class Domain {
     int32_t m_nImage; //=
     real_t m_nextImage;
     godunovScheme_t m_scheme; //=
+    bool m_StepbyStep;
 
     //
 
@@ -133,6 +134,7 @@ class Domain {
 
     void boundary_process();
     real_t computeTimeStep();
+    real_t computeTimeStepByStep();
     void compTStask1();
     void compTStask2();
     void compTStask3();

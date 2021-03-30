@@ -39,7 +39,7 @@ class Tile {
     DeviceBuffers *m_work;
     // Shared variables for all tiles
 
-   TilesSharedVariables *m_onDevice;
+    TilesSharedVariables *m_onDevice;
 
     bool m_swapped;
     //
@@ -145,7 +145,6 @@ class Tile {
     void initTile();
     bool isSwapped() const { return m_swapped; }
 
-
     void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 
     SYCL_EXTERNAL
@@ -210,7 +209,7 @@ class Tile {
                    real_t dx);
 
     SYCL_EXTERNAL
-    void setBuffers(DeviceBuffers *buf) {m_work = buf; }
+    void setBuffers(DeviceBuffers *buf) { m_work = buf; }
 
     void notProcessed() { m_hasBeenProcessed = 0; }
     void doneProcessed(int step) { m_hasBeenProcessed = step; }
