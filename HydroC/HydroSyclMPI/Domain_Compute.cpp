@@ -185,7 +185,7 @@ real_t Domain::computeTimeStep() {
                     my_tile.boundary_process(b_l, b_r, b_u, b_d);
                 }
             });
-        });
+        }).wait();
 
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(BOUNDEXEC, endT - startT);
@@ -408,6 +408,7 @@ void Domain::compute() {
 
         //
         if (m_iter == m_nDumpline) {
+        	getUoldFromDevice();
             dumpLine();
             sprintf(vtkprt, "%s{dumpline}", vtkprt);
         }
@@ -445,6 +446,7 @@ void Domain::compute() {
         }
 
         if (outputImage) {
+        	getUoldFromDevice();
             char pngName[256];
             m_npng++;
             pngProcess();
