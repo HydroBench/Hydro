@@ -929,6 +929,12 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
     } // X_SCAN
 
     if (m_scan == Y_SCAN) {
+    	int32_t temp = xmin;
+    	xmin = ymin;
+    	ymin = temp;
+    	temp = xmax;
+    	xmax = ymax;
+    	ymax = temp;
 
         // Lower boundary
         if (boundary_down > 0) {
