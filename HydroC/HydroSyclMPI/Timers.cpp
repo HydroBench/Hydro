@@ -112,9 +112,6 @@ const char *Timers::name(Fname_t f) {
         lname = "sendUoldToDevice";
         break;
 
-    case WAITQUEUE:
-        lname = "queueWait";
-        break;
 
     case GETUOLD:
         lname = "getUoldFromDevice";
@@ -122,6 +119,9 @@ const char *Timers::name(Fname_t f) {
 
     case BANDWIDTH:
         lname = "-- bandwidth --";
+        break;
+    case WAITQUEUE:
+        lname = "queueWait";
         break;
     case TILEOMP:
         lname = "-- tileomp --";

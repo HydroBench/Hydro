@@ -26,12 +26,12 @@ typedef enum {
     SENDUOLD,
     GETUOLD,
     TILEOMP, // maker to end tile measurements
-    WAITQUEUE,
     BOUNDEXEC,
     BOUNDINIT,
     REDUCEMIN,
     REDUCEMAX,
     BANDWIDTH, // marker to separate performance of routine from bandwitdh
+    WAITQUEUE,
     ALLTILECMP,
     BOUNDINITBW,
     LASTENTRY

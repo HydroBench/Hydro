@@ -46,7 +46,7 @@ class Tile {
 
     // compute routines
     SYCL_EXTERNAL
-    void slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS);
+    void slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS, real_t ov_slope_type);
 
     SYCL_EXTERNAL
     void traceonRow(int32_t xmin, int32_t xmax, real_t dtdx, real_t zeror, real_t zerol,
@@ -171,6 +171,9 @@ class Tile {
     void slope();
 
     SYCL_EXTERNAL
+    void slope(int row, real_t ov_slope_type);
+
+    SYCL_EXTERNAL
     void eos(tileSpan_t span);
 
     SYCL_EXTERNAL
@@ -180,10 +183,17 @@ class Tile {
     void riemann();
 
     SYCL_EXTERNAL
+    void riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) ;
+
+
+    SYCL_EXTERNAL
     void compflx();
 
     SYCL_EXTERNAL
     void trace();
+
+    SYCL_EXTERNAL
+    void trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t dtdx);
 
     SYCL_EXTERNAL
     void qleftr();
@@ -198,6 +208,9 @@ class Tile {
 
     SYCL_EXTERNAL
     void constprim();
+
+    SYCL_EXTERNAL
+    void constprim(int32_t row);
 
     // set/get
     SYCL_EXTERNAL
