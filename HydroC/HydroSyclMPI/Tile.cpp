@@ -736,8 +736,11 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                               Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS,
                               Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS,
                               Preal_t sgnm) {
-#pragma omp simd
+    	real_t smallr = deviceSharedVariables()->m_smallr;
+    	real_t gamma = deviceSharedVariables()->m_gamma;
+    	real_t smallc = deviceSharedVariables()->m_smallc;
 
+#pragma omp simd
     for (int32_t i = xmin; i < xmax; i++) {
         bool go_onI = true;
         real_t pstarI;
@@ -752,16 +755,16 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
         // Precompute values for this slice
 
-        rlI = sycl::max(qleftIDS[i], deviceSharedVariables()->m_smallr);
+        rlI = sycl::max(qleftIDS[i], smallr);
         ulI = qleftIUS[i];
         plI = sycl::max(qleftIPS[i], rlI * smallp);
-        rrI = sycl::max(qrightIDS[i], deviceSharedVariables()->m_smallr);
+        rrI = sycl::max(qrightIDS[i], smallr);
         urI = qrightIUS[i];
         prI = sycl::max(qrightIPS[i], rrI * smallp);
 
         // Lagrangian sound speed
-        clI = deviceSharedVariables()->m_gamma * plI * rlI;
-        crI = deviceSharedVariables()->m_gamma * prI * rrI;
+        clI = gamma * plI * rlI;
+        crI = gamma * prI * rrI;
 
         // First guess
         real_t wl_i = sycl::sqrt(clI);
@@ -807,14 +810,14 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         po_i = left * plI + (one - left) * prI;
         wo_i = left * wl_i + (one - left) * wr_i;
 
-        real_t co_i = sycl::sqrt(sycl::abs(deviceSharedVariables()->m_gamma * po_i / ro_i));
-        co_i = sycl::max(deviceSharedVariables()->m_smallc, co_i);
+        real_t co_i = sycl::sqrt(sycl::abs(gamma * po_i / ro_i));
+        co_i = sycl::max(smallc, co_i);
 
         real_t rstar_i = ro_i / (one + ro_i * (po_i - pstarI) / Square(wo_i));
-        rstar_i = sycl::max(rstar_i, deviceSharedVariables()->m_smallr);
+        rstar_i = sycl::max(rstar_i, smallr);
 
-        real_t cstar_i = sycl::sqrt(sycl::abs(deviceSharedVariables()->m_gamma * pstarI / rstar_i));
-        cstar_i = sycl::max(deviceSharedVariables()->m_smallc, cstar_i);
+        real_t cstar_i = sycl::sqrt(sycl::abs(gamma * pstarI / rstar_i));
+        cstar_i = sycl::max(smallc, cstar_i);
 
         real_t spout_i = co_i - sgnm[i] * uo_i;
         real_t spin_i = cstar_i - sgnm[i] * ustar_i;
@@ -827,14 +830,14 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
         real_t scr_i =
             sycl::max((real_t)(spout_i - spin_i),
-                      (real_t)(deviceSharedVariables()->m_smallc + sycl::abs(spout_i + spin_i)));
+                      (real_t)(smallc + sycl::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = sycl::max(zero, (real_t)(sycl::min(one, frac_i)));
 
         int addSpout = spout_i < zero;
         int addSpin = spin_i > zero;
-        // real_t originalQgdnv = !addSpout & !addSpin;
+
         real_t qgdnv_ID, qgdnv_IU, qgdnv_IP;
 
         if (addSpout) {
