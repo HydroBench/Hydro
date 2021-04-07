@@ -869,9 +869,7 @@ void Domain::setTiles() {
     auto theTiles = m_tilesOnDevice;
 
     queue.submit([&](sycl::handler &handler) {
-        handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) {
-            theTiles[idx].initCandE();
-        });
+        handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) { theTiles[idx].initCandE(); });
     });
 }
 

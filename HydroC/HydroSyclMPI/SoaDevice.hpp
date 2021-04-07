@@ -161,12 +161,13 @@ template <typename T> class SoaDevice {
     T *m_array; // This is a device adress
 
     int32_t m_w, m_h, m_nbvariables;
+    int32_t m_2Dsize;
     bool m_managed;
     bool m_swapped;
 
   public:
     SoaDevice() : m_array(nullptr), m_managed(false), m_swapped(false) {
-        m_w = m_h = m_nbvariables = -1;
+        m_w = m_h = m_nbvariables = m_2Dsize = -1;
     }
     SoaDevice(int variables, int32_t w, int32_t h);
     SoaDevice(const SoaDevice &org) = delete;
@@ -178,6 +179,7 @@ template <typename T> class SoaDevice {
 
         m_w = rhs.m_w;
         m_h = rhs.m_h;
+        m_2Dsize = m_w * m_h;
         m_nbvariables = rhs.m_nbvariables;
         m_array = rhs.m_array;
         m_managed = rhs.m_managed;
@@ -200,7 +202,7 @@ template <typename T> class SoaDevice {
 
     // Provide a view to the matrix2D for var
     SYCL_EXTERNAL
-    RArray2D<T> operator()(int32_t var) { return RArray2D<T>(m_array + var * m_h * m_w, m_w, m_h); }
+    RArray2D<T> operator()(int32_t var) { return RArray2D<T>(m_array + var * m_2Dsize, m_w, m_h); }
 };
 
 #endif

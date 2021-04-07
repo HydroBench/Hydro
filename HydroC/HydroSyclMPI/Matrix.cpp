@@ -47,13 +47,10 @@ template <typename T> void Matrix2<T>::swapDimAndValues() {
     abort(); // not yet implemented
 }
 
-#ifndef ALIGNEXT
-#define ALIGNEXT 128
-#endif
-
 template <typename T>
 Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), _arr(nullptr), _org(0) {
 
+#ifdef ALIGNEXT
     int nb_elt_per_align = ALIGNEXT / sizeof(T);
     int remain = _w % nb_elt_per_align;
     if (remain)
@@ -61,6 +58,7 @@ Matrix2<T>::Matrix2(int32_t w, int32_t h) : _w(w), _h(h), _arr(nullptr), _org(0)
     remain = _h % nb_elt_per_align;
     if (remain)
         _h += (nb_elt_per_align - remain);
+#endif
     // padd the array to make the next row aligned too.
     allocate();
 }
