@@ -112,7 +112,6 @@ const char *Timers::name(Fname_t f) {
         lname = "sendUoldToDevice";
         break;
 
-
     case GETUOLD:
         lname = "getUoldFromDevice";
         break;

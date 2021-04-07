@@ -4,7 +4,7 @@
 #ifndef DOMAIN_H
 #define DOMAIN_H
 //
-#include "Device_Buffers.hpp"
+
 #include "EnumDefs.hpp"
 #include "Soa.hpp"
 #include "Tile.hpp"

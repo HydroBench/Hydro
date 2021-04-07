@@ -1,6 +1,7 @@
 
 #include "Domain.hpp"
 #include "ParallelInfo.hpp"
+#include "Utilities.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>

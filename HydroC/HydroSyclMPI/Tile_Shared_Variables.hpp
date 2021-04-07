@@ -9,7 +9,6 @@
 #ifndef TILESSHAREDVARIABLES
 #define TILESSHAREDVARIABLES
 
-#include "Device_Buffers.hpp"
 #include "EnumDefs.hpp"
 #include "SoaDevice.hpp"
 #include "Timers.hpp"
@@ -28,7 +27,6 @@ struct TilesSharedVariables {
     int32_t m_prt;
 
     Timers *m_threadTimers; // one Timers per thread
-    DeviceBuffers *m_device_buffers;
 
     SoaDevice<real_t> m_uold;
 
@@ -46,9 +44,6 @@ struct TilesSharedVariables {
 
     SYCL_EXTERNAL
     void setTimes(Timers *pTimers) { m_threadTimers = pTimers; }
-
-    SYCL_EXTERNAL
-    DeviceBuffers *buffers(int workitem_idx) { return &m_device_buffers[workitem_idx]; }
 };
 
 extern TilesSharedVariables onHost, *onDevice;

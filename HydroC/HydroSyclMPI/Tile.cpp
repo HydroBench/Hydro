@@ -3,6 +3,7 @@
 //
 
 #include "Tile.hpp"
+#include "Utilities.hpp" // for square
 
 #include <CL/sycl.hpp>
 #include <algorithm>
@@ -15,6 +16,16 @@ Tile::Tile() {
 }
 
 Tile::~Tile() {}
+
+void Tile::initCandE() {
+    int32_t lgr = m_nx * m_ny;
+    auto pc = m_c.data();
+    auto pe = m_e.data();
+    for (int32_t i = 0; i < lgr; i++) {
+        pc[i] = 0.0;
+        pe[i] = 0.0;
+    }
+}
 
 void Tile::infos() {}
 
@@ -32,14 +43,41 @@ void Tile::initTile() {
 
     // I am on the Host, I can call a global variable !
 
-    m_u = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
-    m_flux = (SoaDevice<real_t>(NB_VAR, lgx, lgy));
+    m_u = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_flux = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+
+    m_q = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_qxm = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_qxp = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_dq = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_qleft = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_qright = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+    m_qgdnv = SoaDevice<real_t>(NB_VAR, lgx, lgy);
+
+    m_c = Array2D<real_t>(lgx, lgy);
+    m_e = Array2D<real_t>(lgx, lgy);
+
+    int32_t lgmax = sycl::max(lgx, lgy);
+    m_sgnm = Array1D<real_t>(lgmax);
+    m_pl = Array1D<real_t>(lgmax);
+
     m_swapped = false;
 }
 
 void Tile::swapStorageDims() {
     m_u.swapDimOnly();
     m_flux.swapDimOnly();
+
+    m_q.swapDimOnly();
+    m_qxm.swapDimOnly();
+    m_qxp.swapDimOnly();
+    m_dq.swapDimOnly();
+    m_qleft.swapDimOnly();
+    m_qright.swapDimOnly();
+    m_qgdnv.swapDimOnly();
+
+    m_c.swapDimOnly();
+    m_e.swapDimOnly();
     m_swapped = !m_swapped;
 }
 
@@ -77,8 +115,8 @@ void Tile::slope() {
     double ov_slope_type = one / deviceSharedVariables()->m_slope_type;
 
     for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
-        auto q = m_work->getQ()(nbv);
-        auto dq = m_work->getDQ()(nbv);
+        auto q = getQ()(nbv);
+        auto dq = getDQ()(nbv);
 
         getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -97,8 +135,8 @@ void Tile::slope(int32_t row, real_t ov_slope_type) {
 
     if (row >= ymin && row < ymax) {
         for (int nbv = 0; nbv < NB_VAR; nbv++) {
-            auto qS = m_work->getQ()(nbv).getRow(row);
-            auto dqS = m_work->getDQ()(nbv).getRow(row);
+            auto qS = getQ()(nbv).getRow(row);
+            auto dqS = getDQ()(nbv).getRow(row);
             slopeOnRow(xmin, xmax, qS, dqS, ov_slope_type);
         }
     }
@@ -109,26 +147,26 @@ void Tile::trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (row >= ymin && row < ymax) {
-        auto qIDS = m_work->getQ()(ID_VAR).getRow(row);
-        auto qIVS = m_work->getQ()(IV_VAR).getRow(row);
-        auto qIUS = m_work->getQ()(IU_VAR).getRow(row);
-        auto qIPS = m_work->getQ()(IP_VAR).getRow(row);
+        auto qIDS = getQ()(ID_VAR).getRow(row);
+        auto qIVS = getQ()(IV_VAR).getRow(row);
+        auto qIUS = getQ()(IU_VAR).getRow(row);
+        auto qIPS = getQ()(IP_VAR).getRow(row);
 
-        auto dqIDS = m_work->getDQ()(ID_VAR).getRow(row);
-        auto dqIVS = m_work->getDQ()(IV_VAR).getRow(row);
-        auto dqIUS = m_work->getDQ()(IU_VAR).getRow(row);
-        auto dqIPS = m_work->getDQ()(IP_VAR).getRow(row);
+        auto dqIDS = getDQ()(ID_VAR).getRow(row);
+        auto dqIVS = getDQ()(IV_VAR).getRow(row);
+        auto dqIUS = getDQ()(IU_VAR).getRow(row);
+        auto dqIPS = getDQ()(IP_VAR).getRow(row);
 
-        auto pqxmIDS = m_work->getQXM()(ID_VAR).getRow(row);
-        auto pqxmIPS = m_work->getQXM()(IP_VAR).getRow(row);
-        auto pqxmIVS = m_work->getQXM()(IV_VAR).getRow(row);
-        auto pqxmIUS = m_work->getQXM()(IU_VAR).getRow(row);
+        auto pqxmIDS = getQXM()(ID_VAR).getRow(row);
+        auto pqxmIPS = getQXM()(IP_VAR).getRow(row);
+        auto pqxmIVS = getQXM()(IV_VAR).getRow(row);
+        auto pqxmIUS = getQXM()(IU_VAR).getRow(row);
 
-        auto pqxpIDS = m_work->getQXP()(ID_VAR).getRow(row);
-        auto pqxpIPS = m_work->getQXP()(IP_VAR).getRow(row);
-        auto pqxpIVS = m_work->getQXP()(IV_VAR).getRow(row);
-        auto pqxpIUS = m_work->getQXP()(IU_VAR).getRow(row);
-        auto cS = m_work->getC().getRow(row);
+        auto pqxpIDS = getQXP()(ID_VAR).getRow(row);
+        auto pqxpIPS = getQXP()(IP_VAR).getRow(row);
+        auto pqxpIVS = getQXP()(IV_VAR).getRow(row);
+        auto pqxpIUS = getQXP()(IU_VAR).getRow(row);
+        auto cS = getC().getRow(row);
 
         traceonRow(xmin, xmax, dtdx, zeror, zerol, project, cS, qIDS, qIUS, qIVS, qIPS, dqIDS,
                    dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS, pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS,
@@ -137,25 +175,25 @@ void Tile::trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t
 }
 void Tile::trace() {
     int32_t xmin, xmax, ymin, ymax;
-    auto qID = m_work->getQ()(ID_VAR);
-    auto qIV = m_work->getQ()(IV_VAR);
-    auto qIU = m_work->getQ()(IU_VAR);
-    auto qIP = m_work->getQ()(IP_VAR);
+    auto qID = getQ()(ID_VAR);
+    auto qIV = getQ()(IV_VAR);
+    auto qIU = getQ()(IU_VAR);
+    auto qIP = getQ()(IP_VAR);
 
-    auto dqID = m_work->getDQ()(ID_VAR);
-    auto dqIV = m_work->getDQ()(IV_VAR);
-    auto dqIU = m_work->getDQ()(IU_VAR);
-    auto dqIP = m_work->getDQ()(IP_VAR);
+    auto dqID = getDQ()(ID_VAR);
+    auto dqIV = getDQ()(IV_VAR);
+    auto dqIU = getDQ()(IU_VAR);
+    auto dqIP = getDQ()(IP_VAR);
 
-    auto pqxmID = m_work->getQXM()(ID_VAR);
-    auto pqxmIP = m_work->getQXM()(IP_VAR);
-    auto pqxmIV = m_work->getQXM()(IV_VAR);
-    auto pqxmIU = m_work->getQXM()(IU_VAR);
+    auto pqxmID = getQXM()(ID_VAR);
+    auto pqxmIP = getQXM()(IP_VAR);
+    auto pqxmIV = getQXM()(IV_VAR);
+    auto pqxmIU = getQXM()(IU_VAR);
 
-    auto pqxpID = m_work->getQXP()(ID_VAR);
-    auto pqxpIP = m_work->getQXP()(IP_VAR);
-    auto pqxpIV = m_work->getQXP()(IV_VAR);
-    auto pqxpIU = m_work->getQXP()(IU_VAR);
+    auto pqxpID = getQXP()(ID_VAR);
+    auto pqxpIP = getQXP()(IP_VAR);
+    auto pqxpIV = getQXP()(IV_VAR);
+    auto pqxpIU = getQXP()(IU_VAR);
 
     real_t zerol = zero, zeror = zero, project = zero;
     real_t dtdx = m_dt / m_dx;
@@ -181,7 +219,7 @@ void Tile::trace() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
-        Preal_t cS = m_work->getC().getRow(s);
+        Preal_t cS = getC().getRow(s);
         Preal_t qIDS = qID.getRow(s);
         Preal_t qIUS = qIU.getRow(s);
         Preal_t qIVS = qIV.getRow(s);
@@ -289,10 +327,10 @@ void Tile::qleftr() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t v = 0; v < NB_VAR; v++) {
-        auto pqleft = m_work->getQLEFT()(v);
-        auto pqright = m_work->getQRIGHT()(v);
-        auto pqxm = m_work->getQXM()(v);
-        auto pqxp = m_work->getQXP()(v);
+        auto pqleft = getQLEFT()(v);
+        auto pqright = getQRIGHT()(v);
+        auto pqxm = getQXM()(v);
+        auto pqxp = getQXP()(v);
         for (int32_t s = ymin; s < ymax; s++) {
             Preal_t pqleftS = pqleft.getRow(s);
             Preal_t pqrightS = pqright.getRow(s);
@@ -324,10 +362,10 @@ void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvI
 void Tile::compflx() {
     int32_t xmin, xmax, ymin, ymax;
 
-    auto qgdnvID = m_work->getQGDNV()(ID_VAR);
-    auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
-    auto qgdnvIP = m_work->getQGDNV()(IP_VAR);
-    auto qgdnvIV = m_work->getQGDNV()(IV_VAR);
+    auto qgdnvID = getQGDNV()(ID_VAR);
+    auto qgdnvIU = getQGDNV()(IU_VAR);
+    auto qgdnvIP = getQGDNV()(IP_VAR);
+    auto qgdnvIV = getQGDNV()(IV_VAR);
 
     auto fluxIV = (m_flux)(IV_VAR);
     auto fluxIU = (m_flux)(IU_VAR);
@@ -449,7 +487,7 @@ void Tile::updateconserv() {
             Preal_t uIPS = uIP.getRow(s);
             Preal_t uIVS = uIV.getRow(s);
             Preal_t uIUS = uIU.getRow(s);
-            Preal_t pl = m_work->getPL();
+            Preal_t pl = getPL();
 
             updateconservYscan(s, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP, uoldIV, uoldIU,
                                fluxIVS, fluxIUS, fluxIPS, fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
@@ -540,8 +578,8 @@ void Tile::eosOnRow(int32_t xmin, int32_t xmax, real_t smallp, Preal_t qIDS, Pre
 void Tile::eos(tileSpan_t span) {
     int32_t xmin, xmax, ymin, ymax;
 
-    auto qID = m_work->getQ()(ID_VAR);
-    auto qIP = m_work->getQ()(IP_VAR);
+    auto qID = getQ()(ID_VAR);
+    auto qIP = getQ()(IP_VAR);
 
     real_t smallp =
         Square(deviceSharedVariables()->m_smallc) /
@@ -551,9 +589,9 @@ void Tile::eos(tileSpan_t span) {
 
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIDS = qID.getRow(s);
-        real_t *eS = m_work->getE().getRow(s);
+        real_t *eS = getE().getRow(s);
         real_t *qIPS = qIP.getRow(s);
-        real_t *cS = m_work->getC().getRow(s);
+        real_t *cS = getC().getRow(s);
         eosOnRow(xmin, xmax, smallp, qIDS, eS, qIPS, cS);
     }
 
@@ -595,10 +633,10 @@ real_t Tile::compute_dt() {
     auto uoldIV = (deviceSharedVariables()->m_uold)(IV_VAR);
     auto uoldIU = (deviceSharedVariables()->m_uold)(IU_VAR);
 
-    auto qID = m_work->getQ()(ID_VAR);
-    auto qIP = m_work->getQ()(IP_VAR);
-    auto qIV = m_work->getQ()(IV_VAR);
-    auto qIU = m_work->getQ()(IU_VAR);
+    auto qID = getQ()(ID_VAR);
+    auto qIP = getQ()(IP_VAR);
+    auto qIV = getQ()(IV_VAR);
+    auto qIU = getQ()(IU_VAR);
 
     godunovDir_t oldScan = m_scan;
 
@@ -622,7 +660,7 @@ real_t Tile::compute_dt() {
         auto *qIVS = qIV.getRow(y);
         auto *qIUS = qIU.getRow(y);
 
-        auto *eS = (m_work->getE()).getRow(y);
+        auto *eS = (getE()).getRow(y);
         compute_dt_loop1OnRow(xmin, xmax, qIDS, qIDS, qIUS, qIVS, uoldIDS, uoldIUS, uoldIVS,
                               uoldIPS, eS);
     }
@@ -635,7 +673,7 @@ real_t Tile::compute_dt() {
     for (int32_t s = ymin; s < ymax; s++) {
         real_t *qIVS = qIV.getRow(s);
         real_t *qIUS = qIU.getRow(s);
-        real_t *cS = m_work->getC().getRow(s);
+        real_t *cS = getC().getRow(s);
         compute_dt_loop2OnRow(tmp1, tmp2, xmin, xmax, cS, qIUS, qIVS);
     }
     cournox = sycl::max(cournox, tmp1);
@@ -681,17 +719,17 @@ void Tile::constprim(int32_t row) {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
     if (row >= xmin && row < ymax) {
 
-        auto qIDS = m_work->getQ()(ID_VAR).getRow(row);
-        auto qIPS = m_work->getQ()(IP_VAR).getRow(row);
-        auto qIVS = m_work->getQ()(IV_VAR).getRow(row);
-        auto qIUS = m_work->getQ()(IU_VAR).getRow(row);
+        auto qIDS = getQ()(ID_VAR).getRow(row);
+        auto qIPS = getQ()(IP_VAR).getRow(row);
+        auto qIVS = getQ()(IV_VAR).getRow(row);
+        auto qIUS = getQ()(IU_VAR).getRow(row);
 
         auto uIDS = (m_u)(ID_VAR).getRow(row);
         auto uIPS = (m_u)(IP_VAR).getRow(row);
         auto uIVS = (m_u)(IV_VAR).getRow(row);
         auto uIUS = (m_u)(IU_VAR).getRow(row);
 
-        real_t *eS = m_work->getE().getRow(row);
+        real_t *eS = getE().getRow(row);
 
         constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
@@ -701,10 +739,10 @@ void Tile::constprim(int32_t row) {
 void Tile::constprim() {
     int32_t xmin, xmax, ymin, ymax;
 
-    auto qID = m_work->getQ()(ID_VAR);
-    auto qIP = m_work->getQ()(IP_VAR);
-    auto qIV = m_work->getQ()(IV_VAR);
-    auto qIU = m_work->getQ()(IU_VAR);
+    auto qID = getQ()(ID_VAR);
+    auto qIP = getQ()(IP_VAR);
+    auto qIV = getQ()(IV_VAR);
+    auto qIU = getQ()(IU_VAR);
 
     auto uID = (m_u)(ID_VAR);
     auto uIP = (m_u)(IP_VAR);
@@ -714,7 +752,7 @@ void Tile::constprim() {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     for (int32_t s = ymin; s < ymax; s++) {
-        real_t *eS = m_work->getE().getRow(s);
+        real_t *eS = getE().getRow(s);
 
         real_t *qIDS = qID.getRow(s);
         real_t *qIPS = qIP.getRow(s);
@@ -736,9 +774,9 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
                               Preal_t qleftIPS, Preal_t qleftIVS, Preal_t qrightIDS,
                               Preal_t qrightIUS, Preal_t qrightIPS, Preal_t qrightIVS,
                               Preal_t sgnm) {
-    	real_t smallr = deviceSharedVariables()->m_smallr;
-    	real_t gamma = deviceSharedVariables()->m_gamma;
-    	real_t smallc = deviceSharedVariables()->m_smallc;
+    real_t smallr = deviceSharedVariables()->m_smallr;
+    real_t gamma = deviceSharedVariables()->m_gamma;
+    real_t smallc = deviceSharedVariables()->m_smallc;
 
 #pragma omp simd
     for (int32_t i = xmin; i < xmax; i++) {
@@ -829,8 +867,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
         }
 
         real_t scr_i =
-            sycl::max((real_t)(spout_i - spin_i),
-                      (real_t)(smallc + sycl::abs(spout_i + spin_i)));
+            sycl::max((real_t)(spout_i - spin_i), (real_t)(smallc + sycl::abs(spout_i + spin_i)));
 
         real_t frac_i = (one + (spout_i + spin_i) / scr_i) * my_half;
         frac_i = sycl::max(zero, (real_t)(sycl::min(one, frac_i)));
@@ -867,20 +904,20 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 void Tile::riemann() {
     int32_t xmin, xmax, ymin, ymax;
 
-    auto qgdnvID = m_work->getQGDNV()(ID_VAR);
-    auto qgdnvIU = m_work->getQGDNV()(IU_VAR);
-    auto qgdnvIP = m_work->getQGDNV()(IP_VAR);
-    auto qgdnvIV = m_work->getQGDNV()(IV_VAR);
+    auto qgdnvID = getQGDNV()(ID_VAR);
+    auto qgdnvIU = getQGDNV()(IU_VAR);
+    auto qgdnvIP = getQGDNV()(IP_VAR);
+    auto qgdnvIV = getQGDNV()(IV_VAR);
 
-    auto qleftID = m_work->getQLEFT()(ID_VAR);
-    auto qleftIU = m_work->getQLEFT()(IU_VAR);
-    auto qleftIP = m_work->getQLEFT()(IP_VAR);
-    auto qleftIV = m_work->getQLEFT()(IV_VAR);
+    auto qleftID = getQLEFT()(ID_VAR);
+    auto qleftIU = getQLEFT()(IU_VAR);
+    auto qleftIP = getQLEFT()(IP_VAR);
+    auto qleftIV = getQLEFT()(IV_VAR);
 
-    auto qrightID = m_work->getQRIGHT()(ID_VAR);
-    auto qrightIU = m_work->getQRIGHT()(IU_VAR);
-    auto qrightIP = m_work->getQRIGHT()(IP_VAR);
-    auto qrightIV = m_work->getQRIGHT()(IV_VAR);
+    auto qrightID = getQRIGHT()(ID_VAR);
+    auto qrightIU = getQRIGHT()(IU_VAR);
+    auto qrightIP = getQRIGHT()(IP_VAR);
+    auto qrightIV = getQRIGHT()(IV_VAR);
 
     real_t smallp = Square(deviceSharedVariables()->m_smallc) / deviceSharedVariables()->m_gamma;
     real_t gamma6 =
@@ -907,7 +944,7 @@ void Tile::riemann() {
 
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
-                           qrightIPS, qrightIVS, m_work->getSGNM());
+                           qrightIPS, qrightIVS, getSGNM());
     }
 
 } // riemann
@@ -917,24 +954,24 @@ void Tile::riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (row >= ymin && row < ymax) {
-        auto qgdnvIDS = m_work->getQGDNV()(ID_VAR).getRow(row);
-        auto qgdnvIUS = m_work->getQGDNV()(IU_VAR).getRow(row);
-        auto qgdnvIPS = m_work->getQGDNV()(IP_VAR).getRow(row);
-        auto qgdnvIVS = m_work->getQGDNV()(IV_VAR).getRow(row);
+        auto qgdnvIDS = getQGDNV()(ID_VAR).getRow(row);
+        auto qgdnvIUS = getQGDNV()(IU_VAR).getRow(row);
+        auto qgdnvIPS = getQGDNV()(IP_VAR).getRow(row);
+        auto qgdnvIVS = getQGDNV()(IV_VAR).getRow(row);
 
-        auto qleftIDS = m_work->getQLEFT()(ID_VAR).getRow(row);
-        auto qleftIUS = m_work->getQLEFT()(IU_VAR).getRow(row);
-        auto qleftIPS = m_work->getQLEFT()(IP_VAR).getRow(row);
-        auto qleftIVS = m_work->getQLEFT()(IV_VAR).getRow(row);
+        auto qleftIDS = getQLEFT()(ID_VAR).getRow(row);
+        auto qleftIUS = getQLEFT()(IU_VAR).getRow(row);
+        auto qleftIPS = getQLEFT()(IP_VAR).getRow(row);
+        auto qleftIVS = getQLEFT()(IV_VAR).getRow(row);
 
-        auto qrightIDS = m_work->getQRIGHT()(ID_VAR).getRow(row);
-        auto qrightIUS = m_work->getQRIGHT()(IU_VAR).getRow(row);
-        auto qrightIPS = m_work->getQRIGHT()(IP_VAR).getRow(row);
-        auto qrightIVS = m_work->getQRIGHT()(IV_VAR).getRow(row);
+        auto qrightIDS = getQRIGHT()(ID_VAR).getRow(row);
+        auto qrightIUS = getQRIGHT()(IU_VAR).getRow(row);
+        auto qrightIPS = getQRIGHT()(IP_VAR).getRow(row);
+        auto qrightIVS = getQRIGHT()(IV_VAR).getRow(row);
 
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
-                           qrightIPS, qrightIVS, m_work->getSGNM());
+                           qrightIPS, qrightIVS, getSGNM());
     }
 }
 

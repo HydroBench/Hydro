@@ -4,7 +4,6 @@
 // Schedules the computation that happends in the Tiles
 //
 
-#include "Device_Buffers.hpp"
 #include "Domain.hpp"
 #include "FakeRead.hpp"
 #include "Matrix.hpp"
@@ -90,7 +89,6 @@ void Domain::computeDt() {
 
                                          auto &my_tile = the_tiles[tile_idx];
 
-                                         my_tile.setBuffers(local->buffers(tile_idx));
                                          my_tile.setTcur(tcur);
                                          my_tile.setDt(dt);
                                          real_t local_dt = my_tile.computeDt();
@@ -210,7 +208,7 @@ real_t Domain::computeTimeStep() {
 
                     auto &my_tile = the_tiles[idx];
                     auto local = my_tile.deviceSharedVariables();
-                    my_tile.setBuffers(local->buffers(idx));
+
                     my_tile.setTcur(tcur);
                     my_tile.setDt(dt);
                     my_tile.gatherconserv(); // From uold to TIle's u
@@ -249,8 +247,6 @@ real_t Domain::computeTimeStep() {
                                      if (tile_idx < nb_tiles) {
 
                                          auto &my_tile = the_tiles[tile_idx];
-
-                                         my_tile.setBuffers(local->buffers(tile_idx));
 
                                          my_tile.updateconserv(); // From Tile's u and flux to uold
 
@@ -717,7 +713,6 @@ real_t Domain::computeTimeStepByStep() {
 
                     auto &my_tile = the_tiles[idx];
 
-                    my_tile.setBuffers(local->buffers(idx));
                     my_tile.setTcur(tcur);
                     my_tile.setDt(dt);
                     my_tile.gatherconserv(); // From uold to TIle's u
@@ -745,10 +740,8 @@ real_t Domain::computeTimeStepByStep() {
         startT = endT;
 
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-                the_tiles[ids[0]].constprim(ids[1]);
-            });
-
+            handler.parallel_for(sycl::range(m_nbTiles, tileSize),
+                                 [=](sycl::id<2> ids) { the_tiles[ids[0]].constprim(ids[1]); });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
@@ -782,39 +775,38 @@ real_t Domain::computeTimeStepByStep() {
             startT = endT;
             real_t ov_slope_type = one / onHost.m_slope_type;
 
-            slope  = queue.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
+            slope = queue.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
                 the_tiles[ids[0]].slope(ids[1], ov_slope_type);
             });
-            
+
             endT = Custom_Timer::dcclock();
             m_mainTimer.add(SLOPE, endT - startT);
         }
 
-    startT = endT;
-    real_t zerol = zero, zeror = zero, project = zero;
-    real_t dtdx = m_dt / m_dx;
-    if (onHost.m_scheme == SCHEME_MUSCL) { // MUSCL-Hancock method
-        zerol = -hundred / dtdx;
-        zeror = hundred / dtdx;
-        project = one;
-    }
+        startT = endT;
+        real_t zerol = zero, zeror = zero, project = zero;
+        real_t dtdx = m_dt / m_dx;
+        if (onHost.m_scheme == SCHEME_MUSCL) { // MUSCL-Hancock method
+            zerol = -hundred / dtdx;
+            zeror = hundred / dtdx;
+            project = one;
+        }
 
-    if (onHost.m_scheme == SCHEME_PLMDE) { // standard PLMDE
-        zerol = zero;
-        zeror = zero;
-        project = one;
-    }
+        if (onHost.m_scheme == SCHEME_PLMDE) { // standard PLMDE
+            zerol = zero;
+            zeror = zero;
+            project = one;
+        }
 
-    if (onHost.m_scheme == SCHEME_COLLELA) { // Collela's method
-        zerol = zero;
-        zeror = zero;
-        project = zero;
-    }
+        if (onHost.m_scheme == SCHEME_COLLELA) { // Collela's method
+            zerol = zero;
+            zeror = zero;
+            project = zero;
+        }
         auto trace = queue.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-                the_tiles[ids[0]].trace(ids[1], zerol, zeror, project, dtdx);
-            });
-        
-        
+            the_tiles[ids[0]].trace(ids[1], zerol, zeror, project, dtdx);
+        });
+
         start_wait = Custom_Timer::dcclock();
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
@@ -851,11 +843,9 @@ real_t Domain::computeTimeStepByStep() {
         real_t smallpp = onHost.m_smallr * smallp;
 
         int32_t virtualSize = tileSize + m_nbWorkItems - 1 - (tileSize - 1) % m_nbWorkItems;
-        queue.submit([&](sycl::handler & handler) {
-            
+        queue.submit([&](sycl::handler &handler) {
             handler.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-                the_tiles[ids[0]].riemann(ids[1], smallp, gamma6,
-                                                        smallpp);
+                the_tiles[ids[0]].riemann(ids[1], smallp, gamma6, smallpp);
             });
         });
         start_wait = Custom_Timer::dcclock();

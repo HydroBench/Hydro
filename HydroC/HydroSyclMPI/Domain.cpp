@@ -8,6 +8,7 @@
 #include "ParallelInfo.hpp"
 #include "ParallelInfoOpaque.hpp"
 #include "Tile_Shared_Variables.hpp"
+#include "Utilities.hpp"
 
 //
 
@@ -754,7 +755,7 @@ void Domain::setTiles() {
             m_mortonIdx[i] = i;
     }
     //
-    // TODO: sort the index arrays according to the m_mortonIdx
+    // sort the index arrays according to the m_mortonIdx
     //
     std::vector<std::pair<int, int>> array_to_sort;
     for (int i = 0; i < m_nbTiles; i++)
@@ -850,44 +851,26 @@ void Domain::setTiles() {
 
     m_localDt = 0;
 
-    auto temp_buffers = new DeviceBuffers[m_nbTiles];
-
-    for (int i = 0; i < m_nbTiles; i++) {
-        temp_buffers[i].init(0, tileSizeTot, 0, tileSizeTot);
-    }
-
-    onHost.m_device_buffers = sycl::malloc_device<DeviceBuffers>(m_nbTiles, queue);
-
     onDevice = sycl::malloc_device<TilesSharedVariables>(1, queue);
     for (int i = 0; i < m_nbTiles; i++)
         m_tiles[i].setShared(onDevice);
 
-    queue.submit([&](sycl::handler &handler) {
-        handler.memcpy(m_tilesOnDevice, m_tiles, m_nbTiles * sizeof(Tile));
-    });
-
-    queue.submit([&](auto &handler) {
-        handler.memcpy(onHost.m_device_buffers, temp_buffers, sizeof(DeviceBuffers) * m_nbTiles);
-    });
+    queue
+        .submit([&](sycl::handler &handler) {
+            handler.memcpy(m_tilesOnDevice, m_tiles, m_nbTiles * sizeof(Tile));
+        })
+        .wait();
 
     //  TODO: do something delete [] temp_buffers; Do not delete, it is in device memory here :-)
-    queue.submit(
-        [&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); });
+    queue.submit([&](sycl::handler &handler) { handler.memcpy(onDevice, &onHost, sizeof(onHost)); })
+        .wait();
 
     std::cerr << "Memory allocated on Device" << std::endl;
-    auto localoD = onDevice;
+    auto theTiles = m_tilesOnDevice;
 
     queue.submit([&](sycl::handler &handler) {
         handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) {
-            auto &work = localoD->m_device_buffers[idx];
-            int lgr = work.getLength();
-
-            auto v_c = work.getC().data();
-            auto v_e = work.getE().data();
-            for (int32_t i = 0; i < lgr; i++) {
-                v_c[i] = 0;
-                v_e[i] = 0;
-            }
+            theTiles[idx].initCandE();
         });
     });
 }

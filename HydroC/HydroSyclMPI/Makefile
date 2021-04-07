@@ -1,7 +1,7 @@
 # Makefile for Sycl
 
 
-SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp Device_Buffers.cpp \
+SRCS=TimeLimit.cpp Utilities.cpp Matrix.cpp Soa.cpp \
 Tile.cpp Domain.cpp Domain_Compute.cpp Domain_Boundary.cpp Domain_Prot.cpp \
 Domain_DumpLine.cpp Domain_VTK.cpp Domain_Image.cpp Domain_TestCase.cpp \
 FakeRead.cpp main.cpp Timers.cpp ParallelInfo.cpp cclock.cpp \

@@ -35,14 +35,45 @@ class Tile {
     SoaDevice<real_t> m_u;    // NXT, NYT
     SoaDevice<real_t> m_flux; // NX + 1, NY + 1
 
-    // work arrays for a tile which can be shared across workitems
-    DeviceBuffers *m_work;
+    SoaDevice<real_t> m_q, m_qxm, m_qxp, m_dq;    // NXT, NYT
+    SoaDevice<real_t> m_qleft, m_qright, m_qgdnv; // NX + 1, NY + 1
+    Array2D<real_t> m_c, m_e;                     // NXT, NYT
+
+    // work arrays for a single row/column
+    Array1D<real_t> m_sgnm; //
+    Array1D<real_t> m_pl;
+
     // Shared variables for all tiles
 
     TilesSharedVariables *m_onDevice;
 
     bool m_swapped;
-    //
+    // Some internal arrays access routines
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQ() { return m_q; }
+
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQXM() { return m_qxm; }
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQXP() { return m_qxp; }
+
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getDQ() { return m_dq; }
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQLEFT() { return m_qleft; }
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQRIGHT() { return m_qright; }
+    SYCL_EXTERNAL
+    SoaDevice<real_t> &getQGDNV() { return m_qgdnv; }
+    SYCL_EXTERNAL
+    Array2D<real_t> &getC() { return m_c; }
+    SYCL_EXTERNAL
+    Array2D<real_t> &getE() { return m_e; }
+
+    SYCL_EXTERNAL
+    real_t *getSGNM() { return m_sgnm.data(); }
+    SYCL_EXTERNAL
+    real_t *getPL() { return m_pl.data(); }
 
     // compute routines
     SYCL_EXTERNAL
@@ -148,6 +179,9 @@ class Tile {
     void setShared(TilesSharedVariables *ptr) { m_onDevice = ptr; }
 
     SYCL_EXTERNAL
+    void initCandE();
+
+    SYCL_EXTERNAL
     TilesSharedVariables *deviceSharedVariables() { return m_onDevice; }
 
     SYCL_EXTERNAL
@@ -183,8 +217,7 @@ class Tile {
     void riemann();
 
     SYCL_EXTERNAL
-    void riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) ;
-
+    void riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp);
 
     SYCL_EXTERNAL
     void compflx();
@@ -220,9 +253,6 @@ class Tile {
 
     void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
                    real_t dx);
-
-    SYCL_EXTERNAL
-    void setBuffers(DeviceBuffers *buf) { m_work = buf; }
 
     void notProcessed() { m_hasBeenProcessed = 0; }
     void doneProcessed(int step) { m_hasBeenProcessed = step; }
