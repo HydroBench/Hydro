@@ -843,10 +843,14 @@ real_t Domain::computeTimeStepByStep() {
         real_t smallpp = onHost.m_smallr * smallp;
 
         int32_t virtualSize = tileSize + m_nbWorkItems - 1 - (tileSize - 1) % m_nbWorkItems;
+
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-                the_tiles[ids[0]].riemann(ids[1], smallp, gamma6, smallpp);
-            });
+            handler.parallel_for(
+                sycl::nd_range(sycl::range(tileSize, m_nbTiles), sycl::range(128, 1)),
+                [=](auto ids) {
+                    the_tiles[ids.get_global_id(1)].riemann(ids.get_global_id(0), smallp, gamma6,
+                                                            smallpp);
+                });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();

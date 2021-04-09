@@ -954,19 +954,19 @@ void Tile::riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) {
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
     if (row >= ymin && row < ymax) {
+        auto qgdnvIPS = getQGDNV()(IP_VAR).getRow(row);
         auto qgdnvIDS = getQGDNV()(ID_VAR).getRow(row);
         auto qgdnvIUS = getQGDNV()(IU_VAR).getRow(row);
-        auto qgdnvIPS = getQGDNV()(IP_VAR).getRow(row);
         auto qgdnvIVS = getQGDNV()(IV_VAR).getRow(row);
 
+        auto qleftIPS = getQLEFT()(IP_VAR).getRow(row);
         auto qleftIDS = getQLEFT()(ID_VAR).getRow(row);
         auto qleftIUS = getQLEFT()(IU_VAR).getRow(row);
-        auto qleftIPS = getQLEFT()(IP_VAR).getRow(row);
         auto qleftIVS = getQLEFT()(IV_VAR).getRow(row);
 
+        auto qrightIPS = getQRIGHT()(IP_VAR).getRow(row);
         auto qrightIDS = getQRIGHT()(ID_VAR).getRow(row);
         auto qrightIUS = getQRIGHT()(IU_VAR).getRow(row);
-        auto qrightIPS = getQRIGHT()(IP_VAR).getRow(row);
         auto qrightIVS = getQRIGHT()(IV_VAR).getRow(row);
 
         riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
