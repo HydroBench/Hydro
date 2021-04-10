@@ -142,7 +142,8 @@ void Tile::slope(int32_t row, real_t ov_slope_type) {
     }
 }
 
-void Tile::trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t project, real_t dtdx) {
+void Tile::trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t project,
+                 real_t dtdx) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
@@ -168,7 +169,7 @@ void Tile::trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t pr
         auto pqxpIUS = getQXP()(IU_VAR).getRow(row);
         auto cS = getC().getRow(row);
 
-        traceonRow(col, col+1, dtdx, zeror, zerol, project, cS, qIDS, qIUS, qIVS, qIPS, dqIDS,
+        traceonRow(col, col + 1, dtdx, zeror, zerol, project, cS, qIDS, qIUS, qIVS, qIPS, dqIDS,
                    dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS, pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS,
                    pqxmIVS, pqxmIPS);
     }
@@ -412,10 +413,10 @@ void Tile::updateconservYscan(int32_t y, int32_t xmin, int32_t xmax, int32_t ymi
                               Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
                               Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
 
-	// BEWARE here xmin,xmax and ymin,ymax are swapped
-	// and so x,y are swapped from tile variables and uOldID
-	//
-	// so y+m_offx is really x+m_offx !
+    // BEWARE here xmin,xmax and ymin,ymax are swapped
+    // and so x,y are swapped from tile variables and uOldID
+    //
+    // so y+m_offx is really x+m_offx !
 
 #pragma omp simd
     for (int32_t x = xmin; x < xmax; x++) {
@@ -974,7 +975,7 @@ void Tile::riemann(int32_t row, int32_t col, real_t smallp, real_t gamma6, real_
         auto qrightIUS = getQRIGHT()(IU_VAR).getRow(row);
         auto qrightIVS = getQRIGHT()(IV_VAR).getRow(row);
 
-        riemannOnRowInRegs(col, col+1, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
+        riemannOnRowInRegs(col, col + 1, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
                            qrightIPS, qrightIVS, getSGNM());
     }
