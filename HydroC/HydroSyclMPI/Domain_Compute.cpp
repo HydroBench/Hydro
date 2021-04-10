@@ -803,8 +803,8 @@ real_t Domain::computeTimeStepByStep() {
             zeror = zero;
             project = zero;
         }
-        auto trace = queue.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-            the_tiles[ids[0]].trace(ids[1], zerol, zeror, project, dtdx);
+        auto trace = queue.parallel_for(sycl::range(m_nbTiles, tileSize, tileSize), [=](auto ids) {
+            the_tiles[ids[0]].trace(ids[1], ids[2], zerol, zeror, project, dtdx);
         });
 
         start_wait = Custom_Timer::dcclock();
@@ -846,11 +846,13 @@ real_t Domain::computeTimeStepByStep() {
 
         queue.submit([&](sycl::handler &handler) {
             handler.parallel_for(
-                sycl::nd_range(sycl::range(tileSize, m_nbTiles), sycl::range(128, 1)),
-                [=](auto ids) {
-                    the_tiles[ids.get_global_id(1)].riemann(ids.get_global_id(0), smallp, gamma6,
-                                                            smallpp);
-                });
+                sycl::nd_range(sycl::range(tileSize, tileSize, m_nbTiles), sycl::range(16, 16, 1)) ,
+                [=](auto ids) // [[intel::reqd_sub_group_size(8)]]
+							   {
+                the_tiles[ids.get_global_id(2)].riemann(ids.get_global_id(0),
+                		ids.get_global_id(1), smallp, gamma6,
+                                                        smallpp);
+            });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();

@@ -217,7 +217,7 @@ class Tile {
     void riemann();
 
     SYCL_EXTERNAL
-    void riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp);
+    void riemann(int32_t row, int32_t col, real_t smallp, real_t gamma6, real_t smallpp);
 
     SYCL_EXTERNAL
     void compflx();
@@ -226,7 +226,7 @@ class Tile {
     void trace();
 
     SYCL_EXTERNAL
-    void trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t dtdx);
+    void trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t project, real_t dtdx);
 
     SYCL_EXTERNAL
     void qleftr();

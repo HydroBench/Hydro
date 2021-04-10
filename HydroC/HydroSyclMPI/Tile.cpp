@@ -142,11 +142,11 @@ void Tile::slope(int32_t row, real_t ov_slope_type) {
     }
 }
 
-void Tile::trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t dtdx) {
+void Tile::trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t project, real_t dtdx) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    if (row >= ymin && row < ymax) {
+    if (row >= ymin && row < ymax && col >= xmin && col < xmax) {
         auto qIDS = getQ()(ID_VAR).getRow(row);
         auto qIVS = getQ()(IV_VAR).getRow(row);
         auto qIUS = getQ()(IU_VAR).getRow(row);
@@ -168,7 +168,7 @@ void Tile::trace(int32_t row, real_t zerol, real_t zeror, real_t project, real_t
         auto pqxpIUS = getQXP()(IU_VAR).getRow(row);
         auto cS = getC().getRow(row);
 
-        traceonRow(xmin, xmax, dtdx, zeror, zerol, project, cS, qIDS, qIUS, qIVS, qIPS, dqIDS,
+        traceonRow(col, col+1, dtdx, zeror, zerol, project, cS, qIDS, qIUS, qIVS, qIPS, dqIDS,
                    dqIUS, dqIVS, dqIPS, pqxpIDS, pqxpIUS, pqxpIVS, pqxpIPS, pqxmIDS, pqxmIUS,
                    pqxmIVS, pqxmIPS);
     }
@@ -412,6 +412,11 @@ void Tile::updateconservYscan(int32_t y, int32_t xmin, int32_t xmax, int32_t ymi
                               Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
                               Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl) {
 
+	// BEWARE here xmin,xmax and ymin,ymax are swapped
+	// and so x,y are swapped from tile variables and uOldID
+	//
+	// so y+m_offx is really x+m_offx !
+
 #pragma omp simd
     for (int32_t x = xmin; x < xmax; x++) {
         pl[x] = uIDS[x] + (fluxIDS[x - 2] - fluxIDS[x - 1]) * dtdx;
@@ -461,35 +466,35 @@ void Tile::updateconserv() {
     getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
     if (m_scan == X_SCAN) {
-        for (int32_t s = ymin; s < ymax; s++) {
-            Preal_t uoldIDS = uoldID.getRow(s + m_offy);
-            Preal_t uoldIPS = uoldIP.getRow(s + m_offy);
-            Preal_t uoldIVS = uoldIV.getRow(s + m_offy);
-            Preal_t uoldIUS = uoldIU.getRow(s + m_offy);
-            Preal_t uIDS = uID.getRow(s);
-            Preal_t uIPS = uIP.getRow(s);
-            Preal_t uIVS = uIV.getRow(s);
-            Preal_t uIUS = uIU.getRow(s);
-            Preal_t fluxIDS = fluxID.getRow(s);
-            Preal_t fluxIVS = fluxIV.getRow(s);
-            Preal_t fluxIUS = fluxIU.getRow(s);
-            Preal_t fluxIPS = fluxIP.getRow(s);
+        for (int32_t y = ymin; y < ymax; y++) {
+            Preal_t uoldIDS = uoldID.getRow(y + m_offy);
+            Preal_t uoldIPS = uoldIP.getRow(y + m_offy);
+            Preal_t uoldIVS = uoldIV.getRow(y + m_offy);
+            Preal_t uoldIUS = uoldIU.getRow(y + m_offy);
+            Preal_t uIDS = uID.getRow(y);
+            Preal_t uIPS = uIP.getRow(y);
+            Preal_t uIVS = uIV.getRow(y);
+            Preal_t uIUS = uIU.getRow(y);
+            Preal_t fluxIDS = fluxID.getRow(y);
+            Preal_t fluxIVS = fluxIV.getRow(y);
+            Preal_t fluxIUS = fluxIU.getRow(y);
+            Preal_t fluxIPS = fluxIP.getRow(y);
             updateconservXscan(xmin, xmax, dtdx, uIDS, uIUS, uIVS, uIPS, uoldIDS, uoldIUS, uoldIVS,
                                uoldIPS, fluxIDS, fluxIVS, fluxIUS, fluxIPS);
         }
     } else {
-        for (int32_t s = ymin; s < ymax; s++) {
-            Preal_t fluxIVS = fluxIV.getRow(s);
-            Preal_t fluxIUS = fluxIU.getRow(s);
-            Preal_t fluxIPS = fluxIP.getRow(s);
-            Preal_t fluxIDS = fluxID.getRow(s);
-            Preal_t uIDS = uID.getRow(s);
-            Preal_t uIPS = uIP.getRow(s);
-            Preal_t uIVS = uIV.getRow(s);
-            Preal_t uIUS = uIU.getRow(s);
+        for (int32_t y = ymin; y < ymax; y++) {
+            Preal_t fluxIVS = fluxIV.getRow(y);
+            Preal_t fluxIUS = fluxIU.getRow(y);
+            Preal_t fluxIPS = fluxIP.getRow(y);
+            Preal_t fluxIDS = fluxID.getRow(y);
+            Preal_t uIDS = uID.getRow(y);
+            Preal_t uIPS = uIP.getRow(y);
+            Preal_t uIVS = uIV.getRow(y);
+            Preal_t uIUS = uIU.getRow(y);
             Preal_t pl = getPL();
 
-            updateconservYscan(s, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP, uoldIV, uoldIU,
+            updateconservYscan(y, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP, uoldIV, uoldIU,
                                fluxIVS, fluxIUS, fluxIPS, fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
         }
     }
@@ -949,11 +954,11 @@ void Tile::riemann() {
 
 } // riemann
 
-void Tile::riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) {
+void Tile::riemann(int32_t row, int32_t col, real_t smallp, real_t gamma6, real_t smallpp) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    if (row >= ymin && row < ymax) {
+    if (row >= ymin && row < ymax && col >= xmin && col < xmax) {
         auto qgdnvIPS = getQGDNV()(IP_VAR).getRow(row);
         auto qgdnvIDS = getQGDNV()(ID_VAR).getRow(row);
         auto qgdnvIUS = getQGDNV()(IU_VAR).getRow(row);
@@ -969,7 +974,7 @@ void Tile::riemann(int32_t row, real_t smallp, real_t gamma6, real_t smallpp) {
         auto qrightIUS = getQRIGHT()(IU_VAR).getRow(row);
         auto qrightIVS = getQRIGHT()(IV_VAR).getRow(row);
 
-        riemannOnRowInRegs(xmin, xmax, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
+        riemannOnRowInRegs(col, col+1, smallp, gamma6, smallpp, qgdnvIDS, qgdnvIUS, qgdnvIPS,
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
                            qrightIPS, qrightIVS, getSGNM());
     }
