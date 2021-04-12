@@ -94,13 +94,14 @@ void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t o
 
 // Compute part so deviceSharedVariables()
 void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS, real_t ov_slope_type) {
+    const real_t slope_type = deviceSharedVariables()->m_slope_type;
 
-    for (int32_t i = xmin + 1; i < xmax - 1; i++) {
+    for (int32_t i = xmin; i < xmax; i++) {
         real_t dlft, drgt, dcen, dsgn;
         real_t llftrgt = zero;
         real_t t1;
-        dlft = deviceSharedVariables()->m_slope_type * (qS[i] - qS[i - 1]);
-        drgt = deviceSharedVariables()->m_slope_type * (qS[i + 1] - qS[i]);
+        dlft = slope_type * (qS[i] - qS[i - 1]);
+        drgt = slope_type * (qS[i + 1] - qS[i]);
         dcen = my_half * (dlft + drgt) * ov_slope_type;
         dsgn = (dcen > 0) ? one : -one; // sign(one, dcen);
 
@@ -123,21 +124,23 @@ void Tile::slope() {
         for (int32_t s = ymin; s < ymax; s++) {
             Preal_t qS = q.getRow(s);
             Preal_t dqS = dq.getRow(s);
-            slopeOnRow(xmin, xmax, qS, dqS, ov_slope_type);
+            // Just recall here that slope depends on cell i-1 and cell i+1
+            slopeOnRow(xmin + 1, xmax - 1, qS, dqS, ov_slope_type);
         }
     }
 
 } // slope
 
-void Tile::slope(int32_t row, real_t ov_slope_type) {
+void Tile::slope(int32_t y, int32_t x, real_t ov_slope_type) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    if (row >= ymin && row < ymax) {
+    if (y >= ymin && y < ymax && x >= xmin + 1 && x < xmax - 1) {
         for (int nbv = 0; nbv < NB_VAR; nbv++) {
-            auto qS = getQ()(nbv).getRow(row);
-            auto dqS = getDQ()(nbv).getRow(row);
-            slopeOnRow(xmin, xmax, qS, dqS, ov_slope_type);
+            auto qS = getQ()(nbv).getRow(y);
+            auto dqS = getDQ()(nbv).getRow(y);
+            // Just recall here that slope depends on cell i-1 and cell i+1
+            slopeOnRow(x, x + 1, qS, dqS, ov_slope_type);
         }
     }
 }
@@ -342,6 +345,22 @@ void Tile::qleftr() {
     }
 }
 
+void Tile::qleftr(int32_t y, int32_t x) {
+    int32_t xmin, xmax, ymin, ymax;
+
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
+    if (y >= ymin && y < ymax && x >= xmin && x < xmax) {
+        for (int32_t v = 0; v < NB_VAR; v++) {
+            auto pqleftS = m_qleft(v).getRow(y);
+            auto pqrightS = m_qright(v).getRow(y);
+            auto pqxmS = m_qxm(v).getRow(y);
+            auto pqxpS = m_qxp(v).getRow(y);
+
+            qleftrOnRow(x, x + 1, pqleftS, pqrightS, pqxmS, pqxpS);
+        }
+    }
+}
+
 void Tile::compflxOnRow(int32_t xmin, int32_t xmax, real_t entho, Preal_t qgdnvIDS,
                         Preal_t qgdnvIUS, Preal_t qgdnvIVS, Preal_t qgdnvIPS, Preal_t fluxIVS,
                         Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS) {
@@ -393,6 +412,32 @@ void Tile::compflx() {
     }
 
 } // compflx
+
+void Tile::compflx(int32_t y, int32_t x) {
+    int32_t xmin, xmax, ymin, ymax;
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
+
+    if (y >= ymin && y < ymax && x >= xmin && x < xmax) {
+
+        auto qgdnvIDS = m_qgdnv(ID_VAR).getRow(y);
+
+        auto diff = qgdnvIDS - m_qgdnv(ID_VAR).data();
+
+        auto qgdnvIUS = m_qgdnv(IU_VAR).data() + diff;
+        auto qgdnvIPS = m_qgdnv(IP_VAR).data() + diff;
+        auto qgdnvIVS = m_qgdnv(IV_VAR).data() + diff;
+
+        auto fluxIVS = m_flux(IV_VAR).data() + diff;
+        auto fluxIUS = m_flux(IU_VAR).data() + diff;
+        auto fluxIPS = m_flux(IP_VAR).data() + diff;
+        auto fluxIDS = m_flux(ID_VAR).data() + diff;
+
+        real_t entho = 1.0 / (deviceSharedVariables()->m_gamma - one);
+
+        compflxOnRow(x, x + 1, entho, qgdnvIDS, qgdnvIUS, qgdnvIVS, qgdnvIPS, fluxIVS, fluxIUS,
+                     fluxIPS, fluxIDS);
+    }
+}
 
 void Tile::updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t uIDS, Preal_t uIUS,
                               Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS,
@@ -603,6 +648,18 @@ void Tile::eos(tileSpan_t span) {
 
 } // eos
 
+void Tile::eos(tileSpan_t span, int32_t y, int32_t x, real_t smallp) {
+    int32_t xmin, xmax, ymin, ymax;
+    getExtends(span, xmin, xmax, ymin, ymax);
+    if (y >= ymin && y < ymax && x >= xmin && x < xmax) {
+        auto qIDS = m_q(ID_VAR).getRow(y);
+        auto qIPS = m_q(IP_VAR).getRow(y);
+        auto eS = m_e.getRow(y);
+        auto cS = m_c.getRow(y);
+        eosOnRow(x, x + 1, smallp, qIDS, eS, qIPS, cS);
+    }
+}
+
 void Tile::compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS,
                                  Preal_t qIUS, Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS,
                                  Preal_t uoldIVS, Preal_t uoldIPS, Preal_t eS) {
@@ -719,11 +776,11 @@ void Tile::constprimOnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS
     }
 }
 
-void Tile::constprim(int32_t row) {
+void Tile::constprim(int32_t row, int32_t col) {
 
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
-    if (row >= xmin && row < ymax) {
+    if (row >= ymin && row < ymax && col >= xmin && col < xmax) {
 
         auto qIDS = getQ()(ID_VAR).getRow(row);
         auto qIPS = getQ()(IP_VAR).getRow(row);
@@ -737,7 +794,7 @@ void Tile::constprim(int32_t row) {
 
         real_t *eS = getE().getRow(row);
 
-        constprimOnRow(xmin, xmax, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
+        constprimOnRow(col, col + 1, qIDS, qIPS, qIVS, qIUS, uIDS, uIPS, uIVS, uIUS, eS);
     }
 
 } // constprim

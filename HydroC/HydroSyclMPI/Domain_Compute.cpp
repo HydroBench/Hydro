@@ -740,8 +740,8 @@ real_t Domain::computeTimeStepByStep() {
         startT = endT;
 
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range(m_nbTiles, tileSize),
-                                 [=](sycl::id<2> ids) { the_tiles[ids[0]].constprim(ids[1]); });
+            handler.parallel_for(sycl::range(m_nbTiles, tileSize, tileSize),
+                                 [=](auto ids) { the_tiles[ids[0]].constprim(ids[1], ids[2]); });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
@@ -751,15 +751,11 @@ real_t Domain::computeTimeStepByStep() {
         m_mainTimer.add(CONSTPRIM, endT - startT);
 
         startT = endT;
-        queue.submit([&](sycl::handler &handler) {
-            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                int idx = it.get_global_id(0);
-                if (idx < nb_tiles) {
-                    auto &my_tile = the_tiles[idx];
 
-                    my_tile.eos(TILE_FULL);
-                }
+        auto smallp = Square(onHost.m_smallc) / onHost.m_gamma; // TODO: We
+        queue.submit([&](sycl::handler &handler) {
+            handler.parallel_for(sycl::range(tileSize, tileSize, m_nbTiles), [=](auto ids) {
+                the_tiles[ids[2]].eos(TILE_FULL, ids[0], ids[1], smallp);
             });
         });
 
@@ -770,17 +766,17 @@ real_t Domain::computeTimeStepByStep() {
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
         m_mainTimer.add(EOS, endT - startT);
         auto slope = queue.single_task([=]() {});
-
+        double slopeTime = 0.0;
         if (m_iorder > 1) {
             startT = endT;
             real_t ov_slope_type = one / onHost.m_slope_type;
 
-            slope = queue.parallel_for(sycl::range(m_nbTiles, tileSize), [=](sycl::id<2> ids) {
-                the_tiles[ids[0]].slope(ids[1], ov_slope_type);
+            slope = queue.parallel_for(sycl::range(m_nbTiles, tileSize, tileSize), [=](auto ids) {
+                the_tiles[ids[0]].slope(ids[1], ids[2], ov_slope_type);
             });
 
             endT = Custom_Timer::dcclock();
-            m_mainTimer.add(SLOPE, endT - startT);
+            slopeTime = endT - startT;
         }
 
         startT = endT;
@@ -811,21 +807,16 @@ real_t Domain::computeTimeStepByStep() {
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
 
+        double traceTime = endT - startT;
         m_mainTimer.add(TRACE, endT - startT);
 
         startT = endT;
-        queue.submit([&](sycl::handler &handler) {
+        auto qleftr = queue.submit([&](sycl::handler &handler) {
             handler.depends_on(trace);
             handler.depends_on(slope);
-            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                int idx = it.get_global_id(0);
-                if (idx < nb_tiles) {
-                    auto &my_tile = the_tiles[idx];
 
-                    my_tile.qleftr();
-                }
-            });
+            handler.parallel_for(sycl::range(m_nbTiles, tileSize, tileSize),
+                                 [=](auto ids) { the_tiles[ids[0]].qleftr(ids[1], ids[2]); });
         });
 
         queue.wait();
@@ -833,12 +824,30 @@ real_t Domain::computeTimeStepByStep() {
         queue.wait();
 
         endT = Custom_Timer::dcclock();
+
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
 
-        m_mainTimer.add(QLEFTR, endT - startT);
+        double qleftTime = endT - startT;
+
+        try {
+            traceTime = (trace.get_profiling_info<sycl::info::event_profiling::command_end>() -
+                         trace.get_profiling_info<sycl::info::event_profiling::command_start>()) *
+                        1.0e-9;
+            slopeTime = (slope.get_profiling_info<sycl::info::event_profiling::command_end>() -
+                         slope.get_profiling_info<sycl::info::event_profiling::command_start>()) *
+                        1.0e-9;
+            qleftTime = (qleftr.get_profiling_info<sycl::info::event_profiling::command_end>() -
+                         qleftr.get_profiling_info<sycl::info::event_profiling::command_start>()) *
+                        1.0e-9;
+
+        } catch (...) {
+        };
+
+        m_mainTimer.add(TRACE, traceTime);
+        m_mainTimer.add(SLOPE, slopeTime);
+        m_mainTimer.add(QLEFTR, qleftTime);
 
         startT = endT;
-        real_t smallp = Square(onHost.m_smallc) / onHost.m_gamma;
         real_t gamma6 = (onHost.m_gamma + one) / (two * onHost.m_gamma);
         real_t smallpp = onHost.m_smallr * smallp;
 
@@ -862,15 +871,13 @@ real_t Domain::computeTimeStepByStep() {
 
         startT = endT;
         queue.submit([&](sycl::handler &handler) {
-            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                int idx = it.get_global_id(0);
-                if (idx < nb_tiles) {
-                    auto &my_tile = the_tiles[idx];
-
-                    my_tile.compflx();
-                }
-            });
+            handler.parallel_for(
+                sycl::nd_range(sycl::range(tileSize, tileSize, m_nbTiles), sycl::range(16, 16, 1)),
+                [=](auto ids) // [[intel::reqd_sub_group_size(8)]]
+                {
+                    the_tiles[ids.get_global_id(2)].compflx(ids.get_global_id(0),
+                                                            ids.get_global_id(1));
+                });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
