@@ -29,8 +29,6 @@ class Tile {
     // Godunov variables and arrays
     godunovDir_t m_scan;
 
-    real_t m_dx;
-
     // work arrays private to a tile
     SoaDevice<real_t> m_u;    // NXT, NYT
     SoaDevice<real_t> m_flux; // NX + 1, NY + 1
@@ -134,7 +132,7 @@ class Tile {
                             Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS);
     SYCL_EXTERNAL
-    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax,
+    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
                             real_t dtdx, RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP,
                             RArray2D<real_t> &uoldIV, RArray2D<real_t> &uoldIU, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
@@ -248,8 +246,18 @@ class Tile {
 
     SYCL_EXTERNAL
     void updateconserv();
+
+    SYCL_EXTERNAL
+    void updateconserv(int32_t d, real_t dtdx);
+
     SYCL_EXTERNAL
     real_t computeDt(); // returns local time step
+
+    SYCL_EXTERNAL
+    void computeDt1(int32_t, int32_t);
+
+    SYCL_EXTERNAL
+    real_t computeDt2(int32_t, int32_t);
 
     SYCL_EXTERNAL
     void constprim();
@@ -258,8 +266,7 @@ class Tile {
     void constprim(int32_t row, int32_t col);
 
 
-    void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
-                   real_t dx);
+    void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy);
 
     void notProcessed() { m_hasBeenProcessed = 0; }
     void doneProcessed(int step) { m_hasBeenProcessed = step; }

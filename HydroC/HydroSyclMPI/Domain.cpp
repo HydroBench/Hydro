@@ -788,7 +788,7 @@ void Domain::setTiles() {
             if (m_withMorton)
                 tile_idx = array_to_sort[tile_idx].second;
 
-            m_tiles[tile_idx].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy, m_dx);
+            m_tiles[tile_idx].setExtend(tileSizeX, tileSizeY, m_nx, m_ny, offx, offy);
 
             if (m_prt) {
                 std::cout << "tsx " << tileSizeX << " tsy " << tileSizeY;

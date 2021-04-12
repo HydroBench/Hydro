@@ -96,7 +96,7 @@ Tile::swapStorageDims ()
 
 void
 Tile::setExtend (int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx,
-		 int32_t offy, real_t dx)
+		 int32_t offy)
 {
   m_nx = nx;
   m_ny = ny;
@@ -104,7 +104,7 @@ Tile::setExtend (int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx,
   m_gny = gny;
   m_offx = offx;
   m_offy = offy;
-  m_dx = dx;
+
 }
 
 // Compute part so deviceSharedVariables()
@@ -232,7 +232,7 @@ Tile::trace ()
   auto pqxpIU = getQXP () (IU_VAR);
 
   real_t zerol = zero, zeror = zero, project = zero;
-  real_t dtdx = m_onDevice->m_dt / m_dx;
+  real_t dtdx = m_onDevice->m_dt / m_onDevice->m_dx;
 
   if (deviceSharedVariables ()->m_scheme == SCHEME_MUSCL)
     { // MUSCL-Hancock method
@@ -520,8 +520,8 @@ Tile::updateconservXscan (int32_t xmin, int32_t xmax, real_t dtdx, Preal_t uIDS,
 }
 
 void
-Tile::updateconservYscan (int32_t y, int32_t xmin, int32_t xmax, int32_t ymin,
-			  int32_t ymax, real_t dtdx, RArray2D<real_t> &uoldID,
+Tile::updateconservYscan (int32_t y, int32_t xmin, int32_t xmax,
+			  real_t dtdx, RArray2D<real_t> &uoldID,
 			  RArray2D<real_t> &uoldIP, RArray2D<real_t> &uoldIV,
 			  RArray2D<real_t> &uoldIU, Preal_t fluxIVS,
 			  Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS,
@@ -584,7 +584,7 @@ Tile::updateconserv ()
   auto uIV = (m_u) (IV_VAR);
   auto uIU = (m_u) (IU_VAR);
 
-  real_t dtdx = m_onDevice->m_dt / m_dx;
+  real_t dtdx = m_onDevice->m_dt / m_onDevice->m_dx;
 
   getExtends (TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
@@ -623,13 +623,76 @@ Tile::updateconserv ()
 	  Preal_t uIUS = uIU.getRow (y);
 	  Preal_t pl = getPL ();
 
-	  updateconservYscan (y, xmin, xmax, ymin, ymax, dtdx, uoldID, uoldIP,
+	  updateconservYscan (y, xmin, xmax,  dtdx, uoldID, uoldIP,
 			      uoldIV, uoldIU, fluxIVS, fluxIUS, fluxIPS,
 			      fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
 	}
     }
 
 } // updateconserv
+
+void
+Tile::updateconserv(int32_t y, real_t dtdx)
+{
+  int32_t xmin, xmax, ymin, ymax;
+  getExtends (TILE_INTERIOR, xmin, xmax, ymin, ymax);
+  if (y >= ymin && y< ymax) {
+    auto uoldID = (deviceSharedVariables ()->m_uold) (ID_VAR);
+    auto uoldIP = (deviceSharedVariables ()->m_uold) (IP_VAR);
+    auto uoldIV = (deviceSharedVariables ()->m_uold) (IV_VAR);
+    auto uoldIU = (deviceSharedVariables ()->m_uold) (IU_VAR);
+
+    auto fluxIV = (m_flux) (IV_VAR);
+    auto fluxIU = (m_flux) (IU_VAR);
+    auto fluxIP = (m_flux) (IP_VAR);
+    auto fluxID = (m_flux) (ID_VAR);
+
+    auto uID = (m_u) (ID_VAR);
+    auto uIP = (m_u) (IP_VAR);
+    auto uIV = (m_u) (IV_VAR);
+    auto uIU = (m_u) (IU_VAR);
+
+    if (m_scan == X_SCAN)
+      {
+
+  	  Preal_t uoldIDS = uoldID.getRow (y + m_offy);
+  	  Preal_t uoldIPS = uoldIP.getRow (y + m_offy);
+  	  Preal_t uoldIVS = uoldIV.getRow (y + m_offy);
+  	  Preal_t uoldIUS = uoldIU.getRow (y + m_offy);
+  	  Preal_t uIDS = uID.getRow (y);
+  	  Preal_t uIPS = uIP.getRow (y);
+  	  Preal_t uIVS = uIV.getRow (y);
+  	  Preal_t uIUS = uIU.getRow (y);
+  	  Preal_t fluxIDS = fluxID.getRow (y);
+  	  Preal_t fluxIVS = fluxIV.getRow (y);
+  	  Preal_t fluxIUS = fluxIU.getRow (y);
+  	  Preal_t fluxIPS = fluxIP.getRow (y);
+  	  updateconservXscan (xmin, xmax, dtdx, uIDS, uIUS, uIVS, uIPS, uoldIDS,
+  			      uoldIUS, uoldIVS, uoldIPS, fluxIDS, fluxIVS,
+  			      fluxIUS, fluxIPS);
+
+      }
+    else
+      {
+
+  	  Preal_t fluxIVS = fluxIV.getRow (y);
+  	  Preal_t fluxIUS = fluxIU.getRow (y);
+  	  Preal_t fluxIPS = fluxIP.getRow (y);
+  	  Preal_t fluxIDS = fluxID.getRow (y);
+  	  Preal_t uIDS = uID.getRow (y);
+  	  Preal_t uIPS = uIP.getRow (y);
+  	  Preal_t uIVS = uIV.getRow (y);
+  	  Preal_t uIUS = uIU.getRow (y);
+  	  Preal_t pl = getPL ();
+
+  	  updateconservYscan (y, xmin, xmax, dtdx, uoldID, uoldIP,
+  			      uoldIV, uoldIU, fluxIVS, fluxIUS, fluxIPS,
+  			      fluxIDS, uIDS, uIPS, uIVS, uIUS, pl);
+
+      }
+  }
+}
+
 
 void
 Tile::gatherconservXscan (int32_t xmin, int32_t xmax, Preal_t uIDS,
@@ -660,10 +723,6 @@ Tile::gatherconservXscan (int32_t xmin, int32_t xmax, Preal_t uIDS,
     }
 }
 
-void
-Tile::gatherconservYscan ()
-{
-}
 
 void
 Tile::gatherconserv ()
@@ -831,8 +890,8 @@ Tile::compute_dt_loop1OnRow (int32_t xmin, int32_t xmax, Preal_t qIDS,
   for (int32_t i = xmin; i < xmax; i++)
     {
       real_t eken, tmp;
-      qIDS[i] = uoldIDS[i + m_offx];
-      qIDS[i] = sycl::max (qIDS[i], smallr);
+
+      qIDS[i] = sycl::max (uoldIDS[i+ m_offx], smallr);
       qIUS[i] = uoldIUS[i + m_offx] / qIDS[i];
       qIVS[i] = uoldIVS[i + m_offx] / qIDS[i];
       eken = my_half * (Square (qIUS[i]) + Square (qIVS[i]));
@@ -917,7 +976,7 @@ Tile::compute_dt ()
   cournox = sycl::max (cournox, tmp1);
   cournoy = sycl::max (cournoy, tmp2);
 
-  dt = deviceSharedVariables ()->m_cfl * m_dx
+  dt = deviceSharedVariables ()->m_cfl * m_onDevice->m_dx
       / sycl::max (cournox,
 		   sycl::max (cournoy, deviceSharedVariables ()->m_smallc));
 
@@ -929,6 +988,47 @@ Tile::compute_dt ()
 
   return dt;
 } // compute_dt
+
+
+void Tile::computeDt1(int32_t y, int32_t x)
+{
+  int32_t xmin, xmax, ymin, ymax;
+  getExtends (TILE_INTERIOR, xmin, xmax, ymin, ymax);
+  if (y >= ymin && y < ymax && x>= xmin && x < xmax) {
+      auto uoldID = (deviceSharedVariables ()->m_uold) (ID_VAR);
+      auto uoldIP = (deviceSharedVariables ()->m_uold) (IP_VAR);
+      auto uoldIV = (deviceSharedVariables ()->m_uold) (IV_VAR);
+      auto uoldIU = (deviceSharedVariables ()->m_uold) (IU_VAR);
+      auto uoldIDS = uoldID.getRow (y + m_offy);
+      auto uoldIPS = uoldIP.getRow (y + m_offy);
+      auto uoldIVS = uoldIV.getRow (y + m_offy);
+      auto uoldIUS = uoldIU.getRow (y + m_offy);
+
+      auto *qIDS = m_q(ID_VAR).getRow (y);
+      auto *qIVS = m_q(IV_VAR).getRow (y);
+      auto *qIUS = m_q(IU_VAR).getRow (y);
+
+      auto *eS = m_e.getRow (y);
+      compute_dt_loop1OnRow (x, x+1, qIDS, qIDS, qIUS, qIVS, uoldIDS,
+     	     uoldIUS, uoldIVS, uoldIPS, eS);
+  }
+}
+
+real_t Tile::computeDt2(int32_t y, int32_t x)
+{
+
+  int32_t xmin, xmax, ymin, ymax;
+  getExtends (TILE_INTERIOR, xmin, xmax, ymin, ymax);
+  if (y >= ymin && y < ymax && x>= xmin && x < xmax) {
+      real_t tmp1 = zero, tmp2 = zero;
+            real_t *qIVS = m_q(IV_VAR).getRow (y);
+            real_t *qIUS = m_q(IU_VAR).getRow (y);
+            real_t *cS = m_c.getRow (y);
+            compute_dt_loop2OnRow (tmp1, tmp2, x, x+1, cS, qIUS, qIVS);
+            return sycl::max(tmp1, tmp2);
+  }
+  return zero;
+}
 
 void
 Tile::constprimOnRow (int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS,
