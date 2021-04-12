@@ -89,8 +89,8 @@ void Domain::computeDt() {
 
                                          auto &my_tile = the_tiles[tile_idx];
 
-                                         my_tile.setTcur(tcur);
-                                         my_tile.setDt(dt);
+                                         my_tile.deviceSharedVariables()->m_dt = dt;
+
                                          real_t local_dt = my_tile.computeDt();
 
                                          res.combine(local_dt);
@@ -208,9 +208,8 @@ real_t Domain::computeTimeStep() {
 
                     auto &my_tile = the_tiles[idx];
                     auto local = my_tile.deviceSharedVariables();
+                    local->m_dt = dt;
 
-                    my_tile.setTcur(tcur);
-                    my_tile.setDt(dt);
                     my_tile.gatherconserv(); // From uold to TIle's u
                     my_tile.constprim();
                     my_tile.eos(TILE_FULL);
@@ -703,20 +702,20 @@ real_t Domain::computeTimeStepByStep() {
 
 #endif
 
+        // Update Dt
         auto dt = m_dt;
+        queue.submit([&] (sycl::handler & handler)
+	{
+          handler.single_task([=]()  {
+            the_tiles[0].deviceSharedVariables()->m_dt = dt;
+          });
+	 }).wait();
+
+        // do Gather
         queue.submit([&](sycl::handler &handler) {
-            auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-            handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                auto local = the_tiles[0].deviceSharedVariables();
-                int idx = it.get_global_id(0);
-                if (idx < nb_tiles) {
+          handler.parallel_for(sycl::range<2>( m_nbTiles, tileSize), [=](auto ids) {
+            the_tiles[ids[0]].gatherconserv(ids[1]);
 
-                    auto &my_tile = the_tiles[idx];
-
-                    my_tile.setTcur(tcur);
-                    my_tile.setDt(dt);
-                    my_tile.gatherconserv(); // From uold to TIle's u
-                }
             });
         });
 

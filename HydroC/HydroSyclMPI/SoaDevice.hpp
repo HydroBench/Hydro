@@ -87,7 +87,7 @@ template <typename S> class RArray2D {
     S operator()(int32_t i, int32_t j) const { return m_data[j * m_w + i]; }
 
     SYCL_EXTERNAL
-    S *getRow(int row) { return m_data + (row * m_w); }
+    S *getRow(int row) { return& m_data[row * m_w ]; }
 
     SYCL_EXTERNAL
     void putFullCol(int32_t x, int32_t offy, S *thecol, int32_t l);

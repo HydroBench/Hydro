@@ -29,7 +29,7 @@ class Tile {
     // Godunov variables and arrays
     godunovDir_t m_scan;
 
-    real_t m_tcur, m_dt, m_dx;
+    real_t m_dx;
 
     // work arrays private to a tile
     SoaDevice<real_t> m_u;    // NXT, NYT
@@ -244,6 +244,9 @@ class Tile {
     void gatherconserv();
 
     SYCL_EXTERNAL
+    void gatherconserv(int32_t d);
+
+    SYCL_EXTERNAL
     void updateconserv();
     SYCL_EXTERNAL
     real_t computeDt(); // returns local time step
@@ -254,11 +257,6 @@ class Tile {
     SYCL_EXTERNAL
     void constprim(int32_t row, int32_t col);
 
-    // set/get
-    SYCL_EXTERNAL
-    void setTcur(real_t t) { m_tcur = t; }
-    SYCL_EXTERNAL
-    void setDt(real_t t) { m_dt = t; }
 
     void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
                    real_t dx);

@@ -16,6 +16,7 @@
 struct TilesSharedVariables {
 
     real_t m_gamma, m_smallc, m_smallr, m_cfl;
+    real_t m_tcur, m_dt;
 
     int32_t m_niter_riemann;
     int32_t m_order;
