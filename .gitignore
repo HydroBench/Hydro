@@ -28,3 +28,6 @@ HydroC/HydroSyclMPI/bar.txt
 HydroC/HydroSyclMPI/ref.txt
 HydroC/HydroSyclMPI/ref1.txt
 HydroC/HydroSyclMPI/hydroc.dpcpp
+HydroC/HydroSyclMPI/.settings/org.eclipse.cdt.core.prefs
+.gitignore
+HydroC/HydroSyclMPI/.settings/org.eclipse.cdt.ui.prefs
