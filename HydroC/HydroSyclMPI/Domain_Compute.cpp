@@ -706,19 +706,19 @@ real_t Domain::computeTimeStepByStep() {
 
         // Update Dt
         auto dt = m_dt, dx = m_dx;
-        queue.submit([&] (sycl::handler & handler)
-	{
-          handler.single_task([=]()  {
-            the_tiles[0].deviceSharedVariables()->m_dt = dt;
-            the_tiles[0].deviceSharedVariables()->m_dx = dx;
-          });
-	 }).wait();
+        queue
+            .submit([&](sycl::handler &handler) {
+                handler.single_task([=]() {
+                    the_tiles[0].deviceSharedVariables()->m_dt = dt;
+                    the_tiles[0].deviceSharedVariables()->m_dx = dx;
+                });
+            })
+            .wait();
 
         // do Gather
         queue.submit([&](sycl::handler &handler) {
-          handler.parallel_for(sycl::range<2>( m_nbTiles, tileSize), [=](auto ids) {
-            the_tiles[ids[0]].gatherconserv(ids[1]);
-
+            handler.parallel_for(sycl::range<2>(m_nbTiles, tileSize), [=](auto ids) {
+                the_tiles[ids[0]].gatherconserv(ids[1]);
             });
         });
 
@@ -894,11 +894,10 @@ real_t Domain::computeTimeStepByStep() {
 
         // we have to wait here that all tiles are ready to update uold
         startT = endT;
-        queue.submit([&](sycl::handler & handler){
-          handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids){
-            the_tiles[ids[0]].updateconserv();
-
-          });
+        queue.submit([&](sycl::handler &handler) {
+            handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
+                the_tiles[ids[0]].updateconserv();
+            });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
@@ -912,36 +911,41 @@ real_t Domain::computeTimeStepByStep() {
         real_t *result = sycl::malloc_shared<real_t>(1, queue);
         *result = zero;
 
-	if (m_scan == Y_SCAN) {
-	    queue.submit([&](sycl::handler & handler){
-	      handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids){
-		 the_tiles[ids].swapScan();
-		 the_tiles[ids].swapStorageDims();
-	      });
-	    } ).wait();
-	}
+        if (m_scan == Y_SCAN) {
+            queue
+                .submit([&](sycl::handler &handler) {
+                    handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
+                        the_tiles[ids].swapScan();
+                        the_tiles[ids].swapStorageDims();
+                    });
+                })
+                .wait();
+        }
 
-	queue.submit([&] (sycl::handler & handler) {
-	   handler.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=] (auto ids) {
-	       the_tiles[ids[0]].computeDt1(ids[1], ids[2]);
-	   });
-	}).wait();
+        queue
+            .submit([&](sycl::handler &handler) {
+                handler.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=](auto ids) {
+                    the_tiles[ids[0]].computeDt1(ids[1], ids[2]);
+                });
+            })
+            .wait();
 
-	queue.submit([&](sycl::handler &handler) {
-	            handler.parallel_for(sycl::range<3>(tileSize, tileSize, m_nbTiles), [=](auto ids) {
-	                the_tiles[ids[2]].eos(TILE_INTERIOR, ids[0], ids[1], smallp);
-	            });
-	        }).wait();
+        queue
+            .submit([&](sycl::handler &handler) {
+                handler.parallel_for(sycl::range<3>(tileSize, tileSize, m_nbTiles), [=](auto ids) {
+                    the_tiles[ids[2]].eos(TILE_INTERIOR, ids[0], ids[1], smallp);
+                });
+            })
+            .wait();
 
         queue.submit([&](sycl::handler &handler) {
-              handler.parallel_for(sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
-						    sycl::range<3>(16,16,1)),
+            handler.parallel_for(sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
+                                                   sycl::range<3>(16, 16, 1)),
                                  sycl::ONEAPI::reduction(result, sycl::ONEAPI::maximum<real_t>()),
                                  [=](auto ids, auto &res) {
-                                         real_t courn = the_tiles[ids.get_global_id(2)].computeDt2(ids.get_global_id(0),
-												   ids.get_global_id(1));
-                                         res.combine(courn);
-
+                                     real_t courn = the_tiles[ids.get_global_id(2)].computeDt2(
+                                         ids.get_global_id(0), ids.get_global_id(1));
+                                     res.combine(courn);
                                  });
         });
         start_wait = Custom_Timer::dcclock();
@@ -954,15 +958,17 @@ real_t Domain::computeTimeStepByStep() {
         m_mainTimer.add(COMPDT, endT - startT);
 
         if (m_scan == Y_SCAN) {
-        	    queue.submit([&](sycl::handler & handler){
-        	      handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids){
-        		 the_tiles[ids].swapScan();
-        		 the_tiles[ids].swapStorageDims();
-        	      });
-        	    } ).wait();
-        	}
+            queue
+                .submit([&](sycl::handler &handler) {
+                    handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
+                        the_tiles[ids].swapScan();
+                        the_tiles[ids].swapStorageDims();
+                    });
+                })
+                .wait();
+        }
 
-        real_t courno  = *result;
+        real_t courno = *result;
         last_dt = onHost.m_cfl * m_dx / sycl::max(courno, onHost.m_smallc);
 
         sycl::free(result, queue);

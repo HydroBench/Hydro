@@ -132,8 +132,8 @@ class Tile {
                             Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS);
     SYCL_EXTERNAL
-    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax,
-                            real_t dtdx, RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP,
+    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, real_t dtdx,
+                            RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP,
                             RArray2D<real_t> &uoldIV, RArray2D<real_t> &uoldIU, Preal_t fluxIVS,
                             Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
                             Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
@@ -264,7 +264,6 @@ class Tile {
 
     SYCL_EXTERNAL
     void constprim(int32_t row, int32_t col);
-
 
     void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy);
 
