@@ -173,14 +173,11 @@ real_t Domain::computeTimeStep() {
 
         queue
             .submit([&](sycl::handler &handler) {
-                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                    int idx = it.get_global_id(0);
-                    if (idx < nb_tiles) {
+                auto global_range = sycl::range<1>(m_nbTiles);
 
-                        auto &my_tile = the_tiles[idx];
-                        my_tile.boundary_process(b_l, b_r, b_u, b_d);
-                    }
+                handler.parallel_for(global_range, [=](auto idx) {
+                    auto &my_tile = the_tiles[idx];
+                    my_tile.boundary_process(b_l, b_r, b_u, b_d);
                 });
             })
             .wait();
@@ -687,6 +684,7 @@ real_t Domain::computeTimeStepByStep() {
         queue
             .submit([&](sycl::handler &handler) {
                 auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
+
                 handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
                     int idx = it.get_global_id(0);
                     if (idx < nb_tiles) {
@@ -717,9 +715,8 @@ real_t Domain::computeTimeStepByStep() {
 
         // do Gather
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range<2>(m_nbTiles, tileSize), [=](auto ids) {
-                the_tiles[ids[0]].gatherconserv(ids[1]);
-            });
+            handler.parallel_for(sycl::range<2>(m_nbTiles, tileSize),
+                                 [=](auto ids) { the_tiles[ids[0]].gatherconserv(ids[1]); });
         });
 
         double start_wait = Custom_Timer::dcclock();
@@ -895,9 +892,8 @@ real_t Domain::computeTimeStepByStep() {
         // we have to wait here that all tiles are ready to update uold
         startT = endT;
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
-                the_tiles[ids[0]].updateconserv();
-            });
+            handler.parallel_for(sycl::range<1>(m_nbTiles),
+                                 [=](auto ids) { the_tiles[ids[0]].updateconserv(); });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();

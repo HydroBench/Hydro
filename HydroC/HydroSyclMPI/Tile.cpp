@@ -12,7 +12,7 @@
 
 Tile::Tile() {
     m_scan = X_SCAN;
-    m_ExtraLayer = 2;
+    m_extraLayer = 2;
 }
 
 Tile::~Tile() {}
@@ -81,13 +81,15 @@ void Tile::swapStorageDims() {
     m_swapped = !m_swapped;
 }
 
-void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy) {
+void Tile::setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
+                     int32_t Extralayer) {
     m_nx = nx;
     m_ny = ny;
     m_gnx = gnx;
     m_gny = gny;
     m_offx = offx;
     m_offy = offy;
+    m_extraLayer = Extralayer;
 }
 
 // Compute part so deviceSharedVariables()
@@ -1191,31 +1193,39 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
 
     int32_t xmin, xmax, ymin, ymax;
 
-    getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
+    getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
+
+    int32_t i_min, i_max, j_min, j_max;
 
     if (m_scan == X_SCAN) {
         if (boundary_left > 0) {
 
             for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
                 auto uold = m_onDevice->m_uold(ivar);
-                int32_t i_min = sycl::max(xmin + m_offx, 0);
-                int32_t i_max = sycl::min(xmax + m_offx, m_ExtraLayer);
-                for (int i = i_min; i < i_max; i++) {
-                    int i0;
+
+                i_min = sycl::max(xmin + m_offx, 0);
+                i_max = sycl::min(xmax + m_offx, m_extraLayer);
+
+                for (int32_t i = i_min; i < i_max; i++) {
+
                     real_t sign = 1.0;
+                    int32_t i0;
+
                     if (boundary_left == 1) {
-                        int i0 = 2 * m_ExtraLayer - i - 1; // CL reflexion
+                        i0 = 2 * m_extraLayer - i - 1; // CL reflexion
                         if (ivar == IU_VAR) {
                             sign = -1.0;
                         }
                     } else if (boundary_left == 2) {
-                        i0 = m_ExtraLayer; // CL absorbante
+                        i0 = m_extraLayer; // CL absorbante
                     } else {
                         i0 = m_gnx + i; // CL periodique
                     }
-#pragma ivdep
-                    for (int j = ymin; j < ymax; j++) {
-                        uold(i, m_offy + j) = uold(i0, m_offy + j) * sign;
+                    j_min = sycl::max(m_extraLayer, ymin + m_offy);
+                    j_max = sycl::min(m_gny + m_extraLayer, ymax + m_offy);
+                    for (int j = j_min; j < j_max; j++) {
+
+                        uold(i, j) = uold(i0, j) * sign;
                     }
                 }
             }
@@ -1225,24 +1235,26 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
             // Right boundary
             for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
                 auto uold = m_onDevice->m_uold(ivar);
-                int32_t i_min = sycl::max(xmin + m_offx, m_gnx + m_ExtraLayer);
-                int32_t i_max = sycl::min(xmax + m_offx, m_gnx + 2 * m_ExtraLayer);
+                i_min = sycl::max(xmin + m_offx, m_gnx + m_extraLayer);
+                i_max = sycl::min(xmax + m_offx, m_gnx + 2 * m_extraLayer);
                 for (int32_t i = i_min; i < i_max; i++) {
                     real_t sign = 1.0;
                     int32_t i0;
                     if (boundary_right == 1) {
-                        i0 = 2 * m_gnx + 2 * m_ExtraLayer - i - 1;
+                        i0 = 2 * m_gnx + 2 * m_extraLayer - i - 1;
                         if (ivar == IU_VAR) {
                             sign = -1.0;
                         }
                     } else if (boundary_right == 2) {
-                        i0 = m_gnx + m_ExtraLayer;
+                        i0 = m_gnx + m_extraLayer;
                     } else {
                         i0 = i - m_gnx;
                     }
-#pragma ivdep
-                    for (int j = ymin; j < ymax; j++) {
-                        uold(i, m_offy + j) = uold(i0, m_offy + j) * sign;
+                    j_min = sycl::max(m_extraLayer, ymin + m_offy);
+                    j_max = sycl::min(m_gny + m_extraLayer, ymax + m_offy);
+                    for (int32_t j = j_min; j < j_max; j++) {
+
+                        uold(i, j) = uold(i0, j) * sign;
                     }
                 }
             }
@@ -1261,25 +1273,29 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
         if (boundary_down > 0) {
             for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
                 auto uold = m_onDevice->m_uold(ivar);
-                int32_t j_min = sycl::max(ymin + m_offy, 0);
-                int32_t j_max = sycl::min(ymax + m_offy, m_ExtraLayer);
+
+                j_min = sycl::max(ymin + m_offy, 0);
+                j_max = sycl::min(ymax + m_offy, m_extraLayer);
+
                 for (int32_t j = j_min; j < j_max; j++) {
                     real_t sign = 1.0;
 
                     int32_t j0 = 0;
                     if (boundary_down == 1) {
-                        j0 = 2 * m_ExtraLayer - j - 1;
+                        j0 = 2 * m_extraLayer - j - 1;
                         if (ivar == IV_VAR) {
                             sign = -1;
                         }
                     } else if (boundary_down == 2) {
-                        j0 = m_ExtraLayer;
+                        j0 = m_extraLayer;
                     } else {
                         j0 = m_gny + j;
                     }
-#pragma ivdep
-                    for (int32_t i = xmin; i < xmax; i++) {
-                        uold(m_offx + i, j) = uold(m_offx + i, j0) * sign;
+                    i_min = sycl::max(m_extraLayer, xmin + m_offx);
+                    i_max = sycl::min(m_gnx + m_extraLayer, xmax + m_offx);
+
+                    for (int32_t i = i_min; i < i_max; i++) {
+                        uold(i, j) = uold(i, j0) * sign;
                     }
                 }
             }
@@ -1288,13 +1304,13 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
         if (boundary_up > 0) {
             for (int32_t ivar = 0; ivar < NB_VAR; ivar++) {
                 auto uold = m_onDevice->m_uold(ivar);
-                int32_t j_min = sycl::max(ymin + m_offy, m_gny + m_ExtraLayer);
-                int32_t j_max = sycl::min(ymax + m_offy, m_gny + 2 * m_ExtraLayer);
+                int32_t j_min = sycl::max(ymin + m_offy, m_gny + m_extraLayer);
+                int32_t j_max = sycl::min(ymax + m_offy, m_gny + 2 * m_extraLayer);
                 for (int32_t j = j_min; j < j_max; j++) {
                     real_t sign = 1;
                     int32_t j0;
                     if (boundary_up == 1) {
-                        j0 = 2 * m_gny + 2 * m_ExtraLayer - j - 1;
+                        j0 = 2 * m_gny + 2 * m_extraLayer - j - 1;
                         if (ivar == IV_VAR) {
                             sign = -1;
                         }
@@ -1303,9 +1319,12 @@ void Tile::boundary_process(int32_t boundary_left, int32_t boundary_right, int32
                     } else {
                         j0 = j - m_gny;
                     }
-#pragma ivdep
-                    for (int32_t i = xmin; i < xmax; i++) {
-                        uold(m_offx + i, j) = uold(m_offx + i, j0) * sign;
+
+                    i_min = sycl::max(m_extraLayer, xmin + m_offx);
+                    i_max = sycl::min(m_gnx + m_extraLayer, xmax + m_offx);
+
+                    for (int32_t i = i_min; i < i_max; i++) {
+                        uold(i, j) = uold(i, j0) * sign;
                     }
                 }
             }

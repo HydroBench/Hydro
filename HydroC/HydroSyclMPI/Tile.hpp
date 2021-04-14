@@ -24,7 +24,7 @@ class Tile {
     int32_t m_nx, m_ny;     // internal box size
     int32_t m_offx, m_offy; // offset of the tile in the domain
     int32_t m_gnx, m_gny;   // total domain size
-    int32_t m_ExtraLayer;
+    int32_t m_extraLayer;
 
     // Godunov variables and arrays
     godunovDir_t m_scan;
@@ -142,15 +142,15 @@ class Tile {
     void getExtends(tileSpan_t span, int32_t &xmin, int32_t &xmax, int32_t &ymin, int32_t &ymax) {
         // returns the dimension of the tile with or without ghost cells.
         if (span == TILE_INTERIOR) {
-            xmin = m_ExtraLayer;
-            xmax = m_ExtraLayer + m_nx;
-            ymin = m_ExtraLayer;
-            ymax = m_ExtraLayer + m_ny;
+            xmin = m_extraLayer;
+            xmax = m_extraLayer + m_nx;
+            ymin = m_extraLayer;
+            ymax = m_extraLayer + m_ny;
         } else { // TILE_FULL
             xmin = 0;
-            xmax = 2 * m_ExtraLayer + m_nx;
+            xmax = 2 * m_extraLayer + m_nx;
             ymin = 0;
-            ymax = 2 * m_ExtraLayer + m_ny;
+            ymax = 2 * m_extraLayer + m_ny;
         }
 
         if (m_scan == Y_SCAN) {
@@ -265,7 +265,8 @@ class Tile {
     SYCL_EXTERNAL
     void constprim(int32_t row, int32_t col);
 
-    void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy);
+    void setExtend(int32_t nx, int32_t ny, int32_t gnx, int32_t gny, int32_t offx, int32_t offy,
+                   int32_t extra);
 
     void notProcessed() { m_hasBeenProcessed = 0; }
     void doneProcessed(int step) { m_hasBeenProcessed = step; }
