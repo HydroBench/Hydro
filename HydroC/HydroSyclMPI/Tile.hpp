@@ -118,6 +118,12 @@ class Tile {
     void compute_dt_loop1OnRow(int32_t xmin, int32_t xmax, Preal_t qIDS, Preal_t qIPS, Preal_t qIUS,
                                Preal_t qIVS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS,
                                Preal_t uoldIPS, Preal_t eS);
+
+    SYCL_EXTERNAL
+    void updateconserv1Row(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t uIDS, Preal_t uIUS,
+                           Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS,
+                           Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
+                           Preal_t fluxIUS, Preal_t fluxIPS);
     SYCL_EXTERNAL
     real_t compute_dt();
     SYCL_EXTERNAL
@@ -126,17 +132,16 @@ class Tile {
                             Preal_t uoldIPS);
     SYCL_EXTERNAL
     void gatherconservYscan();
+
     SYCL_EXTERNAL
-    void updateconservXscan(int32_t xmin, int32_t xmax, real_t dtdx, Preal_t uIDS, Preal_t uIUS,
-                            Preal_t uIVS, Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS,
-                            Preal_t uoldIVS, Preal_t uoldIPS, Preal_t fluxIDS, Preal_t fluxIVS,
-                            Preal_t fluxIUS, Preal_t fluxIPS);
+    void updateconservXscan(int32_t xmin, int32_t xmax, Preal_t uIDS, Preal_t uIUS, Preal_t uIVS,
+                            Preal_t uIPS, Preal_t uoldIDS, Preal_t uoldIUS, Preal_t uoldIVS,
+                            Preal_t uoldIPS);
     SYCL_EXTERNAL
-    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, real_t dtdx,
-                            RArray2D<real_t> &uoldID, RArray2D<real_t> &uoldIP,
-                            RArray2D<real_t> &uoldIV, RArray2D<real_t> &uoldIU, Preal_t fluxIVS,
-                            Preal_t fluxIUS, Preal_t fluxIPS, Preal_t fluxIDS, Preal_t uIDS,
-                            Preal_t uIPS, Preal_t uIVS, Preal_t uIUS, Preal_t pl);
+    void updateconservYscan(int32_t s, int32_t xmin, int32_t xmax, Preal_t uoldIDS, Preal_t uoldIPS,
+                            Preal_t uoldIVS, Preal_t uoldIUS, RArray2D<real_t> &uID,
+                            RArray2D<real_t> &uIP, RArray2D<real_t> &uIV, RArray2D<real_t> &uIU,
+                            Preal_t pl);
 
     SYCL_EXTERNAL
     void getExtends(tileSpan_t span, int32_t &xmin, int32_t &xmax, int32_t &ymin, int32_t &ymax) {
@@ -248,7 +253,13 @@ class Tile {
     void updateconserv();
 
     SYCL_EXTERNAL
-    void updateconserv(int32_t d, real_t dtdx);
+    void updateconserv1();
+
+    SYCL_EXTERNAL
+    void updateconserv(const sycl::stream &out, int32_t d, real_t dtdx);
+
+    SYCL_EXTERNAL
+    void updateconserv1(int32_t d, int32_t x, real_t dtdx);
 
     SYCL_EXTERNAL
     real_t computeDt(); // returns local time step

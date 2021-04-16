@@ -6,7 +6,7 @@ tend=1
 nstepmax=10
 #dtoutput=.1
 ndumpline=2
-stepbystep=0
+stepbystep=1
 /
 
 &MESH

@@ -246,6 +246,8 @@ real_t Domain::computeTimeStep() {
 
                                          auto &my_tile = the_tiles[tile_idx];
 
+                                         my_tile.updateconserv1();
+
                                          my_tile.updateconserv(); // From Tile's u and flux to uold
 
                                          real_t local_dt = my_tile.computeDt();
@@ -891,10 +893,26 @@ real_t Domain::computeTimeStepByStep() {
 
         // we have to wait here that all tiles are ready to update uold
         startT = endT;
+        queue
+            .submit([&](sycl::handler &handler) {
+                handler.parallel_for(
+                    sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
+                                      sycl::range<3>(16, 16, 1)),
+                    [=](auto ids) // [[intel::reqd_sub_group_size(8)]]
+                    {
+                        the_tiles[ids.get_global_id(2)].updateconserv1(ids.get_global_id(0),
+                                                                       ids.get_global_id(1), dtdx);
+                    });
+            })
+            .wait();
+
         queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(sycl::range<1>(m_nbTiles),
-                                 [=](auto ids) { the_tiles[ids[0]].updateconserv(); });
+            sycl::stream out(10240, 480, handler);
+            handler.parallel_for(sycl::range<2>(m_nbTiles, tileSize), [=](auto ids) {
+                the_tiles[ids[0]].updateconserv(out, ids[1], dtdx);
+            });
         });
+
         start_wait = Custom_Timer::dcclock();
         queue.wait();
         endT = Custom_Timer::dcclock();
