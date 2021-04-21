@@ -238,10 +238,10 @@ class Tile {
     void trace(int32_t row, int32_t col, real_t zerol, real_t zeror, real_t project, real_t dtdx);
 
     SYCL_EXTERNAL
-    void qleftr();
+    void qleftright();
 
     SYCL_EXTERNAL
-    void qleftr(int32_t y, int32_t x);
+    void qleftright(int32_t y, int32_t x);
 
     SYCL_EXTERNAL
     void gatherconserv();

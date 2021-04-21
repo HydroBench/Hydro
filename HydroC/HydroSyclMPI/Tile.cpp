@@ -137,8 +137,8 @@ void Tile::slope(int32_t y, int32_t x, real_t ov_slope_type) {
 
     if (y >= ymin && y < ymax && x >= xmin + 1 && x < xmax - 1) {
         for (int nbv = 0; nbv < NB_VAR; nbv++) {
-            auto qS = getQ()(nbv).getRow(y);
-            auto dqS = getDQ()(nbv).getRow(y);
+            auto qS = m_q(nbv)[y];
+            auto dqS = m_dq(nbv)[y];
             // Just recall here that slope depends on cell i-1 and cell i+1
             slopeOnRow(x, x + 1, qS, dqS, ov_slope_type);
         }
@@ -325,7 +325,7 @@ void Tile::qleftrOnRow(int32_t xmin, int32_t xmax, Preal_t pqleftS, Preal_t pqri
     }
 }
 
-void Tile::qleftr() {
+void Tile::qleftright() {
     int32_t xmin, xmax, ymin, ymax;
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
@@ -345,7 +345,7 @@ void Tile::qleftr() {
     }
 }
 
-void Tile::qleftr(int32_t y, int32_t x) {
+void Tile::qleftright(int32_t y, int32_t x) {
     int32_t xmin, xmax, ymin, ymax;
 
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
@@ -419,7 +419,7 @@ void Tile::compflx(int32_t y, int32_t x) {
 
     if (y >= ymin && y < ymax && x >= xmin && x < xmax) {
 
-        auto qgdnvIDS = m_qgdnv(ID_VAR).getRow(y);
+        auto qgdnvIDS = m_qgdnv(ID_VAR)[y];
 
         auto diff = qgdnvIDS - m_qgdnv(ID_VAR).data();
 
@@ -494,6 +494,7 @@ void Tile::updateconservYscan(int32_t x, int32_t ymin, int32_t ymax, Preal_t uol
         uoldIDS[y + m_offx] = ((real_t * __restrict__) uID[y])[x];
     }
 
+    // Swap U and V
     for (int32_t y = ymin; y < ymax; y++) {
         uoldIVS[y + m_offx] = ((real_t * __restrict__) uIU[y])[x];
     }
@@ -1210,24 +1211,6 @@ void Tile::riemann(int32_t row, int32_t col, real_t smallp, real_t gamma6, real_
                            qgdnvIVS, qleftIDS, qleftIUS, qleftIPS, qleftIVS, qrightIDS, qrightIUS,
                            qrightIPS, qrightIVS, getSGNM());
     }
-}
-
-void Tile::godunov() {
-
-    constprim();
-
-    eos(TILE_FULL);
-
-    if (deviceSharedVariables()->m_order > 1) {
-        slope();
-    }
-    trace(); // Was missing !
-
-    qleftr();
-
-    riemann();
-
-    compflx();
 }
 
 real_t Tile::computeDt() {

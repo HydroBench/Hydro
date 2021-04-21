@@ -40,7 +40,7 @@ SoaDevice<T>::SoaDevice(int variables, int32_t w, int32_t h)
 #if 0
     auto queue = ParallelInfo::extraInfos()->m_queue;
     queue.submit(
-        [&](sycl::handler &h) { h.memset(m_array, 0, m_w * m_h * m_nbvariables * sizeof(T)); });
+        [&](sycl::handler &h) { h.memset(m_array, 0, m_w * m_h * m_nbvariables * sizeof(T)); }).wait();
 #endif
 }
 
@@ -67,7 +67,7 @@ Array2D<T>::Array2D(int32_t w, int32_t h) : m_w(w), m_h(h), m_managed_alloc(true
 
 #if 0
     auto queue = ParallelInfo::extraInfos()->m_queue;
-    queue.submit([&](sycl::handler &h) { h.memset(m_data, 0, m_w * m_h * sizeof(T)); });
+    queue.submit([&](sycl::handler &h) { h.memset(m_data, 0, m_w * m_h * sizeof(T)); }).wait();
 #endif
 }
 

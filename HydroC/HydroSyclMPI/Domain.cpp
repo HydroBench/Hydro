@@ -868,9 +868,11 @@ void Domain::setTiles() {
     std::cerr << "Memory allocated on Device" << std::endl;
     auto theTiles = m_tilesOnDevice;
 
-    queue.submit([&](sycl::handler &handler) {
-        handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) { theTiles[idx].initCandE(); });
-    });
+    queue
+        .submit([&](sycl::handler &handler) {
+            handler.parallel_for(m_nbTiles, [=](sycl::id<1> idx) { theTiles[idx].initCandE(); });
+        })
+        .wait();
 }
 
 // EOF

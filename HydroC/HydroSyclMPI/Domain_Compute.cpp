@@ -215,7 +215,7 @@ real_t Domain::computeTimeStep() {
                     if (local->m_order > 1)
                         my_tile.slope();
                     my_tile.trace();
-                    my_tile.qleftr();
+                    my_tile.qleftright();
                     my_tile.riemann();
                     my_tile.compflx();
                 }
@@ -656,12 +656,8 @@ real_t Domain::computeTimeStepByStep() {
         double start, startT, endT;
 
         sycl::queue queue = ParallelInfo::extraInfos()->m_queue;
-        int nb_virtual_tiles = m_nbTiles - 1 + m_nbWorkItems - ((m_nbTiles - 1) % m_nbWorkItems);
 
         auto the_tiles = m_tilesOnDevice;
-        auto nb_tiles = m_nbTiles;
-        auto tcur = m_tcur;
-
         auto tileSize = m_tileSize + 2 * m_ExtraLayer;
 
 #ifdef MPI_ON
@@ -685,15 +681,9 @@ real_t Domain::computeTimeStepByStep() {
 
         queue
             .submit([&](sycl::handler &handler) {
-                auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
-
-                handler.parallel_for(global_range, [=](sycl::nd_item<1> it) {
-                    int idx = it.get_global_id(0);
-                    if (idx < nb_tiles) {
-
-                        auto &my_tile = the_tiles[idx];
-                        my_tile.boundary_process(b_l, b_r, b_u, b_d);
-                    }
+                handler.parallel_for(sycl::range<1>(m_nbTiles), [=](sycl::item<1> idx) {
+                    auto &my_tile = the_tiles[idx[0]];
+                    my_tile.boundary_process(b_l, b_r, b_u, b_d);
                 });
             })
             .wait();
@@ -766,19 +756,24 @@ real_t Domain::computeTimeStepByStep() {
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
         m_mainTimer.add(EOS, endT - startT);
-        auto slope = queue.single_task([=]() {});
+
         double slopeTime = 0.0;
         if (m_iorder > 1) {
             startT = endT;
             real_t ov_slope_type = one / onHost.m_slope_type;
 
-            slope =
-                queue.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=](auto ids) {
+            queue.submit([&](sycl::handler &handler) {
+                handler.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=](auto ids) {
                     the_tiles[ids[0]].slope(ids[1], ids[2], ov_slope_type);
                 });
+            });
 
+            start_wait = Custom_Timer::dcclock();
+            queue.wait();
             endT = Custom_Timer::dcclock();
-            slopeTime = endT - startT;
+            m_mainTimer.add(WAITQUEUE, endT - start_wait);
+            m_mainTimer.add(SLOPE, endT - startT);
+            // Slope must be finished before trace
         }
 
         startT = endT;
@@ -801,12 +796,16 @@ real_t Domain::computeTimeStepByStep() {
             zeror = zero;
             project = zero;
         }
-        auto trace =
-            queue.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=](auto ids) {
+
+        queue.submit([&](sycl::handler &handler) {
+            handler.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize), [=](auto ids) {
                 the_tiles[ids[0]].trace(ids[1], ids[2], zerol, zeror, project, dtdx);
             });
+        });
 
         start_wait = Custom_Timer::dcclock();
+        queue.wait(); // Trace must be finished before qleftr
+
         endT = Custom_Timer::dcclock();
         m_mainTimer.add(WAITQUEUE, endT - start_wait);
 
@@ -815,11 +814,8 @@ real_t Domain::computeTimeStepByStep() {
 
         startT = endT;
         auto qleftr = queue.submit([&](sycl::handler &handler) {
-            handler.depends_on(trace);
-            handler.depends_on(slope);
-
             handler.parallel_for(sycl::range<3>(m_nbTiles, tileSize, tileSize),
-                                 [=](auto ids) { the_tiles[ids[0]].qleftr(ids[1], ids[2]); });
+                                 [=](auto ids) { the_tiles[ids[0]].qleftright(ids[1], ids[2]); });
         });
 
         queue.wait();
@@ -832,22 +828,6 @@ real_t Domain::computeTimeStepByStep() {
 
         double qleftTime = endT - startT;
 
-        try {
-            traceTime = (trace.get_profiling_info<sycl::info::event_profiling::command_end>() -
-                         trace.get_profiling_info<sycl::info::event_profiling::command_start>()) *
-                        1.0e-9;
-            slopeTime = (slope.get_profiling_info<sycl::info::event_profiling::command_end>() -
-                         slope.get_profiling_info<sycl::info::event_profiling::command_start>()) *
-                        1.0e-9;
-            qleftTime = (qleftr.get_profiling_info<sycl::info::event_profiling::command_end>() -
-                         qleftr.get_profiling_info<sycl::info::event_profiling::command_start>()) *
-                        1.0e-9;
-
-        } catch (...) {
-        };
-
-        m_mainTimer.add(TRACE, traceTime);
-        m_mainTimer.add(SLOPE, slopeTime);
         m_mainTimer.add(QLEFTR, qleftTime);
 
         startT = endT;
