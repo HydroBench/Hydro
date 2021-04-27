@@ -709,12 +709,11 @@ void Tile::gatherconserv() {
 
 } // gatherconserv
 
-void Tile::gatherconserv(int32_t d) {
+void Tile::gatherconserv(int32_t x, int32_t y) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_FULL, xmin, xmax, ymin, ymax);
 
-    if ((m_scan == X_SCAN && d >= ymin && d < ymax) ||
-        (m_scan == Y_SCAN && d >= xmin && d < xmax)) {
+    if (x >= xmin && x < xmax && y >= ymin && y < ymax) {
 
         auto uID = (m_u)(ID_VAR);
         auto uIP = (m_u)(IP_VAR);
@@ -727,22 +726,15 @@ void Tile::gatherconserv(int32_t d) {
         auto uoldIU = (deviceSharedVariables()->m_uold)(IU_VAR);
 
         if (m_scan == X_SCAN) {
-            real_t *uoldIDS = uoldID.getRow(d + m_offy);
-            real_t *uoldIPS = uoldIP.getRow(d + m_offy);
-            real_t *uoldIVS = uoldIV.getRow(d + m_offy);
-            real_t *uoldIUS = uoldIU.getRow(d + m_offy);
-            real_t *uIDS = uID.getRow(d);
-            real_t *uIPS = uIP.getRow(d);
-            real_t *uIVS = uIV.getRow(d);
-            real_t *uIUS = uIU.getRow(d);
-            gatherconservXscan(xmin, xmax, uIDS, uIUS, uIVS, uIPS, uoldIDS, uoldIUS, uoldIVS,
-                               uoldIPS);
+            uID[y][x] = uoldID.getRow(y + m_offy)[x + m_offx];
+            uIP[y][x] = uoldIP.getRow(y + m_offy)[x + m_offx];
+            uIU[y][x] = uoldIU.getRow(y + m_offy)[x + m_offx];
+            uIV[y][x] = uoldIV.getRow(y + m_offy)[x + m_offx];
         } else {
-            uID.putFullCol(d, 0, uoldID.getRow(d + m_offy) + m_offx, (ymax - ymin));
-            // U<>V since x<>y
-            uIU.putFullCol(d, 0, uoldIV.getRow(d + m_offy) + m_offx, (ymax - ymin));
-            uIV.putFullCol(d, 0, uoldIU.getRow(d + m_offy) + m_offx, (ymax - ymin));
-            uIP.putFullCol(d, 0, uoldIP.getRow(d + m_offy) + m_offx, (ymax - ymin));
+            uID[y][x] = uoldID.getRow(x + m_offy)[y + m_offx];
+            uIP[y][x] = uoldIP.getRow(x + m_offy)[y + m_offx];
+            uIU[y][x] = uoldIV.getRow(x + m_offy)[y + m_offx];
+            uIV[y][x] = uoldIU.getRow(x + m_offy)[y + m_offx];
         }
     }
 }

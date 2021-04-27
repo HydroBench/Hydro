@@ -47,6 +47,7 @@ class Tile {
 
     bool m_swapped;
     // Some internal arrays access routines
+
     SYCL_EXTERNAL
     SoaDevice<real_t> &getQ() { return m_q; }
 
@@ -247,7 +248,7 @@ class Tile {
     void gatherconserv();
 
     SYCL_EXTERNAL
-    void gatherconserv(int32_t d);
+    void gatherconserv(int32_t d, int32_t d2);
 
     SYCL_EXTERNAL
     void updateconserv();

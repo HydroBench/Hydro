@@ -6,7 +6,7 @@ Each variables are member variables of tiles, except uOld which is global to the
 
 - boundary: uOld* <- uOld*
 - gather: u <- uOld*
-- constprim: q(*), e <- u
+- constprim: q(...), e <- u
 - eos: q(p), c <- q(d), e
 - Slope: dq <- q
 - trace: qxp,qxm <- q,d
@@ -15,7 +15,7 @@ Each variables are member variables of tiles, except uOld which is global to the
 - compflx: flux <- qgdnv
 - update: uOld* <- u, flux
 
-- computedt1: q(*),e <- uOld*
+- computedt1: q(...),e <- uOld*
 - eos: q(p),c <- q(d), e
 - computedt2: <- q(*), c
 
