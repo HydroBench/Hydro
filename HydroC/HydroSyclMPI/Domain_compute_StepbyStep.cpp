@@ -235,18 +235,6 @@ real_t Domain::computeTimeStepByStep() {
 
         // we have to wait here that all tiles are ready to update uold
         startT = endT;
-        queue
-            .submit([&](sycl::handler &handler) {
-                handler.parallel_for(
-                    sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
-                                      sycl::range<3>(16, 16, 1)),
-                    [=](auto ids) // [[intel::reqd_sub_group_size(8)]]
-                    {
-                        the_tiles[ids.get_global_id(2)].updateconserv1(ids.get_global_id(0),
-                                                                       ids.get_global_id(1), dtdx);
-                    });
-            })
-            .wait();
 
         queue.submit([&](sycl::handler &handler) {
             handler.parallel_for(sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
