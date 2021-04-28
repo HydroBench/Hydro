@@ -238,11 +238,11 @@ real_t Domain::computeTimeStepByStep() {
 
         queue.submit([&](sycl::handler &handler) {
             handler.parallel_for(sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
-                    sycl::range<3>(16, 16, 1)), [=](auto ids)
-            		{
-                	the_tiles[ids.get_global_id(2)].updateconserv( ids.get_global_id(0), ids.get_global_id(1)
-                			, dtdx);
-            });
+                                                   sycl::range<3>(16, 16, 1)),
+                                 [=](auto ids) {
+                                     the_tiles[ids.get_global_id(2)].updateconserv(
+                                         ids.get_global_id(0), ids.get_global_id(1), dtdx);
+                                 });
         });
 
         start_wait = Custom_Timer::dcclock();
