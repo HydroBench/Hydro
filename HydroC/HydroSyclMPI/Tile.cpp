@@ -604,10 +604,10 @@ void Tile::updateconserv1() {
             updateconserv1(y, x, dtdx);
 }
 
-void Tile::updateconserv(const sycl::stream &out, int32_t d, real_t dtdx) {
+void Tile::updateconserv( int32_t y, int32_t x, real_t dtdx) {
     int32_t xmin, xmax, ymin, ymax;
     getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
-    if (m_scan == X_SCAN && d >= ymin && d < ymax) {
+    if (x >= xmin && x < xmax && y >= ymin && y < ymax) {
         auto uoldID = (deviceSharedVariables()->m_uold)(ID_VAR);
         auto uoldIP = (deviceSharedVariables()->m_uold)(IP_VAR);
         auto uoldIV = (deviceSharedVariables()->m_uold)(IV_VAR);
@@ -618,34 +618,25 @@ void Tile::updateconserv(const sycl::stream &out, int32_t d, real_t dtdx) {
         auto uIV = (m_u)(IV_VAR);
         auto uIU = (m_u)(IU_VAR);
 
-        Preal_t uoldIDS = uoldID.getRow(d + m_offy);
-        Preal_t uoldIPS = uoldIP.getRow(d + m_offy);
-        Preal_t uoldIVS = uoldIV.getRow(d + m_offy);
-        Preal_t uoldIUS = uoldIU.getRow(d + m_offy);
-        Preal_t uIDS = uID.getRow(d);
-        Preal_t uIPS = uIP.getRow(d);
-        Preal_t uIVS = uIV.getRow(d);
-        Preal_t uIUS = uIU.getRow(d);
+        auto fluxID = m_flux(ID_VAR);
+        auto fluxIP = m_flux(IP_VAR);
+        auto fluxIV = m_flux(IV_VAR);
+        auto fluxIU = m_flux(IU_VAR);
 
-        updateconservXscan(xmin, xmax, uIDS, uIUS, uIVS, uIPS, uoldIDS, uoldIUS, uoldIVS, uoldIPS);
 
-    } else if (m_scan == Y_SCAN && d >= xmin && d < xmax) {
+        if (m_scan == X_SCAN) {
+                    uoldID[y + m_offy][x + m_offx] = uID[y][x];
+                   uoldIP[y + m_offy][x + m_offx] = uIP[y][x];
+                   uoldIU[y + m_offy][x + m_offx] = uIU[y][x];
+                   uoldIV[y + m_offy][x + m_offx] = uIV[y][x];
+               } else {
+                    uoldID[x + m_offy][y + m_offx] = uID[y][x];
+                   uoldIP[x + m_offy][y + m_offx] = uIP[y][x];
+                    uoldIV[x + m_offy][y + m_offx] = uIU[y][x] ;
+                   uoldIU[x + m_offy][y + m_offx] =uIV[y][x] ;
+               }
 
-        auto uoldIDS = (deviceSharedVariables()->m_uold)(ID_VAR).getRow(d + m_offy);
-        auto uoldIPS = (deviceSharedVariables()->m_uold)(IP_VAR).getRow(d + m_offy);
-        auto uoldIVS = (deviceSharedVariables()->m_uold)(IV_VAR).getRow(d + m_offy);
-        auto uoldIUS = (deviceSharedVariables()->m_uold)(IU_VAR).getRow(d + m_offy);
-
-        auto uID = (m_u)(ID_VAR);
-        auto uIP = (m_u)(IP_VAR);
-        auto uIV = (m_u)(IV_VAR);
-        auto uIU = (m_u)(IU_VAR);
-
-        Preal_t pl = getPL();
-
-        updateconservYscan(d, ymin, ymax, uoldIDS, uoldIPS, uoldIVS, uoldIUS, uID, uIP, uIV, uIU,
-                           pl);
-    }
+}
 }
 
 void Tile::gatherconservXscan(int32_t xmin, int32_t xmax, Preal_t uIDS, Preal_t uIUS, Preal_t uIVS,

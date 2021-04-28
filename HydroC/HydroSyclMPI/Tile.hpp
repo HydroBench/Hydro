@@ -257,7 +257,7 @@ class Tile {
     void updateconserv1();
 
     SYCL_EXTERNAL
-    void updateconserv(const sycl::stream &out, int32_t d, real_t dtdx);
+    void updateconserv(int32_t y, int32_t x,  real_t dtdx);
 
     SYCL_EXTERNAL
     void updateconserv1(int32_t d, int32_t x, real_t dtdx);

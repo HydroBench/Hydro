@@ -249,9 +249,11 @@ real_t Domain::computeTimeStepByStep() {
             .wait();
 
         queue.submit([&](sycl::handler &handler) {
-            sycl::stream out(10240, 480, handler);
-            handler.parallel_for(sycl::range<2>(m_nbTiles, tileSize), [=](auto ids) {
-                the_tiles[ids[0]].updateconserv(out, ids[1], dtdx);
+            handler.parallel_for(sycl::nd_range<3>(sycl::range<3>(tileSize, tileSize, m_nbTiles),
+                    sycl::range<3>(16, 16, 1)), [=](auto ids)
+            		{
+                	the_tiles[ids.get_global_id(2)].updateconserv( ids.get_global_id(0), ids.get_global_id(1)
+                			, dtdx);
             });
         });
 
