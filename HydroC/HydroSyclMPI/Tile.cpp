@@ -113,7 +113,7 @@ void Tile::slopeOnRow(int32_t xmin, int32_t xmax, Preal_t qS, Preal_t dqS, real_
 
 void Tile::slope() {
     int32_t xmin, xmax, ymin, ymax;
-    double ov_slope_type = one / deviceSharedVariables()->m_slope_type;
+    real_t ov_slope_type = one / deviceSharedVariables()->m_slope_type;
 
     for (int32_t nbv = 0; nbv < NB_VAR; nbv++) {
         auto q = getQ()(nbv);
@@ -1065,7 +1065,7 @@ void Tile::riemannOnRowInRegs(int32_t xmin, int32_t xmax, real_t smallp, real_t 
 
         real_t ustar_i = my_half * (ulI + (plI - pstarI) / wl_i + urI - (prI - pstarI) / wr_i);
 
-        double left = (double)(ustar_i > 0);
+        real_t left = (real_t)(ustar_i > 0);
 
         real_t ro_i, uo_i, po_i, wo_i;
 

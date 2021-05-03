@@ -89,7 +89,7 @@ template <typename T> Array1D<T>::~Array1D() {
 }
 
 SYCL_EXTERNAL
-const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> &mat) {
+const sycl::stream &operator<<(const sycl::stream &os, const Array2D<real_t> &mat) {
 
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
@@ -108,7 +108,7 @@ const sycl::stream &operator<<(const sycl::stream &os, const Array2D<double> &ma
 }
 
 SYCL_EXTERNAL
-const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> &mat) {
+const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<real_t> &mat) {
     int32_t srcX = mat.getW();
     int32_t srcY = mat.getH();
     int32_t width = os.get_width();
@@ -127,12 +127,12 @@ const sycl::stream &operator<<(const sycl::stream &os, const RArray2D<double> &m
 }
 
 template <>
-void RArray2D<double>::putFullCol(int32_t x, int32_t offy, double *theCol, int32_t lgr) {
+void RArray2D<real_t>::putFullCol(int32_t x, int32_t offy, real_t *theCol, int32_t lgr) {
     for (int32_t j = 0; j < lgr; j++) {
         m_data[(j + offy) * m_w + x] = theCol[j];
     }
 }
 
-template class Array1D<double>;
-template class Array2D<double>;
-template class SoaDevice<double>;
+template class Array1D<real_t>;
+template class Array2D<real_t>;
+template class SoaDevice<real_t>;

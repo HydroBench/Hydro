@@ -19,7 +19,7 @@ constexpr real_t two = 2.0f;
 constexpr real_t my_half = 0.5f;
 constexpr real_t zero = 0.0f;
 constexpr real_t hundred = 100.0f;
-constexpr real_t PRECISION = 1.e-6f;
+constexpr real_t precision = 1.e-6f;
 
 #endif
 
