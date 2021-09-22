@@ -47,6 +47,13 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
     auto max_EU_count = device.get_info<sycl::info::device::max_compute_units>();
 
     inst.m_nWorkers = max_EU_count;
+  
+    if (inst.m_nWorkers > max_block_size) { 
+        // We should not have more worker than the max_block_size
+      inst.m_nWorkers = max_block_size;
+      std::cerr << " Reduction of the number of workers to Max Work Group Size"	<< std::endl;
+    }
+
 
     if (inst.m_verbosity) {
         std::cerr << "Running on " << device.get_info<sycl::info::device::name>() << std::endl;
