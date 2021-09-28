@@ -260,8 +260,9 @@ real_t Domain::computeTimeStepByStep() {
 
         startT = endT;
 
-        real_t *result = sycl::malloc_shared<real_t>(1, queue);
-        *result = zero;
+        real_t *result = sycl::malloc_shared<real_t>(m_nbTiles, queue);
+        for (int t = 0; t < m_nbTiles; t++)
+            result[t] = zero;
 
         if (m_scan == Y_SCAN) {
             queue
@@ -292,6 +293,7 @@ real_t Domain::computeTimeStepByStep() {
             })
             .wait();
 
+#if 0
         queue.submit([&](sycl::handler &handler) {
             handler.parallel_for(ndr_def,
                                  sycl::ONEAPI::reduction(result, sycl::ONEAPI::maximum<real_t>()),
@@ -301,6 +303,22 @@ real_t Domain::computeTimeStepByStep() {
                                      res.combine(courn);
                                  });
         });
+#else
+        // Implement the max reduction using atomic !
+        queue.submit([&](sycl::handler &handler) {
+            handler.parallel_for(ndr_def, [=](auto ids) {
+                real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(ids.get_global_id(1),
+                                                                          ids.get_global_id(2));
+                sycl::ONEAPI::atomic_ref<real_t, sycl::ONEAPI::memory_order::relaxed,
+                                         sycl::ONEAPI::memory_scope::system,
+
+                                         sycl::access::address_space::global_space>
+                    atomic_data(result[ids.get_global_id(0)]);
+                atomic_data.fetch_max(courn);
+            });
+        });
+
+#endif
         start_wait = Custom_Timer::dcclock();
         queue.wait();
 
@@ -321,7 +339,8 @@ real_t Domain::computeTimeStepByStep() {
                 .wait();
         }
 
-        real_t courno = *result;
+        real_t courno = *std::max_element(result, result + m_nbTiles);
+
         last_dt = onHost.m_cfl * m_dx / sycl::max(courno, onHost.m_smallc);
 
         sycl::free(result, queue);
