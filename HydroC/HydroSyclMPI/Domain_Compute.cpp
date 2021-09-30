@@ -384,7 +384,7 @@ void Domain::compute() {
         {
             startstep = Custom_Timer::dcclock();
             if (m_StepbyStep)
-                dt = computeTimeStepByStep();
+                dt = computeTimeStepByStep(m_iter % 2 != 0);
             else
                 dt = computeTimeStep();
             endstep = Custom_Timer::dcclock();

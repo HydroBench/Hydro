@@ -11,7 +11,7 @@
 #include "Utilities.hpp"
 #include "cclock.hpp"
 
-real_t Domain::computeTimeStepByStep() {
+real_t Domain::computeTimeStepByStep(bool doComputeDt) {
     real_t dt = 0, last_dt = zero;
 
     for (int32_t pass = 0; pass < 2; pass++) {
@@ -260,71 +260,104 @@ real_t Domain::computeTimeStepByStep() {
 
         startT = endT;
 
-        real_t *result = sycl::malloc_shared<real_t>(1, queue);
-        *result = zero;
+        if (doComputeDt) {
+#ifdef ATOMIC_VS_REDUCTION
 
-        if (m_scan == Y_SCAN) {
+            real_t *result = sycl::malloc_shared<real_t>(m_nbTiles, queue);
+            for (int t = 0; t < m_nbTiles; t++)
+                result[t] = zero;
+#else
+            real_t *result = sycl::malloc_shared<real_t>(1, queue);
+            *result = zero;
+#endif
+
+            if (m_scan == Y_SCAN) {
+                queue
+                    .submit([&](sycl::handler &handler) {
+                        handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
+                            the_tiles[ids].swapScan();
+                            the_tiles[ids].swapStorageDims();
+                        });
+                    })
+                    .wait();
+            }
+
             queue
                 .submit([&](sycl::handler &handler) {
-                    handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
-                        the_tiles[ids].swapScan();
-                        the_tiles[ids].swapStorageDims();
+                    handler.parallel_for(ndr_def, [=](auto idx) {
+                        auto ids = idx.get_global_id();
+                        the_tiles[ids[0]].computeDt1(ids[1], ids[2]);
                     });
                 })
                 .wait();
-        }
 
-        queue
-            .submit([&](sycl::handler &handler) {
-                handler.parallel_for(ndr_def, [=](auto idx) {
-                    auto ids = idx.get_global_id();
-                    the_tiles[ids[0]].computeDt1(ids[1], ids[2]);
-                });
-            })
-            .wait();
-
-        queue
-            .submit([&](sycl::handler &handler) {
-                handler.parallel_for(ndr_def, [=](auto idx) {
-                    auto ids = idx.get_global_id();
-                    the_tiles[ids[0]].eos(TILE_INTERIOR, ids[1], ids[2], smallp);
-                });
-            })
-            .wait();
-
-        queue.submit([&](sycl::handler &handler) {
-            handler.parallel_for(ndr_def,
-                                 sycl::ONEAPI::reduction(result, sycl::ONEAPI::maximum<real_t>()),
-                                 [=](auto ids, auto &res) {
-                                     real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(
-                                         ids.get_global_id(1), ids.get_global_id(2));
-                                     res.combine(courn);
-                                 });
-        });
-        start_wait = Custom_Timer::dcclock();
-        queue.wait();
-
-        endT = Custom_Timer::dcclock();
-        m_mainTimer.add(WAITQUEUE, endT - start_wait);
-
-        endT = Custom_Timer::dcclock();
-        m_mainTimer.add(COMPDT, endT - startT);
-
-        if (m_scan == Y_SCAN) {
             queue
                 .submit([&](sycl::handler &handler) {
-                    handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
-                        the_tiles[ids].swapScan();
-                        the_tiles[ids].swapStorageDims();
+                    handler.parallel_for(ndr_def, [=](auto idx) {
+                        auto ids = idx.get_global_id();
+                        the_tiles[ids[0]].eos(TILE_INTERIOR, ids[1], ids[2], smallp);
                     });
                 })
                 .wait();
-        }
 
-        real_t courno = *result;
-        last_dt = onHost.m_cfl * m_dx / sycl::max(courno, onHost.m_smallc);
+#if ATOMIC_VS_REDUCTION
+            // Implement the max reduction using atomic !
+            queue.submit([&](sycl::handler &handler) {
+                handler.parallel_for(ndr_def, [=](auto ids) {
+                    real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(ids.get_global_id(1),
+                                                                              ids.get_global_id(2));
+                    sycl::ONEAPI::atomic_ref<real_t, sycl::ONEAPI::memory_order::relaxed,
+                                             sycl::ONEAPI::memory_scope::system,
 
-        sycl::free(result, queue);
+                                             sycl::access::address_space::global_space>
+                        atomic_data(result[ids.get_global_id(0)]);
+                    atomic_data.fetch_max(courn);
+                });
+            });
+
+#else
+            queue.submit([&](sycl::handler &handler) {
+                handler.parallel_for(
+                    ndr_def, sycl::ONEAPI::reduction(result, sycl::ONEAPI::maximum<real_t>()),
+                    [=](auto ids, auto &res) {
+                        real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(
+                            ids.get_global_id(1), ids.get_global_id(2));
+                        res.combine(courn);
+                    });
+            });
+#endif
+
+            start_wait = Custom_Timer::dcclock();
+            queue.wait();
+
+            endT = Custom_Timer::dcclock();
+            m_mainTimer.add(WAITQUEUE, endT - start_wait);
+
+            endT = Custom_Timer::dcclock();
+            m_mainTimer.add(COMPDT, endT - startT);
+
+            if (m_scan == Y_SCAN) {
+                queue
+                    .submit([&](sycl::handler &handler) {
+                        handler.parallel_for(sycl::range<1>(m_nbTiles), [=](auto ids) {
+                            the_tiles[ids].swapScan();
+                            the_tiles[ids].swapStorageDims();
+                        });
+                    })
+                    .wait();
+            }
+
+#if ATOMIC_VS_REDUCTION
+            real_t courno = *std::max_element(result, result + m_nbTiles);
+#else
+            real_t courno = *result;
+#endif
+
+            last_dt = onHost.m_cfl * m_dx / sycl::max(courno, onHost.m_smallc);
+
+            sycl::free(result, queue);
+        } else
+            last_dt = m_dt; // So no change at all !
 
         // we have to wait here that uold has been fully updated by all tiles
         double end = Custom_Timer::dcclock();

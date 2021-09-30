@@ -134,7 +134,7 @@ class Domain {
 
     void boundary_process();
     real_t computeTimeStep();
-    real_t computeTimeStepByStep();
+    real_t computeTimeStepByStep(bool doComputeDt);
     void compTStask1();
     void compTStask2();
     void compTStask3();
