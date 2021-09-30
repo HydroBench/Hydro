@@ -1,7 +1,7 @@
 CC:=icx
-MPI:=O
+MPI:=N
 DEF:=
-PNG:=O
+PNG:=N
 
 #defaut behavior
 
@@ -70,12 +70,19 @@ CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -fvectorize -fopenmp-targets=nvptx64-nvi
 override CC=clang 
 endif # system clang
 
+COMPCAP=cc80	# A100 by default
 ifeq ($(CC),pgi)
 override CC=pgcc
 # -Minfo=all -Mpreprocess
-CFLAGS +=-ta=tesla,cc70 -mp=gpu 
+# CFLAGS +=-ta=tesla,cc70,managed -mp=gpu
+CFLAGS +=-ta=tesla,$(COMPCAP) -mp=gpu
 CFLAGS_OMP+= -fopenmp -O3
 endif # pgi compiler
+
+ifeq ($(CC),mi100)
+CFLAGS_OMP+= -fopenmp -fopenmp-simd -O3 -fvectorize
+override CC=aompcc 
+endif # amd environment
 
 ifeq ($(SP),O)
 DEF +=-DPREC_SP
@@ -231,8 +238,16 @@ runall:
 	make clean runcpu SP=O | tail -9
 	make clean rungpuq SP=O | tail -9
 
-inti:
+inti: hydro
 	ccc_mprun -p v100 -x -c12 -n1 env OMP_NUM_THREADS=12 nvprof ./hydro -i input.nml
+
+intigv: 
+	make clean
+	make -j 4 CC=pgi MPI=N PNG=N GPU=O COMPCAP=cc70 LOOP=N hydro
+	ccc_mprun -p v100 -x -c12 -n1 env OMP_NUM_THREADS=1 nvprof ./hydro -i input.nml
+
+intiga: hydro
+	ccc_mprun -p a100 -x -c32 -n1 env OMP_NUM_THREADS=1 nsys nvprof ./hydro -i input.nml
 
 intipar:
 	ccc_mprun -p v100 -x -c12 -n4 env OMP_NUM_THREADS=12 ./hydro -i input.nml

@@ -36,11 +36,11 @@ knowledge of the CeCILL license and that you accept its terms.
 */
 
 #ifdef WITHMPI
- #ifdef SEEK_SET
-  #undef SEEK_SET
-  #undef SEEK_CUR
-  #undef SEEK_END
- #endif
+ // #ifdef SEEK_SET
+ //  #undef SEEK_SET
+ //  #undef SEEK_CUR
+ //  #undef SEEK_END
+ // #endif
  #include <mpi.h>
 #endif
 #include <stdlib.h>
@@ -391,7 +391,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
         // on traite les deux boucles d'un coup
         Loop1KcuMakeBoundary <<< grid, block >>> (i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
         CheckErr("Loop1KcuMakeBoundary");
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CheckErr("After synchronize Loop1KcuMakeBoundary");
       }
       nops = H.nvar * ExtraLayer * ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer));
@@ -413,7 +413,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
         }
         Loop1KcuMakeBoundary <<< grid, block >>> (i, i0, sign, H.jmin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
         CheckErr("Loop1KcuMakeBoundary 2");
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CheckErr("After synchronize Loop1KcuMakeBoundary 2");
       }
       nops = H.nvar * ((H.jmax - ExtraLayer) - (H.jmin + ExtraLayer)) * ((H.nx + ExtraLayerTot) - (H.nx + ExtraLayer));
@@ -507,7 +507,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
         }
         Loop2KcuMakeBoundary <<< grid, block >>> (j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
         CheckErr("Loop2KcuMakeBoundary ");
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CheckErr("After synchronize Loop2KcuMakeBoundary ");
       }
       nops = H.nvar * ((ExtraLayer) - (0)) * ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));
@@ -528,7 +528,7 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
         }
         Loop2KcuMakeBoundary <<< grid, block >>> (j, j0, sign, H.imin, n, H.nxt, H.nyt, H.nvar, uoldDEV);
         CheckErr("Loop2KcuMakeBoundary 2");
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CheckErr("After synchronize Loop2KcuMakeBoundary 2");
       }
       nops = H.nvar * ((H.ny + ExtraLayerTot) - (H.ny + ExtraLayer)) * ((H.imax - ExtraLayer) - (H.imin + ExtraLayer));

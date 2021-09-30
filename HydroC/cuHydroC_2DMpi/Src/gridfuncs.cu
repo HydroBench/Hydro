@@ -78,7 +78,7 @@ initDevice(long myCard) {
 
 void
 releaseDevice(long myCard) {
-  cudaThreadExit();
+  cudaDeviceReset();
   CheckErr("releaseDevice");
 }
 
@@ -207,7 +207,7 @@ reduceMax(double *array, long nb) {
   SetBlockDims(nb, bs, block, grid);
   LoopKredMaxDble <<< grid, block >>> (array, temp1, nb);
   CheckErr("KredMaxDble");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("reducMax");
 
   // ici on a nbb maxima locaux
@@ -216,7 +216,7 @@ reduceMax(double *array, long nb) {
     SetBlockDims(nbb, bs, block, grid);
     LoopKredMaxDble <<< grid, block >>> (temp1, temp2, nbb);
     CheckErr("KredMaxDble 2");
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CheckErr("reducMax 2");
     // on permute les tableaux pour une eventuelle iteration suivante,
     tmp = temp1;

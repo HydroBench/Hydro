@@ -26,7 +26,7 @@ hydro:  $(OBJ)
 	$(NVCC) $(LDFLAGS) $(OBJ) -o hydro
 
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ 
 
 cleanall:
 	rm -f *.o *~ hydro
@@ -55,3 +55,6 @@ run: hydro
 
 burn: hydro
 	ccc_mprun -E-JcuBurnK40 -p hybridk40 -n6 -N3 -T36000 ./hydro -i inputMEDIUM.nml
+
+runa100: hydro
+	ccc_mprun -p a100 -c 32 -n 1 -x ./hydro -i input.nml

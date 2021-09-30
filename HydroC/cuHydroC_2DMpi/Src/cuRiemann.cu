@@ -302,7 +302,7 @@ cuRiemann(const long narray, const double Hsmallr, const double Hsmallc, const d
   cuPerfInit();
   Loop1KcuRiemann <<< grid, block >>> (flops_dev);
   CheckErr("Avant synchronize Loop1KcuRiemann");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("After synchronize Loop1KcuRiemann");
   cuPerfGet();
   nops = slices * narray;
@@ -311,7 +311,7 @@ cuRiemann(const long narray, const double Hsmallr, const double Hsmallc, const d
   // other passive variables
   if (Hnvar > IP + 1) {
     Loop10KcuRiemann <<< grid, block >>> ();
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CheckErr("After synchronize Loop10KcuRiemann");
   }
 }                               // riemann

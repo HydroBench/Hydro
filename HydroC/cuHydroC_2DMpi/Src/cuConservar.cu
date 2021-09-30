@@ -279,7 +279,7 @@ cuUpdateConservativeVars(const long idim, const long rowcol, const double dtdx, 
       CheckErr("Loop4KcuUpdate");
     }
   }
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("cudaThreadSynchronize");
 }
 

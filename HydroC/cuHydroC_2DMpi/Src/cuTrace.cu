@@ -222,7 +222,7 @@ cuTrace(const double dtdx, const long n, const long Hscheme, const long Hnvar, c
   SetBlockDims(Hnxyt * slices, THREADSSZs, block, grid);
   Loop1KcuTrace <<< grid, block >>> (dtdx, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hnxystep, qDEV, dqDEV, cDEV, qxmDEV, qxpDEV);
   CheckErr("Loop1KcuTrace");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
   nops = slices * ((ijmax - 1) - (ijmin + 1));
   FLOPS(77 * nops, 7 * nops, 0 * nops, 0 * nops);  
@@ -230,7 +230,7 @@ cuTrace(const double dtdx, const long n, const long Hscheme, const long Hnvar, c
   if (Hnvar > IP + 1) {
     Loop2KcuTrace <<< grid, block >>> (dtdx, Hnvar, Hnxyt, ijmin, ijmax, zeror, zerol, project, slices, Hnxystep, qDEV, dqDEV, qxmDEV, qxpDEV);
     CheckErr("Loop2KcuTrace");
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
   }
 }                               // trace
 
