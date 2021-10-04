@@ -31,7 +31,7 @@ void slope(const int n, const int Hnvar, const int Hnxyt, const real_t Hslope_ty
 #pragma omp teams loop bind(teams) private(nbv, s, i) collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) collapse(3) private(nbv, s, i) shared(q, dq)       \
-    firstprivate(Hslope_type, ijmin, ijmax, slices, Hnvar, Hnxyt, Hstep)
+    FIRSTP(Hslope_type, ijmin, ijmax, slices, Hnvar, Hnxyt, Hstep)
 #endif
     for (nbv = 0; nbv < Hnvar; nbv++) {
         for (s = 0; s < slices; s++) {

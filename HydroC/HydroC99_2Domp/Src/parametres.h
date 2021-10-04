@@ -171,5 +171,11 @@ extern double functim[TIM_END];
 #define TEAMSDIS
 #endif
 
+#ifdef FIRSTPOFF
+#define FIRSTP shared
+#else
+#define FIRSTP firstprivate
+#endif
+
 #endif // PARAMETRES_H_INCLUDED
 // EOF

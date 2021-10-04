@@ -59,7 +59,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none),                                                   \
-    firstprivate(Hnvar, Hnxt, Hnyt, Hnx, Hboundleft, Hjmin, Hjmax) private(ivar, i, j, i0, sign) shared(uold) collapse(2)
+    FIRSTP(Hnvar, Hnxt, Hnyt, Hnx, Hboundleft, Hjmin, Hjmax) private(ivar, i, j, i0, sign) shared(uold) collapse(2)
 #endif
                 for (ivar = 0; ivar < Hnvar; ivar++) {
                     for (i = 0; i < ExtraLayer; i++) {
@@ -94,7 +94,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, i0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hnx, Hboundright, Hjmin, Hjmax) private(ivar, i, j, i0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) FIRSTP(Hnvar, Hnxt, Hnyt, Hnx, Hboundright, Hjmin, Hjmax) private(ivar, i, j, i0, sign)      \
     shared(uold) collapse(2)
 #endif
                 for (ivar = 0; ivar < Hnvar; ivar++) {
@@ -134,7 +134,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hny, Hbounddown, Himin, Himax) private(ivar, i, j, j0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) FIRSTP(Hnvar, Hnxt, Hnyt, Hny, Hbounddown, Himin, Himax) private(ivar, i, j, j0, sign)      \
     shared(uold) collapse(2)
 #endif
                 for (ivar = 0; ivar < Hnvar; ivar++) {
@@ -169,7 +169,7 @@ void make_boundary(int idim, const hydroparam_t H, hydrovar_t *Hv) {
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(ivar, i, j, j0, sign) collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, Hnxt, Hnyt, Hny, Hboundup, Himin, Himax) private(ivar, i, j, j0, sign)      \
+#pragma omp TEAMSDIS parallel for default(none) FIRSTP(Hnvar, Hnxt, Hnyt, Hny, Hboundup, Himin, Himax) private(ivar, i, j, j0, sign)      \
     shared(uold) collapse(2)
 #endif
                 for (ivar = 0; ivar < Hnvar; ivar++) {

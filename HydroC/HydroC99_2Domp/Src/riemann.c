@@ -80,7 +80,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i), collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i),                                     \
-    firstprivate(Hsmallr, Hgamma, slices, narray, smallp, Hnxyt, Hstep)	\
+    FIRSTP(Hsmallr, Hgamma, slices, narray, smallp, Hnxyt, Hstep)	\
         shared(qgdnv, sgnm, qleft, qright, pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon)            \
             collapse(2)
 #endif
@@ -119,7 +119,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i, iter) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, iter),                               \
-    firstprivate(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6, Hnxyt, Hstep)         \
+    FIRSTP(Hsmallr, Hgamma, Hniter_riemann, slices, narray, smallp, smallpp, gamma6, Hnxyt, Hstep)         \
         shared(pstar, rl, ul, pl, rr, ur, cl, pr, cr, goon) collapse(2)
 #endif
 
@@ -168,7 +168,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i),                                     \
-    firstprivate(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6, Hnxyt, Hstep)                         \
+    FIRSTP(Hsmallr, Hsmallc, Hgamma, slices, narray, smallp, gamma6, Hnxyt, Hstep)                         \
         shared(qgdnv, sgnm, qleft, qright, pstar) shared(rl, ul, pl, rr, ur, cl, pr, cr, goon)     \
             collapse(2)
 #endif
@@ -189,13 +189,13 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
             real_t ro_i, uo_i, po_i, wo_i;
 
             if (left) {
-                sgnm[s][ii] = 1;
+                sgnm[s][i] = 1;
                 ro_i = rl[ii];
                 uo_i = ul[ii];
                 po_i = pl[ii];
                 wo_i = wl_i;
             } else {
-                sgnm[s][ii] = -1;
+                sgnm[s][i] = -1;
                 ro_i = rr[ii];
                 uo_i = ur[ii];
                 po_i = pr[ii];
@@ -272,7 +272,7 @@ void riemann(int narray, const real_t Hsmallr, const real_t Hsmallc, const real_
 #pragma omp teams loop bind(teams) private(s, i, invar), collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, invar),                              \
-    firstprivate(slices, Hnvar, narray), shared(qgdnv, sgnm, qleft, qright, Hnxyt, Hstep) collapse(3) //
+    FIRSTP(slices, Hnvar, narray), shared(qgdnv, sgnm, qleft, qright, Hnxyt, Hstep) collapse(3) //
 #endif
         for (invar = IP + 1; invar < Hnvar; invar++) {
             for (s = 0; s < slices; s++) {

@@ -21,6 +21,7 @@
 
 //
 #include "mpibounds.h"
+#include "utils.h"
 
 // static int pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *buffer);
 // static int unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *buffer);
@@ -31,7 +32,7 @@ int pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *bu
     int ivar, i, j;
     long lgr = ExtraLayer * H.nvar * H.nyt;
     real_t *uold = &Hv->uold[0];
-    int32_t Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
+    int Hnvar = H.nvar, Hnxt = H.nxt, Hnyt = H.nyt;
 
 #ifdef TRACKDATA
     fprintf(stderr, "Moving pack_arrayv IN %d\n", (int) sizeof(H));
@@ -40,7 +41,7 @@ int pack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *bu
 #ifdef TARGETON
 #pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(from: buffer [0:lgr])
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, Hnvar, Hnxt, Hnyt), \
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) FIRSTP(xmin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
     for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = 0; j < Hnyt; j++) {
@@ -68,7 +69,7 @@ int unpack_arrayv(const int xmin, const hydroparam_t H, hydrovar_t *Hv, real_t *
 #ifdef TARGETON
 #pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(to: buffer [0:lgr])
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(xmin, Hnvar, Hnxt, Hnyt), \
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) FIRSTP(xmin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
     for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = 0; j < Hnyt; j++) {
@@ -96,7 +97,7 @@ int pack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t *Hv, real_t *bu
 #ifdef TARGETON
 #pragma omp target map(uold [0:Hnvar * Hnxt * Hnyt]) map(from: buffer [0:lgr])
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, Hnvar, Hnxt, Hnyt), \
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) FIRSTP(ymin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
     for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = ymin; j < ymin + ExtraLayer; j++) {
@@ -124,7 +125,7 @@ int unpack_arrayh(const int ymin, const hydroparam_t H, hydrovar_t *Hv, real_t *
 #ifdef TARGETON
 #pragma omp target map(uold [0:Hnvar *Hnxt * Hnyt]) map(to: buffer [0:lgr])
 #endif
-#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) firstprivate(ymin, Hnvar, Hnxt, Hnyt), \
+#pragma omp TEAMSDIS parallel for default(none) private(ivar, i, j) FIRSTP(ymin, Hnvar, Hnxt, Hnyt), \
     shared(buffer, uold) collapse(3)
     for (ivar = 0; ivar < Hnvar; ivar++) {
         for (j = ymin; j < ymin + ExtraLayer; j++) {

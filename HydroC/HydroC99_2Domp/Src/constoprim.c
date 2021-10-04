@@ -31,7 +31,7 @@ void constoprim(const int n, const int Hnxyt, const int Hnvar, const real_t Hsma
 #pragma omp teams loop bind(teams) private(s, i), collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none)                                                    \
-    firstprivate(ijmin, ijmax, slices, Hsmallr, Hnxyt, Hstep) private(s, i),                                     \
+    FIRSTP(ijmin, ijmax, slices, Hsmallr, Hnxyt, Hstep) private(s, i),                                     \
     shared(u, q, e) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
@@ -65,7 +65,7 @@ void constoprim(const int n, const int Hnxyt, const int Hnvar, const real_t Hsma
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(s, i, IN), collapse(3)
 #else
-#pragma omp TEAMSDIS parallel for default(none) firstprivate(Hnvar, slices, ijmin, ijmax, Hnxyt, Hstep),         \
+#pragma omp TEAMSDIS parallel for default(none) FIRSTP(Hnvar, slices, ijmin, ijmax, Hnxyt, Hstep),         \
     private(s, i, IN), shared(u, q, e) collapse(3)
 #endif
         for (IN = IP + 1; IN < Hnvar; IN++) {
