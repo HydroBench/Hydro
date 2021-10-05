@@ -79,7 +79,7 @@ cuQleftright(const long idim, const long Hnx, const long Hny, const long Hnxyt, 
   SetBlockDims(Hnxyt * slices, THREADSSZ, block, grid);
   Loop1KcuQleftright <<< grid, block >>> (bmax, Hnvar, Hnxyt, slices, Hnxystep, qxmDEV, qxpDEV, qleftDEV, qrightDEV);
   CheckErr("Loop1KcuQleftright");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 }
 
 #undef IHVW

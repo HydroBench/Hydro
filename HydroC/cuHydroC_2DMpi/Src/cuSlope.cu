@@ -92,7 +92,7 @@ cuSlope(const long narray, const long Hnvar, const long Hnxyt, const double slop
   SetBlockDims(Hnxyt * slices, THREADSSZ, block, grid); // Hnvar * 
   LoopKcuSlope <<< grid, block >>> (Hnvar, Hnxyt, slope_type, ijmin, ijmax, slices, Hnxystep, qDEV, dqDEV);
   CheckErr("LoopKcuSlope");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   nops = Hnvar * slices * ((ijmax - 1) - (ijmin));
   FLOPS(8 * nops, 1 * nops, 6 * nops, 0 * nops);}                               // slope
 

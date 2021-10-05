@@ -37,7 +37,7 @@ void equation_of_state(int imin, int imax, const int Hnxyt, const int Hnvar, con
 #ifdef LOOPFORM
 #pragma omp teams loop bind(teams) private(s, k), collapse(2)
 #else
-#pragma omp TEAMSDIS parallel for default(none), firstprivate(slices, Hgamma, smallp, imin, imax, Hnxyt, Hstep), \
+#pragma omp TEAMSDIS parallel for default(none), FIRSTP(slices, Hgamma, smallp, imin, imax, Hnxyt, Hstep), \
     private(s, k), shared(c, q, eint) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {

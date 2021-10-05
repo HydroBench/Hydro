@@ -118,7 +118,7 @@ cuCmpflx(int narray, int Hnxyt, int Hnvar, double Hgamma, int slices, const int 
     Loop2KcuCmpflx <<< grid, block >>> (narray, Hnxyt, Hnvar, slices, Hnxstep, qgdnv, flux);
     CheckErr("Loop2KcuCmpflx");
   }
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("After synchronize cuCmpflx");
 }                               // cmpflx
 

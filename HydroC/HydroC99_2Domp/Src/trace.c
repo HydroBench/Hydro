@@ -57,7 +57,7 @@ void trace(const real_t dtdx, const int n, const int Hscheme, const int Hnvar, c
 #pragma teams omp loop bind(teams) private(s, i) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none), private(s, i),                                    \
-    firstprivate(dtdx, slices, ijmin, ijmax, zeror, zerol, Hnxyt, Hstep, project)                  \
+    FIRSTP(dtdx, slices, ijmin, ijmax, zeror, zerol, Hnxyt, Hstep, project)                  \
         shared(qxp, qxm, c, q, dq) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
@@ -139,7 +139,7 @@ void trace(const real_t dtdx, const int n, const int Hscheme, const int Hnvar, c
 #pragma omp teams loop bind(teams) private(s, i, IN), collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none), private(s, i, IN),                                \
-    firstprivate(dtdx, slices, Hnvar, ijmin, ijmax, zeror, zerol, Hnxyt, Hstep, project)           \
+    FIRSTP(dtdx, slices, Hnvar, ijmin, ijmax, zeror, zerol, Hnxyt, Hstep, project)           \
         shared(qxp, qxm, c, q, dq) collapse(3)
 #endif
         for (IN = IP + 1; IN < Hnvar; IN++) {

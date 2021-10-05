@@ -36,7 +36,7 @@ void qleftright(const int idim, const int Hnx, const int Hny, const int Hnxyt, c
 #pragma omp teams loop bind(teams) private(s, i, nvar) collapse(3)
 #else
 #pragma omp TEAMSDIS parallel for default(none) private(s, i, nvar),                               \
-    firstprivate(slices, Hnvar, bmax, Hnxyt, Hstep) shared(qleft, qright, qxm, qxp) collapse(3)
+    FIRSTP(slices, Hnvar, bmax, Hnxyt, Hstep) shared(qleft, qright, qxm, qxp) collapse(3)
 #endif
     for (nvar = 0; nvar < Hnvar; nvar++) {
         for (s = 0; s < slices; s++) {

@@ -26,7 +26,7 @@ void ComputeQEforRow(const int j, const real_t Hsmallr, const int Hnx, const int
 #pragma omp teams loop bind(teams) private(s, i) collapse(2)
 #else
 #pragma omp TEAMSDIS parallel for default(none) shared(q, e, uold)                                 \
-    firstprivate(Hsmallr, slices, Hnx, Hnxt, Hnyt, j, Hnxyt, Hstep) private(s, i) collapse(2)
+    FIRSTP(Hsmallr, slices, Hnx, Hnxt, Hnyt, j, Hnxyt, Hstep) private(s, i) collapse(2)
 #endif
     for (s = 0; s < slices; s++) {
         for (i = 0; i < Hnx; i++) {

@@ -83,7 +83,7 @@ cuEquationOfState(const long imin, const long imax, //
   SetBlockDims(Hnxyt * slices, THREADSSZ, block, grid);
   LoopEOS <<< grid, block >>> (imin, imax, Hsmallc, Hgamma, Hnxyt, slices, rhoDEV, eintDEV, pDEV, cDEV);
   CheckErr("LoopEOS");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("LoopEOS");
   nops = slices * (imax - imin);
   FLOPS(5 * nops, 2 * nops, 1 * nops, 0 * nops);}                               // equation_of_state

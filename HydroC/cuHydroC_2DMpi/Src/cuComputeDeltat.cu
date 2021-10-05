@@ -35,11 +35,11 @@ knowledge of the CeCILL license and that you accept its terms.
 */
 
 #ifdef WITHMPI
- #ifdef SEEK_SET
-  #undef SEEK_SET
-  #undef SEEK_CUR
-  #undef SEEK_END
- #endif
+ // #ifdef SEEK_SET
+ //  #undef SEEK_SET
+ //  #undef SEEK_CUR
+ //  #undef SEEK_END
+ // #endif
 #include <mpi.h>
 #endif
 #include <stdio.h>
@@ -97,7 +97,7 @@ cuComputeQEforRows(const long j, double *uold, double *q, double *e, const doubl
   LoopKQEforRows <<< grid, block >>> (j, uold, q, e, Hsmallr, Hnxt, Hnyt, Hnxyt, slices, Hnxystep,
                                       Hnx);
   CheckErr("courantOnXY");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("courantOnXY");
 }
 
@@ -129,7 +129,7 @@ cuCourantOnXY(double *courant, const long Hnx, const long Hnxyt, const int slice
   SetBlockDims(Hnx * slices, THREADSSZ, block, grid);
   LoopKcourant <<< grid, block >>> (q, courant, Hsmallc, c, Hnxyt, slices, Hnxystep, Hnx);
   CheckErr("courantOnXY");
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("courantOnXY");
 }
 
