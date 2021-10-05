@@ -82,7 +82,7 @@ void Domain::computeDt() {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
             handler.parallel_for(global_range,
-                                 sycl::ONEAPI::reduction(result, sycl::ONEAPI::minimum<real_t>()),
+                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
                                  [=](sycl::nd_item<1> it, auto &res) {
                                      int tile_idx = it.get_global_id(0);
                                      if (tile_idx < nbTiles) {
@@ -238,7 +238,7 @@ real_t Domain::computeTimeStep() {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
             handler.parallel_for(global_range,
-                                 sycl::ONEAPI::reduction(result, sycl::ONEAPI::minimum<real_t>()),
+                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
                                  [=](sycl::nd_item<1> it, auto &res) {
                                      int tile_idx = it.get_global_id(0);
                                      auto local = the_tiles[0].deviceSharedVariables();
