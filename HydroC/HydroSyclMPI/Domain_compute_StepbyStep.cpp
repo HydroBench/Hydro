@@ -260,7 +260,7 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
 
         startT = endT;
 
-        if (doComputeDt) {
+        if (doComputeDt && pass != 0) {
 #ifdef ATOMIC_VS_REDUCTION
 
             real_t *result = sycl::malloc_shared<real_t>(m_nbTiles, queue);
@@ -306,8 +306,8 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
                 handler.parallel_for(ndr_def, [=](auto ids) {
                     real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(ids.get_global_id(1),
                                                                               ids.get_global_id(2));
-                    sycl::ONEAPI::atomic_ref<real_t, sycl::ONEAPI::memory_order::relaxed,
-                                             sycl::ONEAPI::memory_scope::system,
+                    sycl::ext::oneapi::atomic_ref<real_t, sycl::ext::oneapi::memory_order::relaxed,
+                                             sycl::ext::oneapi::memory_scope::system,
 
                                              sycl::access::address_space::global_space>
                         atomic_data(result[ids.get_global_id(0)]);
@@ -318,7 +318,7 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
 #else
             queue.submit([&](sycl::handler &handler) {
                 handler.parallel_for(
-                    ndr_def, sycl::ONEAPI::reduction(result, sycl::ONEAPI::maximum<real_t>()),
+                    ndr_def, sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::maximum<real_t>()),
                     [=](auto ids, auto &res) {
                         real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(
                             ids.get_global_id(1), ids.get_global_id(2));
