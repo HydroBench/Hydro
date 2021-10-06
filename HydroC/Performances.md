@@ -6,7 +6,7 @@
 
 The focus here is on OpenMP / CUDA / OpenCL, even if the code is MPI enabled.
 
-|test case|6000x6000| | | | | | | |laptop| | | | |
+|test case|6000x6000| | | | | | | |laptop|laptop| | | |
 |---|---------|-|-|-|-|-|-|-|------|-|-|-|-|
 | | |sandybridge|haswell|skylake|knl DDR|knl MCDRAM|thx2|rome|i5-8250U|gen9|v100|a100|mi100
 |||||||||||||
@@ -27,3 +27,5 @@ The focus here is on OpenMP / CUDA / OpenCL, even if the code is MPI enabled.
 ||||||||||||||
 |oclhydro|Bande 1024|OpenCL not installed|OpenCL not installed|OpenCL not installed|OpenCL not installed|OpenCL not installed|OpenCL not installed|OpenCL not installed|**6.0**|**7.9**|**312.2**|**586.9**|**348.8**|
 ||||||||||||Max 358|Max 730|
+|HydroSyclMPI|tilesize=1020||||||||**4.71**|**8.18**||||
+|||||||||||dpc++ 2021.4||||
