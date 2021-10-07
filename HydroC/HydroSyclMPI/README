@@ -28,6 +28,9 @@ device from the sycl-ls utility tool
 Lot of others varibles described in https://github.com/intel/llvm/blob/sycl/sycl/doc/EnvironmentVariables.md	
 
 
+WARNING : To run,  (tilesize+4) % 32 should be 0, so tilesize is either 28, 60, 124, etc ...
+
+
 
 The make.runs file is there for convenience. The idea is to centralize
 different run situations to make them easily accessible while
