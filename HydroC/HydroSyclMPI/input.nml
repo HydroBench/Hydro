@@ -9,14 +9,14 @@ This namelist contains various input parameters for HYDRO runs
 tend=20000		# physical end to of simulation
 #tend=3
 # noutput=1		# VTK output every n interations
-nstepmax=10		# end computation after n iterations
+nstepmax=30		# end computation after n iterations
 # dtoutput=0.1		# VTK output every dt physical time
 # dtimage=10		# dumps an image every dt physical time
 # nimage = 10		# dumps an image every n iterations
 # chkpt=1		# create a checkpoint restart file to continue the
   			#    simulation if time limit has been reached
 stats = 1 		# print run statistics 	      0 = less output
-ndumpline = 1		# iteration at which dumping a line of values.
+ndumpline = 9		# iteration at which dumping a line of values.
 	    		#    useful to validate modifications. -1 to deactivate
 stepbystep=1   # For Sycl use small kernels instead of a big one
 			

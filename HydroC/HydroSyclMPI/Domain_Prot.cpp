@@ -111,6 +111,8 @@ long Domain::protectArrays(const protectionMode_t mode, const int f) {
 
 void Domain::writeProtectionVars(const int f) {
     int myPe = ParallelInfo::mype();
+    int n_procs = ParallelInfo::nb_procs();
+
     TextMarker_t magic, offmark, protmark, endprot;
     sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
     sprintf(endprot.t, "HYDROC ENDPROT %06d", myPe);
@@ -184,12 +186,12 @@ void Domain::writeProtectionHeader(const int f) {
     offsets[0] = headerLength;
 
 #ifdef MPI_ON
-    if (m_nProc > 1) {
-        requests = (MPI_Request *)calloc(m_nProc, sizeof(MPI_Request));
-        status = (MPI_Status *)calloc(m_nProc, sizeof(MPI_Status));
-        if (m_myPe == 0) {
+    if (nProc > 1) {
+        requests = (MPI_Request *)calloc(nProc, sizeof(MPI_Request));
+        status = (MPI_Status *)calloc(nProc, sizeof(MPI_Status));
+        if (myPe == 0) {
             lgrs[0] = l;
-            for (int i = 1; i < m_nProc; i++) {
+            for (int i = 1; i < nProc; i++) {
                 MPI_Irecv(&lgrs[i], 1, MPI_LONG, i, 987, MPI_COMM_WORLD, &requests[reqcnt]);
                 reqcnt++;
             }
@@ -199,15 +201,15 @@ void Domain::writeProtectionHeader(const int f) {
         err = MPI_Waitall(reqcnt, requests, status);
         assert(err == MPI_SUCCESS);
         // Here we know the size of each elements
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             offsets[0] = headerLength;
-            for (int i = 1; i < m_nProc; i++) {
+            for (int i = 1; i < nProc; i++) {
                 offsets[i] = lgrs[i - 1] + offsets[i - 1];
             }
         }
         reqcnt = 0;
-        if (m_myPe == 0) {
-            for (int i = 1; i < m_nProc; i++) {
+        if (myPe == 0) {
+            for (int i = 1; i < nProc; i++) {
                 MPI_Isend(&offsets[i], 1, MPI_LONG, i, 988, MPI_COMM_WORLD, &requests[reqcnt]);
                 reqcnt++;
             }
@@ -330,12 +332,12 @@ void Domain::readProtectionHeader(const int f) {
     myOffset = offsets[0];
 
 #ifdef MPI_ON
-    if (m_nProc > 1) {
-        requests = (MPI_Request *)calloc(m_nProc, sizeof(MPI_Request));
-        status = (MPI_Status *)calloc(m_nProc, sizeof(MPI_Status));
+    if (nProc > 1) {
+        requests = (MPI_Request *)calloc(nProc, sizeof(MPI_Request));
+        status = (MPI_Status *)calloc(nProc, sizeof(MPI_Status));
         reqcnt = 0;
-        if (m_myPe == 0) {
-            for (int i = 1; i < m_nProc; i++) {
+        if (myPe == 0) {
+            for (int i = 1; i < nProc; i++) {
                 MPI_Isend(&offsets[i], 1, MPI_LONG, i, 988, MPI_COMM_WORLD, &requests[reqcnt]);
                 reqcnt++;
             }

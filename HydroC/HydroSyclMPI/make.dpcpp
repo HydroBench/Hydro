@@ -6,8 +6,9 @@ CFLAGS=
 
 
 ifneq ($(DBG),O)
-   OPTIM+=-O2 -g
-else
+   OPTIM+=-O2 
+
+ else
    OPTIM += -g -O0
 endif
 
@@ -16,4 +17,4 @@ ifeq ($(MPI),O)
     # not yet
 endif
 
-LIBS=-lsycl -lOpenCL
+LIBS=-lsycl -lOpenCL 

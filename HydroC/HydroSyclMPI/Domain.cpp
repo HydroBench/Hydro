@@ -14,6 +14,10 @@
 
 #include <unistd.h>
 
+#ifdef MPI_ON
+#include <mpi.h>
+#endif
+
 Domain::Domain(int argc, char **argv) {
     // default values
     m_StepbyStep = false;
@@ -514,6 +518,7 @@ void Domain::readInput() {
 #ifdef MPI_ON
 #ifdef WITHBCAST
     {
+        int myPe = ParallelInfo::mype();
         int checkValint = 0;
         nbvalint = 0;
         tabint[nbvalint++] = m_nStepMax;
@@ -542,7 +547,7 @@ void Domain::readInput() {
         tabint[nbvalint++] = m_nDumpline;
         checkValint = nbvalint;
         MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
-        if (m_myPe > 0) {
+        if (myPe > 0) {
             nbvalint = 0;
             m_nStepMax = tabint[nbvalint++];
             m_checkPoint = tabint[nbvalint++];
@@ -575,7 +580,7 @@ void Domain::readInput() {
         nbvallng = 0;
         tablng[nbvallng++] = m_fakeReadSize;
         MPI_Bcast(tablng, nbvallng, MPI_INT, 0, MPI_COMM_WORLD);
-        if (m_myPe > 0) {
+        if (myPe > 0) {
             nbvallng = 0;
             m_fakeReadSize = tablng[nbvallng++];
         }
@@ -592,7 +597,7 @@ void Domain::readInput() {
             tabdbl[nbvaldbl++] = m_dtImage;
             checkValdbl = nbvaldbl;
             MPI_Bcast(tabdbl, nbvaldbl, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-            if (m_myPe > 0) {
+            if (myPe > 0) {
                 nbvaldbl = 0;
                 // H->slope_type =tabdbl[nbvaldbl++];
                 m_tend = tabdbl[nbvaldbl++];
@@ -617,7 +622,7 @@ void Domain::readInput() {
             tabflt[nbvalflt++] = m_dtImage;
             checkValflt = nbvalflt;
             MPI_Bcast(tabflt, nbvalflt, MPI_FLOAT, 0, MPI_COMM_WORLD);
-            if (m_myPe > 0) {
+            if (myPe > 0) {
                 nbvalflt = 0;
                 // tabflt[nbvalflt++] = H->slope_type;
                 tabflt[nbvalflt++] = m_tend;

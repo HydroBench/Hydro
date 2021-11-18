@@ -1,6 +1,7 @@
 
 #include "Domain.hpp"
 #include "ParallelInfo.hpp"
+#include "Utilities.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -27,21 +28,23 @@ void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
     double *buf = new double[m_globNx];
     int32_t itsbox[MAXBOX_D];
     int32_t i, d, nbreq;
-    int *nd = new int[m_nProc];
+    int myPe = ParallelInfo::mype();
+    int nProc = ParallelInfo::nb_procs();
+    int *nd = new int[nProc];
     assert(nd != NULL);
 
     y = m_globNy / 2;
     for (i = 0; i < m_globNx; i++)
         gbuf[i] = 0.0;
 
-    CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, itsbox, m_myPe);
+    CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, itsbox, myPe);
     n = 0;
     if ((itsbox[YMIN_D] <= y) && (y < itsbox[YMAX_D])) {
         n = 0;
         for (x = xmin; x < xmax; x++) {
             buf[n++] = (double)p(x, ymin + (y - itsbox[YMIN_D]));
         }
-        if (m_myPe == 0) {
+        if (myPe == 0) {
             // no transfer needed
             // fprintf(stderr, "n=%d\n", n);
             for (i = 0; i < n; i++) {
@@ -50,17 +53,17 @@ void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
         }
     }
 
-    nd[m_myPe] = n;
+    nd[myPe] = n;
     // send/recv the number of double to transfer
     nbreq = 0;
-    for (d = 1; d < m_nProc; d++) {
-        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, itsbox, d);
+    for (d = 1; d < nProc; d++) {
+        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, itsbox, d);
         if ((itsbox[YMIN_D] <= y) && (y < itsbox[YMAX_D])) {
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 MPI_Recv(&nd[d], 1, MPI_INT, d, 887 + 2 * d, MPI_COMM_WORLD,
                          status); //, &request[0]);
             } else {
-                if (m_myPe == d) {
+                if (myPe == d) {
                     MPI_Send(&nd[d], 1, MPI_INT, 0, 887 + 2 * d, MPI_COMM_WORLD); // , &request[0]);
                 }
             }
@@ -68,14 +71,14 @@ void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
     }
     // send/recv the data
     nbreq = 0;
-    for (d = 1; d < m_nProc; d++) {
-        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, itsbox, d);
+    for (d = 1; d < nProc; d++) {
+        CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, itsbox, d);
         if ((itsbox[YMIN_D] <= y) && (y < itsbox[YMAX_D])) {
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 MPI_Recv(&gbuf[itsbox[XMIN_D]], nd[d], MPI_DOUBLE, d, 887 + 2 * d + 1,
                          MPI_COMM_WORLD, status);
             } else {
-                if (m_myPe == d) {
+                if (myPe == d) {
                     MPI_Send(buf, nd[d], MPI_DOUBLE, 0, 887 + 2 * d + 1, MPI_COMM_WORLD);
                 }
             }
@@ -83,7 +86,7 @@ void Domain::dumpOneArray(FILE *f, Matrix2<real_t> &p) {
     }
 
     // final trace output
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         for (x = 0, n = 1; x < m_globNx; x++) {
             fprintf(f, "%4d, %17.10le\n", n++, gbuf[x]);
         }

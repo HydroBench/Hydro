@@ -2,6 +2,7 @@
 //
 #include "Domain.hpp"
 #include "EnumDefs.hpp"
+#include "ParallelInfo.hpp"
 #include "cclock.hpp"
 
 #ifdef MPI_ON
@@ -20,6 +21,7 @@ void Domain::boundary_init() {
     MPI_Datatype mpiFormat = MPI_DOUBLE;
     int err = 0, reqcnt = 0;
     int64_t bytesMoved = 0;
+    int n_proc = ParallelInfo::nb_procs();
 #endif
 
 #ifdef MPI_ON
@@ -29,7 +31,7 @@ void Domain::boundary_init() {
 
     if (m_scan == X_SCAN) {
 #ifdef MPI_ON
-        if (m_nProc > 1) {
+        if (n_proc > 1) {
             size = pack_arrayv(m_ExtraLayer, m_sendbufld);
             size = pack_arrayv(m_nx, m_sendbufru);
 
@@ -72,7 +74,7 @@ void Domain::boundary_init() {
 
     if (m_scan == Y_SCAN) {
 #ifdef MPI_ON
-        if (m_nProc > 1) {
+        if (n_proc > 1) {
             size = pack_arrayh(m_ExtraLayer, m_sendbufld);
             size = pack_arrayh(m_ny, m_sendbufru);
 

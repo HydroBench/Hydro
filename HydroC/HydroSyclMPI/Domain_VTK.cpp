@@ -154,13 +154,13 @@ void Domain::vtkfile(int step) {
     int nProc = ParallelInfo::nb_procs();
     // First step : create the directory structure ONLY using PE0
 #ifdef MPI_ON
-    if (m_nProc > 1)
+    if (nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
     vtknm(vfrname, myPe, step); // create the directory structure
     // if (H.mype == 0) fprintf(stderr, "%s\n", vfrname);
 #ifdef MPI_ON
-    if (m_nProc > 1)
+    if (nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
@@ -288,7 +288,7 @@ void Domain::vtkfile(int step) {
     // PE only.
 
 #ifdef MPI_ON
-    if (m_nProc > 1)
+    if (nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
     if (myPe == 0) {

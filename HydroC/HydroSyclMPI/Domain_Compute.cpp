@@ -81,23 +81,24 @@ void Domain::computeDt() {
         .submit([&](sycl::handler &handler) {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range,
-                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
-                                 [=](sycl::nd_item<1> it, auto &res) {
-                                     int tile_idx = it.get_global_id(0);
-                                     if (tile_idx < nbTiles) {
-                                         auto local = the_tiles[0].deviceSharedVariables();
+            handler.parallel_for(
+                global_range,
+                sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
+                [=](sycl::nd_item<1> it, auto &res) {
+                    int tile_idx = it.get_global_id(0);
+                    if (tile_idx < nbTiles) {
+                        auto local = the_tiles[0].deviceSharedVariables();
 
-                                         auto &my_tile = the_tiles[tile_idx];
+                        auto &my_tile = the_tiles[tile_idx];
 
-                                         my_tile.deviceSharedVariables()->m_dt = dt;
-                                         my_tile.deviceSharedVariables()->m_dx = dx;
+                        my_tile.deviceSharedVariables()->m_dt = dt;
+                        my_tile.deviceSharedVariables()->m_dx = dx;
 
-                                         real_t local_dt = my_tile.computeDt();
+                        real_t local_dt = my_tile.computeDt();
 
-                                         res.combine(local_dt);
-                                     }
-                                 });
+                        res.combine(local_dt);
+                    }
+                });
         })
         .wait();
 
@@ -237,23 +238,24 @@ real_t Domain::computeTimeStep() {
         queue.submit([&](sycl::handler &handler) {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range,
-                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
-                                 [=](sycl::nd_item<1> it, auto &res) {
-                                     int tile_idx = it.get_global_id(0);
-                                     auto local = the_tiles[0].deviceSharedVariables();
-                                     if (tile_idx < nb_tiles) {
+            handler.parallel_for(
+                global_range,
+                sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
+                [=](sycl::nd_item<1> it, auto &res) {
+                    int tile_idx = it.get_global_id(0);
+                    auto local = the_tiles[0].deviceSharedVariables();
+                    if (tile_idx < nb_tiles) {
 
-                                         auto &my_tile = the_tiles[tile_idx];
+                        auto &my_tile = the_tiles[tile_idx];
 
-                                         my_tile.updateconserv1();
+                        my_tile.updateconserv1();
 
-                                         my_tile.updateconserv(); // From Tile's u and flux to uold
+                        my_tile.updateconserv(); // From Tile's u and flux to uold
 
-                                         real_t local_dt = my_tile.computeDt();
-                                         res.combine(local_dt);
-                                     }
-                                 });
+                        real_t local_dt = my_tile.computeDt();
+                        res.combine(local_dt);
+                    }
+                });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
@@ -309,6 +311,7 @@ void Domain::compute() {
     long nbTotCelSec = 0;
     FakeRead *reader = 0;
     int myPe = ParallelInfo::mype();
+    int nProc = ParallelInfo::nb_procs();
 
     if (myPe == 0 && m_fakeRead) {
         fprintf(stderr, "HydroC: Creating fake paging file(s) ...\n");
@@ -317,7 +320,7 @@ void Domain::compute() {
     if (m_fakeRead)
         reader = new FakeRead(m_fakeReadSize, myPe);
 #ifdef MPI_ON
-    if (m_nProc > 1)
+    if (nProc > 1)
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
     end = Custom_Timer::dcclock();
@@ -335,10 +338,10 @@ void Domain::compute() {
 
 #ifdef MPI_ON
     if (myPe == 0 && m_stats > 0) {
-        if (m_nProc == 1)
-            std::cout << "Hydro: MPI is present with " << m_nProc << " rank" << std::endl;
+        if (nProc == 1)
+            std::cout << "Hydro: MPI is present with " << nProc << " rank" << std::endl;
         else
-            std::cout << "Hydro: MPI is present with " << m_nProc << " ranks" << std::endl;
+            std::cout << "Hydro: MPI is present with " << nProc << " ranks" << std::endl;
     }
 #endif
 
@@ -574,7 +577,7 @@ void Domain::compute() {
         printf(" using %d threads", m_numThreads);
 #endif
 #ifdef MPI_ON
-        printf(" and %d MPI tasks", m_nProc);
+        printf(" and %d MPI tasks", nProc);
 #endif
         // printf(" maxMEMproc %.3fGB", float (maxMemUsed / giga));
         printf(" maxMatrix %.3f MB", float(Matrix2<double>::getMax() / mega));

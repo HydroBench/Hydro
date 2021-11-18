@@ -1,4 +1,5 @@
 #include "Domain.hpp"
+#include "Utilities.hpp"
 #include "cclock.hpp"
 
 #include "ParallelInfo.hpp"
@@ -134,6 +135,9 @@ void Domain::pngProcess(void) {
         // cerr << "Processing final image -- fill done" << endl;
     } else {
 #ifdef MPI_ON
+        int myPe = ParallelInfo::mype();
+        int nProc = ParallelInfo::nb_procs();
+
         uint8_t *bufferR = 0;
         // each tile computes its max values
         getMaxVarValues(&ipmax, &idmax, &iuvmax);
@@ -147,7 +151,7 @@ void Domain::pngProcess(void) {
         int32_t curImgY = (ymax - ymin) / m_shrink;
         int32_t cury = 0;
         int32_t curx = 0;
-        // cerr << m_myPe << " remplir " << endl;
+        // cerr << myPe << " remplir " << endl;
         uint8_t *ptr = m_buffer;
         for (cury = 0; cury < curImgY; cury++) {
             ptr = &m_buffer[cury * PIXRGBA * imgSizeX];
@@ -166,8 +170,8 @@ void Domain::pngProcess(void) {
             }
         }
 
-        // if (m_myPe == 0) cerr << "PNG: receiving";
-        for (d = 1; d < m_nProc; d++) {
+        // if (myPe == 0) cerr << "PNG: receiving";
+        for (d = 1; d < nProc; d++) {
             MPI_Request request[1];
             MPI_Status status[1];
             int nbreq = 0;
@@ -175,15 +179,15 @@ void Domain::pngProcess(void) {
             int err, size, xoff, yoff;
             // send our sub image
             size = ((xmax - xmin) / m_shrink) * ((ymax - ymin) / m_shrink) * PIXRGBA;
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 // determine the box of the distant domain
-                CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, itsbox, d);
+                CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, itsbox, d);
                 xmin = xoff = itsbox[XMIN_D];
                 xmax = itsbox[XMAX_D];
                 ymin = yoff = itsbox[YMIN_D];
                 ymax = itsbox[YMAX_D];
                 size = ((xmax - xmin) / m_shrink) * ((ymax - ymin) / m_shrink) * PIXRGBA;
-                // cerr << m_myPe << " Irecv " << endl;
+                // cerr << myPe << " Irecv " << endl;
                 bufferR = new uint8_t[size];
                 assert(bufferR != 0);
                 memset(bufferR, 0, size * sizeof(*bufferR));
@@ -191,8 +195,8 @@ void Domain::pngProcess(void) {
                           &request[0]);
                 nbreq++;
             } else {
-                if (m_myPe == d) {
-                    // cerr << m_myPe << " Isend " << endl;
+                if (myPe == d) {
+                    // cerr << myPe << " Isend " << endl;
                     MPI_Isend(m_buffer, size * sizeof(*m_buffer), MPI_CHAR, 0, 987 + d,
                               MPI_COMM_WORLD, &request[0]);
                     nbreq++;
@@ -202,7 +206,7 @@ void Domain::pngProcess(void) {
                 err = MPI_Waitall(nbreq, request, status);
                 assert(err == MPI_SUCCESS);
             }
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 int32_t lcurx, lgr;
                 int32_t DimgSizeX = ((xmax - xmin) / m_shrink);
                 int32_t DimgSizeY = ((ymax - ymin) / m_shrink);
@@ -224,7 +228,7 @@ void Domain::pngProcess(void) {
             }
         }
         // at this point the shrinked image can have unfilled pixels
-        if ((m_shrink > 1) && (m_myPe == 0)) {
+        if ((m_shrink > 1) && (myPe == 0)) {
             ptr = m_buffer;
             for (cury = 0; cury < imgSizeY; cury++) {
                 for (curx = 0; curx < imgSizeX; curx++) {
@@ -258,7 +262,7 @@ void Domain::pngProcess(void) {
      */
     mySize = PIXRGBA * imgSizeX * imgSizeY;
 
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         m_row_pointers = (png_bytep *)calloc(imgSizeY, sizeof(png_bytep));
         assert(m_row_pointers != 0);
         for (y = 0; y < imgSizeY; y++) {
@@ -275,7 +279,7 @@ void Domain::pngProcess(void) {
             m_row_pointers[y] = &m_buffer[y * PIXRGBA * imgSizeX];
     }
 
-    if (m_nProc == 1) {
+    if (nProc == 1) {
         getMaxVarValues(&ipmax, &idmax, &iuvmax);
         getExtends(TILE_INTERIOR, xmin, xmax, ymin, ymax);
 
@@ -308,7 +312,7 @@ void Domain::pngProcess(void) {
         int32_t curImgY = (ymax - ymin) / m_shrink;
         int32_t cury = 0;
         int32_t curx = 0;
-        // cerr << m_myPe << " remplir " << endl;
+        // cerr << myPe << " remplir " << endl;
         for (cury = 0; cury < curImgY; cury++) {
             png_byte *row = m_row_pointers[cury];
             for (curx = 0; curx < curImgX; curx++) {
@@ -327,8 +331,8 @@ void Domain::pngProcess(void) {
             }
         }
 
-        // if (m_myPe == 0) cerr << "PNG: receiving";
-        for (d = 1; d < m_nProc; d++) {
+        // if (myPe == 0) cerr << "PNG: receiving";
+        for (d = 1; d < nProc; d++) {
             MPI_Request request[1];
             MPI_Status status[1];
             int nbreq = 0;
@@ -336,22 +340,22 @@ void Domain::pngProcess(void) {
             int err, size, xoff, yoff;
             // send our sub image
             size = ((xmax - xmin) / m_shrink) * ((ymax - ymin) / m_shrink) * PIXRGBA;
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 // determine the box of the distant domain
-                CalcSubSurface(0, m_globNx, 0, m_globNy, 0, m_nProc - 1, itsbox, d);
+                CalcSubSurface(0, m_globNx, 0, m_globNy, 0, nProc - 1, itsbox, d);
                 xmin = xoff = itsbox[XMIN_D];
                 xmax = itsbox[XMAX_D];
                 ymin = yoff = itsbox[YMIN_D];
                 ymax = itsbox[YMAX_D];
                 size = ((xmax - xmin) / m_shrink) * ((ymax - ymin) / m_shrink) * PIXRGBA;
-                // cerr << m_myPe << " Irecv " << endl;
+                // cerr << myPe << " Irecv " << endl;
                 m_buffer = (png_byte *)malloc(size);
                 assert(m_buffer != 0);
                 MPI_Irecv(m_buffer, size, MPI_CHAR, d, 987 + d, MPI_COMM_WORLD, &request[0]);
                 nbreq++;
             } else {
-                if (m_myPe == d) {
-                    // cerr << m_myPe << " Isend " << endl;
+                if (myPe == d) {
+                    // cerr << myPe << " Isend " << endl;
                     MPI_Isend(m_buffer, size, MPI_CHAR, 0, 987 + d, MPI_COMM_WORLD, &request[0]);
                     nbreq++;
                 }
@@ -360,7 +364,7 @@ void Domain::pngProcess(void) {
                 err = MPI_Waitall(nbreq, request, status);
                 assert(err == MPI_SUCCESS);
             }
-            if (m_myPe == 0) {
+            if (myPe == 0) {
                 int32_t lcurx, lgr;
                 int32_t DimgSizeX = ((xmax - xmin) / m_shrink);
                 int32_t DimgSizeY = ((ymax - ymin) / m_shrink);
@@ -379,7 +383,7 @@ void Domain::pngProcess(void) {
             }
         }
         // at this point the shrinked image can have unfilled pixels
-        if ((m_shrink > 1) && (m_myPe == 0)) {
+        if ((m_shrink > 1) && (myPe == 0)) {
             for (cury = 0; cury < imgSizeY; cury++) {
                 for (curx = 0; curx < imgSizeX; curx++) {
                     png_byte *row = m_row_pointers[cury];
@@ -523,7 +527,7 @@ void Domain::pngWriteFile(char *name) {
                      PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
         png_write_info(m_png_ptr, m_info_ptr);
-        // if (m_myPe == 0) cerr << "Header of final image written " << m_globNx <<
+        // if (myPe == 0) cerr << "Header of final image written " << m_globNx <<
         // " " << m_globNy << endl;
 #endif // WITHPNG != 0
     }
@@ -546,7 +550,7 @@ void Domain::pngCloseFile(void) {
     m_buffer = 0;
 #endif
 #else
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         png_bytep *rptrs;
         // cerr << "Write PNG image "; cerr.flush();
         png_write_image(m_png_ptr, m_row_pointers);
@@ -563,7 +567,7 @@ void Domain::pngCloseFile(void) {
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
     /* cleanup heap allocation */
-    if (m_myPe == 0) {
+    if (myPe == 0) {
         for (y = 0; y < (m_globNy / m_shrink); y++)
             free(m_row_pointers[y]);
         free(m_row_pointers);
