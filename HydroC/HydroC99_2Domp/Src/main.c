@@ -22,6 +22,7 @@ extern int gethostname(char *name, size_t len);
 #include "perfcnt.h"
 #include "utils.h"
 #include "vtkfile.h"
+#include "GetDevice.h"
 
 hydroparam_t H;
 hydrovar_t Hv; // nvar
@@ -156,6 +157,10 @@ int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 #endif
 
+#ifdef TARGETON
+    int rc = DeviceSet();
+#endif
+    
     process_args(argc, argv, &H);
     hydro_init(&H, &Hv);
 
@@ -453,7 +458,7 @@ int main(int argc, char **argv) {
 		}
 	    }
             if (H.mype == 0) {
-                fprintf(stdout, "--> step=%4d, %12.5e, %10.5e %.3lf MC/s%s %c\n", H.nstep, H.t, dt,
+                fprintf(stdout, "--> step=%4d, %13.6e, %13.6e %.3lf MC/s%s %c\n", H.nstep, H.t, dt,
                         cellPerCycle, outnum, dtTxt);
                 fflush(stdout);
                 if (H.nstep > 5) {
