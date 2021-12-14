@@ -291,9 +291,6 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
   int reqcnt = 0;
   int nops;
 
-  static FILE *fic = NULL;
-  char fname[256];
-
   if (H.nproc > 1) {
 #ifdef WITHMPI
     cudaMalloc(&recvbufruDEV, ExtraLayer * H.nxyt * H.nvar * sizeof(double));
@@ -314,13 +311,13 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       i = ExtraLayer;
       pack_arrayv <<< grid, block >>> (i, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
       CheckErr("pack_arrayv 1");
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize pack_arrayv 1");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize pack_arrayv 1");
       i = H.nx;
       pack_arrayv <<< grid, block >>> (i, H.nxt, H.nyt, H.nvar, sendbufruDEV, uoldDEV);
       CheckErr("pack_arrayv 2");
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize pack_arrayv 2");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize pack_arrayv 2");
 
       size = ExtraLayer * H.nyt * H.nvar;
       // fprintf(stderr, "[%d] size pack_arrayv1 %d [%d %d %d %d]\n", H.mype, size, H.box[DOWN_BOX], H.box[UP_BOX], H.box[RIGHT_BOX], H.box[LEFT_BOX]);
@@ -368,8 +365,8 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
           CheckErr("unpack_arrayv 2");
         }
       }
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize unpack_arrayv");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize unpack_arrayv");
 #endif
     }
     // Left boundary
@@ -425,13 +422,13 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
       j = ExtraLayer;
       pack_arrayh <<< grid, block >>> (j, H.nxt, H.nyt, H.nvar, sendbufldDEV, uoldDEV);
       CheckErr("pack_arrayh 1");
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize pack_arrayh 1");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize pack_arrayh 1");
       j = H.ny;
       pack_arrayh <<< grid, block >>> (j, H.nxt, H.nyt, H.nvar, sendbufruDEV, uoldDEV);
       CheckErr("pack_arrayh 2");
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize pack_arrayh 2");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize pack_arrayh 2");
 
       size = ExtraLayer * H.nxt * H.nvar;
       // printf("[%d] size pack_arrayh1 %d [%d %d %d %d]\n", H.mype, size, H.box[DOWN_BOX], H.box[UP_BOX], H.box[RIGHT_BOX], H.box[LEFT_BOX]);
@@ -483,8 +480,8 @@ cuMakeBoundary(long idim, const hydroparam_t H, hydrovar_t * Hv, double *uoldDEV
           CheckErr("unpack_arrayh 2");
         }
       }
-      cudaThreadSynchronize();
-      CheckErr("cudaThreadSynchronize unpack_arrayv");
+      cudaDeviceSynchronize();
+      CheckErr("cudaDeviceSynchronize unpack_arrayv");
  #endif
    }
 

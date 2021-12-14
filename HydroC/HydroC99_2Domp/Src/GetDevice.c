@@ -10,7 +10,6 @@
 #include <omp.h>
 
 #include "GetDevice.h"
-#if defined(MPI) || defined(MPI)
 
 typedef struct _hosts {
   char hostname[256];
@@ -36,12 +35,19 @@ getdevice_(int *nbdevice, int *thedev)
 
 int DeviceSet(void)
 {
-  int ndev = omp_get_num_devices();
-  if (ndev == -1) MPI_Abort(MPI_COMM_WORLD, 1);
-  int mydev = GetDevice(ndev);
+	hosts_t h;
+	int ndev = GetDeviceCount();
+	gethostname(h.hostname, 256);
+	int mydev = -1;
+	
+  if (ndev == 0) {
+    fprintf(stderr, "No device found on %s. Using default device\n", h.hostname);
+    mydev = omp_get_default_device();
+    return 0;
+  }
+
+  mydev = GetDevice(ndev);
   if (mydev == -1) {
-    hosts_t h;
-    gethostname(h.hostname, 256);
     fprintf(stderr, "Invalid MPI partition : no device left on %s. Using default device\n", h.hostname);
     mydev = omp_get_default_device();
   }
@@ -53,22 +59,20 @@ int GetDeviceCount(void)
 {
   int deviceCount;
   deviceCount = omp_get_num_devices();
-  if (deviceCount == 0) {
-    return -1;
-  }
   return deviceCount;
 }
 
 int
 GetDevice(int nbdevice)
 {
+  int thedev = 0;
+#if defined(MPI)
   int i, seen;
   int mpi_rank;
   int mpi_size;
   hosts_t h, *hlist;
   MPI_Status st;
   int Tag = 54321;
-  int thedev = -1;
   char message[1024];
 
   // get MPI geometry
@@ -100,7 +104,7 @@ GetDevice(int nbdevice)
     for (i = 0; i < mpi_size; i++) {
       sprintf(message, "-- %s -- rank=%d -- nb_dev=%d\n", hlist[i].hostname,
 	      hlist[i].hostnum, hlist[i].nbdevice);
-      fputs(message, stdout);
+      fputs(message, stderr);
     }
     for (i = 1; i < mpi_size; i++) {
       MPI_Send(hlist, mpi_size * sizeof(hlist[0]), MPI_BYTE, i, Tag,
@@ -121,14 +125,14 @@ GetDevice(int nbdevice)
       if ((hlist[i].hostnum == mpi_rank) && (seen <= nbdevice)) {
 	thedev = seen - 1;
 	sprintf(message, "Device selected: %d on %s\n", thedev, h.hostname);
-	fputs(message, stdout);
+	fputs(message, stderr);
 	break;
       }
     }
   }
   free(hlist);
+#endif // MPI
   return thedev;
 }
 
-#endif // MPI
 //EOF

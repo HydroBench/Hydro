@@ -185,7 +185,7 @@ main(int argc, char **argv)
       }
     }
     if (H.mype == 0) {
-      fprintf(stdout, "--> step=%-4ld %12.5e, %10.5e %s\n", H.nstep, H.t, dt, outnum);
+      fprintf(stdout, "--> step=%ld, %13.6e, %13.6e %s\n", H.nstep, H.t, dt, outnum);
       fflush(stdout);
     }
   }
