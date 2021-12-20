@@ -154,7 +154,7 @@ GetDevice(int nbdevice)
     for (i = 0; i < mpi_size; i++) {
       sprintf(message, "-- %s -- rank=%d -- nb_dev=%d\n", hlist[i].hostname,
 	      hlist[i].hostnum, hlist[i].nbdevice);
-      fputs(message, stdout);
+      fputs(message, stderr);
     }
     for (i = 1; i < mpi_size; i++) {
       MPI_Send(hlist, mpi_size * sizeof(hlist[0]), MPI_BYTE, i, Tag,
@@ -175,11 +175,12 @@ GetDevice(int nbdevice)
       if ((hlist[i].hostnum == mpi_rank) && (seen <= nbdevice)) {
 	thedev = seen - 1;
 	sprintf(message, "Device selected: %d on %s\n", thedev, h.hostname);
-	fputs(message, stdout);
+	fputs(message, stderr);
 	break;
       }
     }
   }
+  MPI_Barrier(MPI_COMM_WORLD);
   free(hlist);
   return thedev;
 }

@@ -114,7 +114,7 @@ SRCDIR = .
 
 # Sources files
 #--------------
-SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c mpibounds.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c Image.c ImagePng.c
+SRC=SplitSurface.c hydro_funcs.c hydro_godunov.c hydro_utils.c mpibounds.c main.c parametres.c perfcnt.c utils.c vtkfile.c cclock.c Image.c ImagePng.c GetDevice.c
 # SRC2 are the files that can be offloaded
 SRC2=courantOnXY.c ComputeQEforRow.c cmpflx.c compute_deltat.c conservar.c constoprim.c equation_of_state.c make_boundary.c qleftright.c riemann.c slope.c trace.c
 SRC+=$(SRC2)
@@ -136,10 +136,10 @@ else
 endif
 
 clean:
-	rm -f *.o *~ hydro
+	rm -f *.o *~ hydro .lastcpu .lastgpu
 
 cleanall:
-	rm -f *.o *~ hydro *.d
+	rm -f *.o *~ hydro *.d .lastcpu .lastgpu
 
 listing:
 	#a2ps --medium=A4dj -C -1 -R -l90 --toc -E --prologue=color --file-align=fill -o listing.ps Makefile $(HEADER) $(SRC)
@@ -254,5 +254,15 @@ intiga:
 
 intipar:
 	ccc_mprun -p v100 -x -c12 -n4 env OMP_NUM_THREADS=12 ./hydro -i input.nml
+
+runtpar:
+	@if [ -e .lastgpu ] ; then rm -f $(TARGETFUNCS) .lastgpu; fi
+	make -j GPU=N QUIET=O MPI=O hydro
+	env OMP_NUM_THREADS=1 mpirun -np 1 ./hydro -i input2.nml | grep step | tail -1
+	env OMP_NUM_THREADS=1 mpirun -np 2 ./hydro -i input2.nml | grep step | tail -1
+	env OMP_NUM_THREADS=1 mpirun -np 3 ./hydro -i input2.nml | grep step | tail -1
+	env OMP_NUM_THREADS=1 mpirun -np 4 ./hydro -i input2.nml | grep step | tail -1
+	env OMP_NUM_THREADS=1 mpirun -np 6 ./hydro -i input2.nml | grep step | tail -1
+	env OMP_NUM_THREADS=1 mpirun -np 8 ./hydro -i input2.nml | grep step | tail -1
 
 #EOF

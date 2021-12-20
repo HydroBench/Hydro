@@ -105,7 +105,7 @@ cuConstoprim(const long n, const long Hnxyt, const long Hnvar, const double Hsma
     Loop2KcuConstoprim <<< grid, block >>> (n, Hnxyt, Hnvar, slices, Hnxystep,uDEV, qDEV);
     CheckErr("Loop2KcuConstoprim");
   }
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   CheckErr("After synchronize cuConstoprim");
 }                               // constoprim
 
