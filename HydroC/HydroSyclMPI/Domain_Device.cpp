@@ -27,9 +27,10 @@ void Domain::sendUoldToDevice() {
             .submit([&](auto &handler) {
                 handler.memcpy(matDevice.data(), matrice->data(),
                                matDevice.getH() * matDevice.getW() * sizeof(real_t));
-            })
-            .wait();
+            });
+        
     }
+    queue.wait();
 }
 
 void Domain::getUoldFromDevice() {
@@ -47,7 +48,7 @@ void Domain::getUoldFromDevice() {
         queue
             .submit([&](auto &handler) {
                 handler.memcpy(matrice->data(), matDevice.data(), lgr * sizeof(real_t));
-            })
-            .wait();
+            });
     }
+    queue.wait();
 }
