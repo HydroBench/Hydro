@@ -75,11 +75,12 @@ include $(DEPS)
 %.o: %.c
 	$(CC) -c -O3 $< -o $@ 
 
-DPCPP_INCLUDE=$(shell which dpcpp | sed "s,bin/dpcpp,include/sycl,g")
+DPCPP_INCLUDE=-I$(shell which dpcpp | sed "s,bin/dpcpp,include/sycl,g")
+DPCPP_INCLUDE+= -I$(shell which dpcpp | sed "s,bin/dpcpp,include,g")
 
 %.d: %.cpp
 	@echo "Generating $@"
-	@clang++ -M $(DEFS) $(CFLAGS) -I$(DPCPP_INCLUDE) -MF $@ $<
+	@clang++ -M $(DEFS) $(CFLAGS) $(DPCPP_INCLUDE) -MF $@ $<
 
 
 clean:
