@@ -152,7 +152,11 @@ int main(int argc, char **argv) {
     long nbCycle = 0;
     double mcsavg = 0, mcsmin = FLT_MAX, mcsmax = 0, mcssig = 0;
     long nmcsavg = 0;
+    int verifDT = 0; // activated only by environment variable HYDROC_VERIF_DT
+    char *verifDTenv = getenv("HYDROC_VERIF_DT");
 
+    verifDT = (verifDTenv != 0)? 1: 0;
+    
 #ifdef MPI
     MPI_Init(&argc, &argv);
 #endif
@@ -363,6 +367,20 @@ int main(int argc, char **argv) {
                     dt = dtmin;
                 }
 #endif
+		if (verifDT) {
+		    if ((dt < 1.e-4) | (dt > 1.)) {
+			// test for something going wrong
+#ifdef MPI
+			if (H.mype == 0) {
+			    fprintf(stderr, "DT has a strange value (%13.6e). Aborting\n", dt);
+			}
+			MPI_Abort(MPI_COMM_WORLD, 999);
+#else
+			fprintf(stderr, "DT has a strange value (%13.6e). Aborting\n", dt);
+			abort();
+#endif
+		    }
+		}
                 if (H.nstep == 0) {
                     dt = dt / 2.0;
                     if (H.mype == 0)
