@@ -178,6 +178,9 @@ int main(int argc, char **argv) {
                 ((sizeof(real_t) == sizeof(double)) ? "double" : "single"));
         gethostname(myhost, 255);
         fprintf(stdout, "Hydro: Main process running on %s\n", myhost);
+	if (verifDT & (H.mype == 0)) {
+	    fprintf(stderr, "Hydro: verification of DT active\n");
+	}
     }
 #ifdef _OPENMP
     if (H.mype == 0) {

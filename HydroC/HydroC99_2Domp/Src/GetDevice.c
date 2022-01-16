@@ -24,37 +24,6 @@ SortHost(const void *a, const void *b)
   return strcmp(ha->hostname, hb->hostname);
 }
 
-// Fortran interface
-void
-getdevice_(int *nbdevice, int *thedev)
-{
-  int device = -2;
-  device = GetDevice(*nbdevice);
-  *thedev = device;
-}
-
-int DeviceSet(void)
-{
-	hosts_t h;
-	int ndev = GetDeviceCount();
-	gethostname(h.hostname, 256);
-	int mydev = -1;
-	
-  if (ndev == 0) {
-    fprintf(stderr, "No device found on %s. Using default device\n", h.hostname);
-    mydev = omp_get_default_device();
-    return 0;
-  }
-
-  mydev = GetDevice(ndev);
-  if (mydev == -1) {
-    fprintf(stderr, "Invalid MPI partition : no device left on %s. Using default device\n", h.hostname);
-    mydev = omp_get_default_device();
-  }
-  omp_set_default_device(mydev);
-  return 0;
-}
-
 int GetDeviceCount(void)
 {
   int deviceCount;
@@ -133,6 +102,37 @@ GetDevice(int nbdevice)
   free(hlist);
 #endif // MPI
   return thedev;
+}
+
+// Fortran interface
+void
+getdevice_(int *nbdevice, int *thedev)
+{
+  int device = -2;
+  device = GetDevice(*nbdevice);
+  *thedev = device;
+}
+
+int DeviceSet(void)
+{
+	hosts_t h;
+	int ndev = GetDeviceCount();
+	gethostname(h.hostname, 256);
+	int mydev = -1;
+	
+  if (ndev == 0) {
+    fprintf(stderr, "No device found on %s. Using default device\n", h.hostname);
+    mydev = omp_get_default_device();
+    return 0;
+  }
+
+  mydev = GetDevice(ndev);
+  if (mydev == -1) {
+    fprintf(stderr, "Invalid MPI partition : no device left on %s. Using default device\n", h.hostname);
+    mydev = omp_get_default_device();
+  }
+  omp_set_default_device(mydev);
+  return 0;
 }
 
 //EOF
