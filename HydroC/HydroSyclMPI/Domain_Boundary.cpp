@@ -2,8 +2,8 @@
 //
 #include "Domain.hpp"
 #include "EnumDefs.hpp"
-#include "ParallelInfo.hpp"
 #include "cclock.hpp"
+#include "ParallelInfo.hpp"
 
 #ifdef MPI_ON
 #include <mpi.h>
@@ -74,7 +74,7 @@ void Domain::boundary_init() {
 
     if (m_scan == Y_SCAN) {
 #ifdef MPI_ON
-        if (n_proc > 1) {
+       if (n_proc > 1) {
             size = pack_arrayh(m_ExtraLayer, m_sendbufld);
             size = pack_arrayh(m_ny, m_sendbufru);
 

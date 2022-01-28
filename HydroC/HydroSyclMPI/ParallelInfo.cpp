@@ -90,6 +90,7 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
 		int my_device = inst.m_myPe % numTiledDevices;
 		int tile_of_device = inst.m_myPe / numTiledDevices; // assume the same number of tiles per device
 		finalCount = my_device * nb_tiles / numTiledDevices + tile_of_device;
+		std::cerr << " MyPe " << inst.m_myPe << " count " << finalCount << std::endl;
 	      }
 	    q = sycl::queue((*subdevices)[finalCount]);
 

@@ -18,6 +18,7 @@
 #include <mpi.h>
 #endif
 
+
 Domain::Domain(int argc, char **argv) {
     // default values
     m_StepbyStep = false;
@@ -518,7 +519,7 @@ void Domain::readInput() {
 #ifdef MPI_ON
 #ifdef WITHBCAST
     {
-        int myPe = ParallelInfo::mype();
+      int myPe = ParallelInfo::mype();
         int checkValint = 0;
         nbvalint = 0;
         tabint[nbvalint++] = m_nStepMax;
@@ -547,7 +548,7 @@ void Domain::readInput() {
         tabint[nbvalint++] = m_nDumpline;
         checkValint = nbvalint;
         MPI_Bcast(tabint, nbvalint, MPI_INT, 0, MPI_COMM_WORLD);
-        if (myPe > 0) {
+	if (myPe > 0) {
             nbvalint = 0;
             m_nStepMax = tabint[nbvalint++];
             m_checkPoint = tabint[nbvalint++];

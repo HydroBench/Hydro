@@ -34,7 +34,7 @@ fakereadsize = 0	# number of bytes to read
 &MESH0
 nx=6000
 ny=6000			# total number of cells in the y dimension
-tilesize=124		# Power of two minus 4
+tilesize=252		# Power of two minus 4
 morton=1		# affects the tiles to threads according to a morton curve
 numa=1			# intialize arrays in a numa aware manner
 
