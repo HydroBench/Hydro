@@ -23,7 +23,7 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
         auto tileSize = m_tileSize + 2 * m_ExtraLayer;
 
         sycl::range<3> compute_range(m_nbTiles, tileSize, tileSize);
-        sycl::range<3> workgroup(1, 8, 32);
+        sycl::range<3> workgroup(1, 32, 32);
 
         sycl::nd_range<3> ndr_def(compute_range, workgroup);
 
@@ -307,9 +307,9 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
                     real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(ids.get_global_id(1),
                                                                               ids.get_global_id(2));
                     sycl::ext::oneapi::atomic_ref<real_t, sycl::ext::oneapi::memory_order::relaxed,
-                                                  sycl::ext::oneapi::memory_scope::system,
+                                             sycl::ext::oneapi::memory_scope::system,
 
-                                                  sycl::access::address_space::global_space>
+                                             sycl::access::address_space::global_space>
                         atomic_data(result[ids.get_global_id(0)]);
                     atomic_data.fetch_max(courn);
                 });
@@ -318,8 +318,7 @@ real_t Domain::computeTimeStepByStep(bool doComputeDt) {
 #else
             queue.submit([&](sycl::handler &handler) {
                 handler.parallel_for(
-                    ndr_def,
-                    sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::maximum<real_t>()),
+                    ndr_def, sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::maximum<real_t>()),
                     [=](auto ids, auto &res) {
                         real_t courn = the_tiles[ids.get_global_id(0)].computeDt2(
                             ids.get_global_id(1), ids.get_global_id(2));

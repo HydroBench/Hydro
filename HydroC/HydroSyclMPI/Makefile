@@ -13,9 +13,10 @@ OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 
 
 OPENMP=N
-PNG=O
-MPI=N
+PNG=N
+MPI=O
 HOST=$(shell uname -n | sed 's/[0-9]//g')
+#ARCHEXT=dpcpp.aot
 ARCHEXT=dpcpp
 NODEFAULT=no
 DPCPP=O
@@ -28,7 +29,9 @@ DEFS+=$(DEFSEXT)
 include make.compil
 
 ifeq ($(DPCPP),O)
-include make.dpcpp
+include make.$(ARCHEXT)
+
+
 NODEFAULT=yes
 endif
 
@@ -75,7 +78,7 @@ include $(DEPS)
 %.o: %.c
 	$(CC) -c -O3 $< -o $@ 
 
-DPCPP_INCLUDE=-I$(shell which dpcpp | sed "s,bin/dpcpp,include/sycl,g")
+DPCPP_INCLUDE= -I$(shell which dpcpp | sed "s,bin/dpcpp,include/sycl,g")
 DPCPP_INCLUDE+= -I$(shell which dpcpp | sed "s,bin/dpcpp,include,g")
 
 %.d: %.cpp

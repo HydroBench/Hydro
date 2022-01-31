@@ -112,7 +112,7 @@ long Domain::protectArrays(const protectionMode_t mode, const int f) {
 void Domain::writeProtectionVars(const int f) {
     int myPe = ParallelInfo::mype();
     int n_procs = ParallelInfo::nb_procs();
-
+    
     TextMarker_t magic, offmark, protmark, endprot;
     sprintf(protmark.t, "HYDROC BEGPROT %06d", myPe);
     sprintf(endprot.t, "HYDROC ENDPROT %06d", myPe);

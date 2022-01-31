@@ -1,6 +1,6 @@
 #include "Domain.hpp"
-#include "Utilities.hpp"
 #include "cclock.hpp"
+#include "Utilities.hpp"
 
 #include "ParallelInfo.hpp"
 
@@ -135,9 +135,9 @@ void Domain::pngProcess(void) {
         // cerr << "Processing final image -- fill done" << endl;
     } else {
 #ifdef MPI_ON
-        int myPe = ParallelInfo::mype();
-        int nProc = ParallelInfo::nb_procs();
-
+      int myPe = ParallelInfo::mype();
+      int nProc = ParallelInfo::nb_procs();
+      
         uint8_t *bufferR = 0;
         // each tile computes its max values
         getMaxVarValues(&ipmax, &idmax, &iuvmax);

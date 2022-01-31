@@ -2,15 +2,15 @@ CXX=dpcpp
 
 ARCHEXT=dpcpp
 
-#CFLAGS=-DSYCL_USE_NATIVE_FP_ATOMICS
 CFLAGS=
 
 
 ifneq ($(DBG),O)
-   OPTIM+=-O3 -g
+   OPTIM+= -O3 -g3  -fsycl-targets=spir64_gen
 else
    OPTIM += -g -O0
 endif
+
 
 ifeq ($(MPI),O)
      CFLAGS += -DMPI_ON
@@ -18,5 +18,4 @@ ifeq ($(MPI),O)
      export CXX=mpiicpc
 endif
 
-
-LIBS=-lsycl -lOpenCL 
+LIBS=-lsycl -lOpenCL -fsycl-targets=spir64_gen -Xs "-device 0x20a"
