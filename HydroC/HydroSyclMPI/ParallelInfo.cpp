@@ -43,71 +43,12 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
     // Quite Sorry for this device selection but some compute nodes may have several
     // GPU nodes and also several 'tiles' per GPU nodes
     int numTiledDevices = 0;
-    bool isTile = true;
-    if (std::getenv("MPI_GPU_SEL") && std::stoi(std::getenv("MPI_GPU_SEL")) == 0) {
-        isTile = false;
-    }
-    if (isTile) {
-        std::vector<sycl::device> *subdevices = new std::vector<sycl::device>();
-        for (auto const &plat : sycl::platform::get_platforms()) {
-            for (auto const &d : plat.get_devices()) {
-                if (d.is_gpu()) {
-                    auto part_prop = d.get_info<sycl::info::device::partition_properties>();
-                    if (part_prop.empty()) {
-                        subdevices->push_back(d);
-                    } else {
-                        numTiledDevices++;
-                        for (int i = 0; i < part_prop.size(); i++) {
-                            if (part_prop[i] ==
-                                sycl::info::partition_property::partition_by_affinity_domain) {
-                                auto sub_devices = d.create_sub_devices<
-                                    sycl::info::partition_property::partition_by_affinity_domain>(
-                                    sycl::info::partition_affinity_domain::numa);
-                                for (int j = 0; j < sub_devices.size(); j++)
-                                    subdevices->push_back(sub_devices[j]);
 
-                            } else {
-                                // We have to find where we can have this case
-                                // subdevices->push_back(d);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // Here subdevices contains the different tiles we can address (or devices)
+    // The Default
 
-        // We assume one MPI process per tile and that the MPI process have a contiguous numbering
-        // On the node => this is a mini app, remember !
+    sycl::default_selector device_selector;
 
-        // If only one MPI process, we take the first tile !
-        int nb_tiles = subdevices->size();
-        int finalCount = inst.m_myPe % nb_tiles;
-
-        if (numTiledDevices != 0) {
-            int my_device = inst.m_myPe % numTiledDevices;
-            int tile_of_device =
-                inst.m_myPe / numTiledDevices; // assume the same number of tiles per device
-            finalCount = my_device * nb_tiles / numTiledDevices + tile_of_device;
-            std::cerr << " MyPe " << inst.m_myPe << " count " << finalCount << std::endl;
-        }
-        q = sycl::queue((*subdevices)[finalCount]);
-
-        if (inst.m_myPe == 0 && inst.m_verbosity) {
-            std::cerr << "There is " << numTiledDevices << " Gpus with tiles" << std::endl;
-            std::cerr << "Selected a GPU devices from a choice of " << nb_tiles << " in the node"
-                      << std::endl;
-        }
-        delete subdevices;
-
-    } else {
-
-        // The Default
-
-        sycl::default_selector device_selector;
-
-        q = sycl::queue(device_selector);
-    }
+    q = sycl::queue(device_selector);
 
     if (inst.m_myPe == 0 && inst.m_verbosity)
         std::cerr << "DPC++ execution " << std::endl;
@@ -128,12 +69,12 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
             std::cerr << " Reduction of the number of workers to Max Work Group Size" << std::endl;
     }
 
-    if (isTile && device.has(sycl::aspect::ext_intel_pci_address)) {
+    if (device.has(sycl::aspect::ext_intel_pci_address)) {
         std::cerr << " Process " << inst.m_myPe << " running on "
                   << device.get_info<sycl::info::device::ext_intel_pci_address>() << std::endl;
     }
 
-    if (isTile && device.has(sycl::aspect::ext_intel_device_info_uuid)) {
+    if (device.has(sycl::aspect::ext_intel_device_info_uuid)) {
         auto UUID = device.get_info<sycl::info::device::ext_intel_device_info_uuid>();
         std::cerr << " Process " << inst.m_myPe << " running on device uuid ";
         for (auto c : UUID)
