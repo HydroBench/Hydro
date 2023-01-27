@@ -578,6 +578,9 @@ void Domain::readInput() {
             assert(checkValint == nbvalint);
         }
 
+        // A missing Broadcast
+        MPI_Bcast(&m_StepbyStep, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+
         nbvallng = 0;
         tablng[nbvallng++] = m_fakeReadSize;
         MPI_Bcast(tablng, nbvallng, MPI_INT, 0, MPI_COMM_WORLD);
