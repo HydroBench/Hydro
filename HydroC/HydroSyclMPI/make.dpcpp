@@ -1,20 +1,20 @@
-CXX=dpcpp
+CXX=icpx -fsycl
 
 ARCHEXT=dpcpp
 
 #CFLAGS=-DSYCL_USE_NATIVE_FP_ATOMICS
-CFLAGS=
+#CFLAGS=-fsycl  # Clang used for generating .d is not happy with that
 
 
 ifneq ($(DBG),O)
-   OPTIM+=-O3 -g
+   OPTIM+= -fsycl -O3 -g 
 else
-   OPTIM += -g -O0
+   OPTIM += -fsycl -g -O0
 endif
 
 ifeq ($(MPI),O)
      CFLAGS += -DMPI_ON
-     export I_MPI_CXX=dpcpp
+     export I_MPI_CXX=icpx
      export CXX=mpiicpc
 endif
 

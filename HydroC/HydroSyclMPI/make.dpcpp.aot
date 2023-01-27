@@ -1,4 +1,4 @@
-CXX=dpcpp
+CXX=icpx -fsycl
 
 ARCHEXT=dpcpp
 
@@ -14,7 +14,7 @@ endif
 
 ifeq ($(MPI),O)
      CFLAGS += -DMPI_ON
-     export I_MPI_CXX=dpcpp
+     export I_MPI_CXX="icpx -fsycl"
      export CXX=mpiicpc
 endif
 

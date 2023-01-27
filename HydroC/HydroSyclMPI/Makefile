@@ -83,7 +83,7 @@ DPCPP_INCLUDE+= -I$(shell which dpcpp | sed "s,bin/dpcpp,include,g")
 
 %.d: %.cpp
 	@echo "Generating $@"
-	@clang++ -M $(DEFS) $(CFLAGS) $(DPCPP_INCLUDE) -MF $@ $<
+	@clang++-10 -M $(DEFS) $(CFLAGS) $(DPCPP_INCLUDE) -MF $@ $<
 
 
 clean:

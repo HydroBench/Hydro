@@ -81,8 +81,7 @@ void Domain::computeDt() {
         .submit([&](sycl::handler &handler) {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range,
-                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
+            handler.parallel_for(global_range, sycl::reduction(result, sycl::minimum<real_t>()),
                                  [=](sycl::nd_item<1> it, auto &res) {
                                      int tile_idx = it.get_global_id(0);
                                      if (tile_idx < nbTiles) {
@@ -237,23 +236,26 @@ real_t Domain::computeTimeStep() {
         queue.submit([&](sycl::handler &handler) {
             auto global_range = sycl::nd_range<1>(nb_virtual_tiles, m_nbWorkItems);
 
-            handler.parallel_for(global_range,
-                                 sycl::ext::oneapi::reduction(result, sycl::ext::oneapi::minimum<real_t>()),
-                                 [=](sycl::nd_item<1> it, auto &res) {
-                                     int tile_idx = it.get_global_id(0);
-                                     auto local = the_tiles[0].deviceSharedVariables();
-                                     if (tile_idx < nb_tiles) {
+            handler.parallel_for(
+                global_range, sycl::reduction(result, sycl::minimum<real_t>()),
+                // was before with previous dpc++ version
+                //                                 sycl::ext::oneapi::reduction(result,
+                //                                 sycl::ext::oneapi::minimum<real_t>()),
+                [=](sycl::nd_item<1> it, auto &res) {
+                    int tile_idx = it.get_global_id(0);
+                    auto local = the_tiles[0].deviceSharedVariables();
+                    if (tile_idx < nb_tiles) {
 
-                                         auto &my_tile = the_tiles[tile_idx];
+                        auto &my_tile = the_tiles[tile_idx];
 
-                                         my_tile.updateconserv1();
+                        my_tile.updateconserv1();
 
-                                         my_tile.updateconserv(); // From Tile's u and flux to uold
+                        my_tile.updateconserv(); // From Tile's u and flux to uold
 
-                                         real_t local_dt = my_tile.computeDt();
-                                         res.combine(local_dt);
-                                     }
-                                 });
+                        real_t local_dt = my_tile.computeDt();
+                        res.combine(local_dt);
+                    }
+                });
         });
         start_wait = Custom_Timer::dcclock();
         queue.wait();
