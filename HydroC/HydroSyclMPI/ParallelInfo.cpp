@@ -46,9 +46,9 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
 
     // The Default
 
-    sycl::default_selector device_selector;
 
-    q = sycl::queue(device_selector);
+
+    q = sycl::queue(sycl::default_selector_v);
 
     if (inst.m_myPe == 0 && inst.m_verbosity)
         std::cerr << "DPC++ execution " << std::endl;
@@ -71,11 +71,11 @@ void ParallelInfo::init(int &argc, char **&argv, bool verbosity)
 
     if (device.has(sycl::aspect::ext_intel_pci_address)) {
         std::cerr << " Process " << inst.m_myPe << " running on "
-                  << device.get_info<sycl::info::device::ext_intel_pci_address>() << std::endl;
+                  << device.get_info<sycl::ext::intel::info::device::pci_address>() << std::endl;
     }
 
     if (device.has(sycl::aspect::ext_intel_device_info_uuid)) {
-        auto UUID = device.get_info<sycl::info::device::ext_intel_device_info_uuid>();
+        auto UUID = device.get_info<sycl::ext::intel::info::device::uuid>();
         std::cerr << " Process " << inst.m_myPe << " running on device uuid ";
         for (auto c : UUID)
             std::cerr << std::setfill('0') << std::setw(2) << std::hex << (int)c << " ";
